@@ -1,11 +1,9 @@
 <?php
-require_once '../lib/require.php';
+require_once '../vendor/autoload.php';
 use SciActive\R as R;
 
 R::undef('NymphConfig');
 R::undef('Nymph');
-
-include '../src/autoload.php';
 
 R::_('NymphConfig', [], function(){
 	// Nymph's configuration.
