@@ -1,8 +1,8 @@
 {
-	"name": "sciactive/nymph",
-	"description": "An object relational mapper with PHP and JavaScript interfaces.",
-	"version": "1.3.0",
-	"time": "2014-11-04",
+	"name": "sciactive/nymph-server",
+	"description": "Server side Nymph files.",
+	"version": "1.4.0beta1",
+	"time": "2015-02-16",
 	"homepage": "http://nymph.io/",
 	"type": "library",
 	"authors": [
@@ -32,13 +32,8 @@
 		"exclude": [
 			"**/.*",
 			".travis.yml",
-			"node_modules",
-			"bower_components",
-			"examples",
 			"testing",
-			"lib",
-			"vendor",
-			"bower.json"
+			"vendor"
 		]
 	},
 	"autoload": {
