@@ -26,7 +26,7 @@
 	"support": {
 		"issues": "https://github.com/sciactive/nymph/issues",
 		"wiki": "https://github.com/sciactive/nymph/wiki",
-		"source": "https://github.com/sciactive/nymph"
+		"source": "https://github.com/sciactive/nymph-server"
 	},
 	"archive": {
 		"exclude": [
