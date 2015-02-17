@@ -237,7 +237,7 @@ class REST {
 				$count = count($args);
 				if ($count > 1) {
 					for ($i = 1; $i < $count; $i++) {
-						$newArg = $this->translateSelector($args[$i]);
+						$newArg = self::translateSelector($args[$i]);
 						if ($newArg === false) {
 							return $this->httpError(400, "Bad Request");
 						}
@@ -271,7 +271,7 @@ class REST {
 	 * - JS ["&", {"crit": "val"}, ["&", ...], ...]
 	 * to PHP ["&", "crit" => "val", ["&", ...], ...]
 	 */
-	protected function translateSelector($selector) {
+	public static function translateSelector($selector) {
 		$newSel = [];
 		foreach ($selector as $key => $val) {
 			if ($key === "type" || $key === 0) {
@@ -279,7 +279,7 @@ class REST {
 				$newSel = array_merge($tmpArg, $newSel);
 			} elseif (is_numeric($key)) {
 				if (isset($val['type']) || (isset($val[0]) && in_array($val[0], ['&', '!&', '|', '!|']))) {
-					$tmpSel = $this->translateSelector($val);
+					$tmpSel = self::translateSelector($val);
 					if ($tmpSel === false) {
 						return false;
 					}

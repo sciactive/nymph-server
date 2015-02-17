@@ -700,6 +700,7 @@ class MySQLDriver implements DriverInterface {
 		$entities = [];
 		$class = isset($options['class']) ? $options['class'] : Entity;
 		$etype_dirty = isset($options['etype']) ? $options['etype'] : $class::etype;
+		$return = isset($options['return']) ? $options['return'] : 'entities';
 
 		$count = $ocount = 0;
 
@@ -751,26 +752,34 @@ class MySQLDriver implements DriverInterface {
 					$ocount++;
 					continue;
 				}
-				if ($this->config->cache['value']) {
-					$entity = $this->pull_cache($guid, $class);
-				} else {
-					$entity = null;
+				switch ($return) {
+					case 'entity':
+					default:
+						if ($this->config->cache['value']) {
+							$entity = $this->pull_cache($guid, $class);
+						} else {
+							$entity = null;
+						}
+						if (!isset($entity) || $data['mdate'] > $entity->mdate) {
+							$entity = call_user_func([$class, 'factory']);
+							$entity->guid = $guid;
+							if ($tags !== '') {
+								$entity->tags = explode(' ', $tags);
+							}
+							$entity->putData($data, $sdata);
+							if ($this->config->cache['value']) {
+								$this->pushCache($entity, $class);
+							}
+						}
+						if (isset($options['skip_ac'])) {
+							$entity->_nUseSkipAC = (bool) $options['skip_ac'];
+						}
+						$entities[] = $entity;
+						break;
+					case 'guid':
+						$entities[] = $guid;
+						break;
 				}
-				if (!isset($entity) || $data['mdate'] > $entity->mdate) {
-					$entity = call_user_func([$class, 'factory']);
-					$entity->guid = $guid;
-					if ($tags !== '') {
-						$entity->tags = explode(' ', $tags);
-					}
-					$entity->putData($data, $sdata);
-					if ($this->config->cache['value']) {
-						$this->pushCache($entity, $class);
-					}
-				}
-                if (isset($options['skip_ac'])) {
-                    $entity->_nUseSkipAC = (bool) $options['skip_ac'];
-				}
-				$entities[] = $entity;
 				$count++;
 				if (isset($options['limit']) && $count >= $options['limit']) {
 					break;

@@ -144,7 +144,7 @@ trait DriverTrait {
 	 *
 	 * @param array $selectors
 	 */
-	protected function formatSelectors(&$selectors) {
+	public function formatSelectors(&$selectors) {
 		foreach ($selectors as &$cur_selector) {
 			foreach ($cur_selector as $key => &$value) {
 				if ($key === 0) {
