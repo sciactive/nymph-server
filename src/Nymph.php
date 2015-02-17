@@ -18,8 +18,8 @@ R::_('Nymph', ['NymphConfig'], function($NymphConfig){
 
 	$Nymph = new $class($NymphConfig);
 	if (class_exists('\\Nymph\\PubSub\\HookMethods')) {
-		\Nymph\PubSub\HookMethods::setup();
 		\SciActive\H::hookObject($Nymph, 'Nymph->');
+		\Nymph\PubSub\HookMethods::setup();
 	}
 	return $Nymph;
 });
@@ -98,6 +98,31 @@ class Nymph {
 	 */
 	public static function sort(&$array, $property = null, $case_sensitive = false, $reverse = false) {
 		return R::_('Nymph')->sort($array, $property, $case_sensitive, $reverse);
+	}
+
+	/**
+	 * Make all selectors in the format:
+	 *
+	 * [
+	 *   0 => '&',
+	 *   'crit' => [
+	 *     ['value']
+	 *   ],
+	 *   'crit2' => [
+	 *     ['var', 'value']
+	 *   ],
+	 *   [
+	 *     0 => '|',
+	 *     'crit' => [
+	 *       ['value2']
+	 *     ]
+	 *   ]
+	 * ]
+	 *
+	 * @param array $selectors
+	 */
+	public static function formatSelectors(&$selectors) {
+        return R::_('Nymph')->formatSelectors($selectors);
 	}
 
 	// The rest of the methods are handled by __callStatic. Simple versions go

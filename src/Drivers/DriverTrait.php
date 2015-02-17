@@ -123,27 +123,6 @@ trait DriverTrait {
 		return false;
 	}
 
-	/**
-	 * Make all selectors in the format:
-	 *
-	 * [
-	 *   0 => '&',
-	 *   'crit' => [
-	 *     ['value']
-	 *   ],
-	 *   'crit2' => [
-	 *     ['var', 'value']
-	 *   ],
-	 *   [
-	 *     0 => '|',
-	 *     'crit' => [
-	 *       ['value2']
-	 *     ]
-	 *   ]
-	 * ]
-	 *
-	 * @param array $selectors
-	 */
 	public function formatSelectors(&$selectors) {
 		foreach ($selectors as &$cur_selector) {
 			foreach ($cur_selector as $key => &$value) {
