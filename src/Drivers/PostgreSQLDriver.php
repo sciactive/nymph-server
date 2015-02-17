@@ -745,7 +745,7 @@ class PostgreSQLDriver implements DriverInterface {
 		}
 
 		$entities = [];
-		$class = isset($options['class']) ? $options['class'] : 'Entity';
+		$class = isset($options['class']) ? $options['class'] : '\\Nymph\\Entity';
 		$etype_dirty = isset($options['etype']) ? $options['etype'] : $class::etype;
 		$return = isset($options['return']) ? $options['return'] : 'entity';
 
