@@ -698,9 +698,9 @@ class MySQLDriver implements DriverInterface {
 		}
 
 		$entities = [];
-		$class = isset($options['class']) ? $options['class'] : Entity;
+		$class = isset($options['class']) ? $options['class'] : 'Entity';
 		$etype_dirty = isset($options['etype']) ? $options['etype'] : $class::etype;
-		$return = isset($options['return']) ? $options['return'] : 'entities';
+		$return = isset($options['return']) ? $options['return'] : 'entity';
 
 		$count = $ocount = 0;
 
