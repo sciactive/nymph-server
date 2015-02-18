@@ -15,6 +15,11 @@ return (object) [
 		'description' => 'The database driver for Nymph to use.',
 		'value' => 'MySQL',
 	],
+	'pubsub' => [
+		'cname' => 'PubSub Enabled',
+		'description' => 'Whether Nymph should use the PubSub functionality. This requires the Nymph-PubSub package.',
+		'value' => class_exists('\\Nymph\\PubSub\\HookMethods'),
+	],
 	'use_plperl' => [
 		'cname' => 'Use PL/Perl Functions',
 		'description' => '(Postgres only) This speeds up PCRE regular expression matching ("match" criteria type) a lot, but requires the Perl Procedural Language to be installed on your Postgres server.',

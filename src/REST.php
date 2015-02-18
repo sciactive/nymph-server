@@ -148,7 +148,7 @@ class REST {
 			header("HTTP/1.1 200 OK", true, 200);
 		} else {
 			$result = Nymph::newUID("$data");
-			if (empty($result)) {
+			if (!is_int($result)) {
 				return $this->httpError(500, "Internal Server Error");
 			}
 			header("HTTP/1.1 201 Created", true, 201);
@@ -257,7 +257,7 @@ class REST {
 			$result = Nymph::$method("$data");
 			if ($result === null) {
 				return $this->httpError(404, "Not Found");
-			} elseif (empty($result)) {
+			} elseif (!is_int($result)) {
 				return $this->httpError(500, "Internal Server Error");
 			}
 			echo $result;

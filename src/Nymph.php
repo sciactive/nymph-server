@@ -17,7 +17,7 @@ R::_('Nymph', ['NymphConfig'], function($NymphConfig){
 	$class = '\\Nymph\\Drivers\\'.$NymphConfig->driver['value'].'Driver';
 
 	$Nymph = new $class($NymphConfig);
-	if (class_exists('\\Nymph\\PubSub\\HookMethods')) {
+	if ($NymphConfig->pubsub['value']) {
 		\SciActive\H::hookObject($Nymph, 'Nymph->');
 		\Nymph\PubSub\HookMethods::setup();
 	}
