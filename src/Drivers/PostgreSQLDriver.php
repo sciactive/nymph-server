@@ -1058,7 +1058,7 @@ class PostgreSQLDriver implements DriverInterface {
 		$row = pg_fetch_row($result);
 		$cur_uid = (int) $row[0];
 		pg_free_result($result);
-		if (!$cur_uid) {
+		if (!is_int($cur_uid)) {
 			$cur_uid = 1;
 			$this->query("INSERT INTO \"{$this->prefix}uids\" (\"name\", \"cur_uid\") VALUES ('".pg_escape_string($this->link, $name)."', {$cur_uid});");
 		} else {
