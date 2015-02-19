@@ -3,7 +3,7 @@ use Nymph\Nymph as Nymph;
 
 class QueriesTest extends PHPUnit_Framework_TestCase {
 	public function testInstantiate() {
-		$nymph = \SciActive\R::_('Nymph');
+		$nymph = \SciActive\RequirePHP::_('Nymph');
 		$this->assertInstanceOf('\\Nymph\\Drivers\\DriverInterface', $nymph);
 	}
 

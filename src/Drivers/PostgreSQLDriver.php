@@ -1056,7 +1056,7 @@ class PostgreSQLDriver implements DriverInterface {
 		$this->query('BEGIN;');
 		$result = $this->query("SELECT \"cur_uid\" FROM \"{$this->prefix}uids\" WHERE \"name\"='".pg_escape_string($this->link, $name)."' FOR UPDATE;");
 		$row = pg_fetch_row($result);
-		$cur_uid = (int) $row[0];
+		$cur_uid = is_numeric($row[0]) ? (int) $row[0] : null;
 		pg_free_result($result);
 		if (!is_int($cur_uid)) {
 			$cur_uid = 1;

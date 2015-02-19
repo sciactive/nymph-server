@@ -11,14 +11,14 @@
  * @copyright SciActive.com
  * @link http://sciactive.com/
  */
-use SciActive\R as R;
+use SciActive\RequirePHP as RequirePHP;
 
-R::_('Nymph', ['NymphConfig'], function($NymphConfig){
+RequirePHP::_('Nymph', ['NymphConfig'], function($NymphConfig){
 	$class = '\\Nymph\\Drivers\\'.$NymphConfig->driver['value'].'Driver';
 
 	$Nymph = new $class($NymphConfig);
 	if ($NymphConfig->pubsub['value']) {
-		\SciActive\H::hookObject($Nymph, 'Nymph->');
+		\SciActive\Hook::hookObject($Nymph, 'Nymph->');
 		\Nymph\PubSub\HookMethods::setup();
 	}
 	return $Nymph;
@@ -28,7 +28,7 @@ class Nymph {
 	const VERSION = '1.4.0-beta.2';
 
 	public static function __callStatic($name, $args) {
-		return call_user_func_array(array(R::_('Nymph'), $name), $args);
+		return call_user_func_array(array(RequirePHP::_('Nymph'), $name), $args);
 	}
 
 	// Any method with an argument passed by reference must be passed directly.
@@ -39,7 +39,7 @@ class Nymph {
 	 * @return bool True on success, false on failure.
 	 */
 	public static function deleteEntity(&$entity) {
-		return R::_('Nymph')->deleteEntity($entity);
+		return RequirePHP::_('Nymph')->deleteEntity($entity);
 	}
 
 	/**
@@ -55,7 +55,7 @@ class Nymph {
 	 * @return bool True on success, false on failure.
 	 */
 	public static function saveEntity(&$entity) {
-		return R::_('Nymph')->saveEntity($entity);
+		return RequirePHP::_('Nymph')->saveEntity($entity);
 	}
 
 	/**
@@ -71,7 +71,7 @@ class Nymph {
 	 * @param bool $reverse Reverse the sort order.
 	 */
 	public static function hsort(&$array, $property = null, $parent_property = null, $case_sensitive = false, $reverse = false) {
-		return R::_('Nymph')->hsort($array, $property, $parent_property, $case_sensitive, $reverse);
+		return RequirePHP::_('Nymph')->hsort($array, $property, $parent_property, $case_sensitive, $reverse);
 	}
 
 	/**
@@ -87,7 +87,7 @@ class Nymph {
 	 * @param bool $reverse Reverse the sort order.
 	 */
 	public static function psort(&$array, $property = null, $parent_property = null, $case_sensitive = false, $reverse = false) {
-		return R::_('Nymph')->psort($array, $property, $parent_property, $case_sensitive, $reverse);
+		return RequirePHP::_('Nymph')->psort($array, $property, $parent_property, $case_sensitive, $reverse);
 	}
 
 	/**
@@ -99,7 +99,7 @@ class Nymph {
 	 * @param bool $reverse Reverse the sort order.
 	 */
 	public static function sort(&$array, $property = null, $case_sensitive = false, $reverse = false) {
-		return R::_('Nymph')->sort($array, $property, $case_sensitive, $reverse);
+		return RequirePHP::_('Nymph')->sort($array, $property, $case_sensitive, $reverse);
 	}
 
 	/**
@@ -124,7 +124,7 @@ class Nymph {
 	 * @param array $selectors
 	 */
 	public static function formatSelectors(&$selectors) {
-        return R::_('Nymph')->formatSelectors($selectors);
+        return RequirePHP::_('Nymph')->formatSelectors($selectors);
 	}
 
 	// The rest of the methods are handled by __callStatic. Simple versions go

@@ -8,7 +8,7 @@
  * @copyright SciActive.com
  * @link http://sciactive.com/
  */
-use SciActive\R as R;
+use SciActive\RequirePHP as RequirePHP;
 
 /**
  * REST class.
@@ -247,7 +247,7 @@ class REST {
 				$result = call_user_func_array("\Nymph\Nymph::$method", $args);
 			}
 			if (empty($result)) {
-				if ($action === 'entity' || R::_('NymphConfig')->empty_list_error['value']) {
+				if ($action === 'entity' || RequirePHP::_('NymphConfig')->empty_list_error['value']) {
 					return $this->httpError(404, "Not Found");
 				}
 			}

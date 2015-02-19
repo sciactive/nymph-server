@@ -1,11 +1,11 @@
 <?php
 require_once '../vendor/autoload.php';
-use SciActive\R as R;
+use SciActive\RequirePHP as RequirePHP;
 
-R::undef('NymphConfig');
-R::undef('Nymph');
+RequirePHP::undef('NymphConfig');
+RequirePHP::undef('Nymph');
 
-R::_('NymphConfig', [], function(){
+RequirePHP::_('NymphConfig', [], function(){
 	// Nymph's configuration.
 
 	$nymph_config = include(__DIR__.DIRECTORY_SEPARATOR.'../conf/defaults.php');
