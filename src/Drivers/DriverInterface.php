@@ -1,4 +1,5 @@
 <?php namespace Nymph\Drivers;
+
 /**
  * Nymph driver interface.
  *
@@ -6,12 +7,7 @@
  * @license http://www.gnu.org/licenses/lgpl.html
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
- * @link http://sciactive.com/
- */
-
-/**
- * Nymph database abstraction layer or object relational mapper.
- * @package Nymph
+ * @link http://nymph.io/
  */
 interface DriverInterface {
 	public function connect();

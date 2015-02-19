@@ -1,19 +1,14 @@
 <?php namespace Nymph\Drivers;
+use Nymph\Exceptions;
+
 /**
- * MySQLDriver class.
+ * MySQL based Nymph driver.
  *
  * @package Nymph
  * @license http://www.gnu.org/licenses/lgpl.html
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
- * @link http://sciactive.com/
- */
-use Nymph\Exceptions;
-
-/**
- * MySQL ORM based Nymph driver.
- *
- * @package Nymph
+ * @link http://nymph.io/
  */
 class MySQLDriver implements DriverInterface {
 	use DriverTrait {

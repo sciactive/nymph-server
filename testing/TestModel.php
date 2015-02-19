@@ -1,7 +1,8 @@
 <?php
-// This file is a test class that extends the Entity class.
 
 /**
+ * This class is a test class that extends the Entity class.
+ *
  * @property string $name A string.
  * @property null $null A null.
  * @property string $string A string.

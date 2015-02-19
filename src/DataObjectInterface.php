@@ -2,16 +2,13 @@
 /**
  * Data Object interface.
  *
+ * Objects which hold data from some type of storage.
+ *
  * @package Nymph
  * @license http://www.gnu.org/licenses/lgpl.html
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
- * @link http://sciactive.com/
- */
-
-/**
- * Objects which hold data from some type of storage.
- * @package Nymph
+ * @link http://nymph.io/
  */
 interface DataObjectInterface {
 	/**

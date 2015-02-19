@@ -1,18 +1,74 @@
 <?php namespace Nymph;
+
 /**
- * Entity class.
+ * Database abstraction object.
+ *
+ * Used to provide a standard, abstract way to access, manipulate, and store
+ * data.
+ *
+ * The GUID is not set until the entity is saved. GUIDs must be unique forever,
+ * even after deletion. It's the job of the entity manager to make sure no two
+ * entities ever have the same GUID.
+ *
+ * Tags are used to classify entities. Where an etype is used to separate data
+ * by table, tags are used to separate entities within a table. You can define
+ * specific tags to be protected, meaning they cannot be added/removed on the
+ * frontend. It can be useful to allow user defined tags, such as for a blog
+ * post.
+ *
+ * Simply calling delete() will not unset the entity. It will still take up
+ * memory. Likewise, simply calling unset will not delete the entity from
+ * storage.
+ *
+ * Some notes about equals() and is():
+ *
+ * equals() performs a more strict comparison of the entity to another. Use
+ * equals() instead of the == operator, because the cached entity data causes ==
+ * to return false when it should return true. In order to return true, the
+ * entity and $object must meet the following criteria:
+ *
+ * - They must be entities.
+ * - They must have equal GUIDs. (Or both can have no GUID.)
+ * - They must be instances of the same class.
+ * - Their data must be equal.
+ *
+ * is() performs a less strict comparison of the entity to another. Use is()
+ * instead of the == operator when the entity's data may have been changed, but
+ * you only care if it is the same entity. In order to return true, the entity
+ * and $object must meet the following criteria:
+ *
+ * - They must be entities.
+ * - They must have equal GUIDs. (Or both can have no GUID.)
+ * - If they have no GUIDs, their data must be equal.
+ *
+ * Some notes about saving entities in other entity's variables:
+ *
+ * The entity class often uses references to store an entity in another entity's
+ * variable or array. The reference is stored as an array with the values:
+ *
+ * - 0 => The string 'nymph_entity_reference'
+ * - 1 => The reference entity's GUID.
+ * - 2 => The reference entity's class name.
+ *
+ * Since the reference entity's class name is stored in the reference on the
+ * entity's first save and used to retrieve the reference entity using the same
+ * class, if you change the class name in an update, you need to reassign the
+ * reference entity and save to storage.
+ *
+ * When an entity is loaded, it does not request its referenced entities from
+ * the entity manager. This is done the first time the variable/array is
+ * accessed. The referenced entity is then stored in a cache, so if it is
+ * altered elsewhere, then accessed again through the variable, the changes will
+ * *not* be there. Therefore, you should take great care when accessing entities
+ * from multiple variables. If you might be using a referenced entity again
+ * later in the code execution (after some other processing occurs), it's
+ * recommended to call clearCache().
  *
  * @package Nymph
  * @license http://www.gnu.org/licenses/lgpl.html
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
- * @link http://sciactive.com/
- */
-
-/**
- * Database abstraction object.
- *
- * @package Nymph
+ * @link http://nymph.io/
  * @property int $guid The entity's Globally Unique ID.
  * @property int $cdate The entity's creation date, as a Unix timestamp.
  * @property int $mdate The entity's modification date, as a Unix timestamp.

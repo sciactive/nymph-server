@@ -1,16 +1,4 @@
 <?php namespace Nymph;
-/**
- * Nymph
- *
- * An object relational mapper with PHP and JavaScript interfaces. Written by
- * Hunter Perrin for SciActive.
- *
- * @package Nymph
- * @license http://www.gnu.org/licenses/lgpl.html
- * @author Hunter Perrin <hperrin@gmail.com>
- * @copyright SciActive.com
- * @link http://sciactive.com/
- */
 use SciActive\RequirePHP as RequirePHP;
 
 RequirePHP::_('Nymph', ['NymphConfig'], function($NymphConfig){
@@ -24,6 +12,18 @@ RequirePHP::_('Nymph', ['NymphConfig'], function($NymphConfig){
 	return $Nymph;
 });
 
+/**
+ * Nymph
+ *
+ * An object relational mapper with PHP and JavaScript interfaces. Written by
+ * Hunter Perrin for SciActive.
+ *
+ * @package Nymph
+ * @license http://www.gnu.org/licenses/lgpl.html
+ * @author Hunter Perrin <hperrin@gmail.com>
+ * @copyright SciActive.com
+ * @link http://nymph.io/
+ */
 class Nymph {
 	const VERSION = '1.4.0-beta.2';
 
@@ -332,12 +332,13 @@ class Nymph {
 	 * </pre>
 	 *
 	 * @param array $options The options.
-	 * @param array $selectors,... The optional selectors to search for. If none are given, all entities are retrieved for the given options.
+	 * @param array $selector Unlimited optional selectors to search for. If none are given, all entities are retrieved for the given options.
+	 * @param array $selector,...
 	 * @return array|null An array of entities, or null on failure.
 	 * @todo An option to place a total count in a var.
 	 * @todo Use an asterisk to specify any variable.
 	 */
-	public static function getEntities() {
+	public static function getEntities($options) {
         return self::__callStatic(__FUNCTION__, func_get_args());
 	}
 	/**
@@ -350,10 +351,11 @@ class Nymph {
 	 * getEntities() would return an empty array.
 	 *
 	 * @param array $options The options to search for.
-	 * @param mixed $selectors,... The selectors to search for, or just a GUID.
+	 * @param array $selector Unlimited optional selectors to search for, or just a GUID.
+	 * @param array $selector,...
 	 * @return Entity|null An entity, or null on failure and nothing found.
 	 */
-	public static function getEntity() {
+	public static function getEntity($options) {
         return self::__callStatic(__FUNCTION__, func_get_args());
 	}
 	/**

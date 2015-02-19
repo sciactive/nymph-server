@@ -1,4 +1,5 @@
 <?php namespace Nymph\Exceptions;
+
 /**
  * EntityInvalidDataException exception.
  *
@@ -6,9 +7,8 @@
  * @license http://www.gnu.org/licenses/lgpl.html
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
- * @link http://sciactive.com/
+ * @link http://nymph.io/
  */
-
 class EntityInvalidDataException extends \Exception {
 	private $fields = [];
 

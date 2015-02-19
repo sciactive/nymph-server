@@ -1,13 +1,4 @@
 <?php namespace Nymph\Drivers;
-/**
- * Common Nymph driver methods.
- *
- * @package Nymph
- * @license http://www.gnu.org/licenses/lgpl.html
- * @author Hunter Perrin <hperrin@gmail.com>
- * @copyright SciActive.com
- * @link http://sciactive.com/
- */
 use Nymph\Exceptions;
 
 /**
@@ -16,6 +7,10 @@ use Nymph\Exceptions;
  * Provides basic methods for a Nymph ORM driver.
  *
  * @package Nymph
+ * @license http://www.gnu.org/licenses/lgpl.html
+ * @author Hunter Perrin <hperrin@gmail.com>
+ * @copyright SciActive.com
+ * @link http://nymph.io/
  */
 trait DriverTrait {
 	/**

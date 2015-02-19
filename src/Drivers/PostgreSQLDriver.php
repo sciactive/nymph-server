@@ -1,19 +1,14 @@
 <?php namespace Nymph\Drivers;
+use Nymph\Exceptions;
+
 /**
- * PostgreSQLDriver class.
+ * PostgreSQL based Nymph driver.
  *
  * @package Nymph
  * @license http://www.gnu.org/licenses/lgpl.html
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
- * @link http://sciactive.com/
- */
-use Nymph\Exceptions;
-
-/**
- * PostgreSQL ORM based Nymph driver.
- *
- * @package Nymph
+ * @link http://nymph.io/
  */
 class PostgreSQLDriver implements DriverInterface {
 	use DriverTrait {

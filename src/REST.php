@@ -1,22 +1,17 @@
 <?php namespace Nymph;
-/**
- * Simple Nymph REST server implementation.
- *
- * @package Nymph
- * @license http://www.gnu.org/licenses/lgpl.html
- * @author Hunter Perrin <hperrin@gmail.com>
- * @copyright SciActive.com
- * @link http://sciactive.com/
- */
 use SciActive\RequirePHP as RequirePHP;
 
 /**
- * REST class.
+ * Simple Nymph REST server implementation.
  *
  * Provides Nymph functionality compatible with a REST API. Allows the developer
  * to design their own API, or just use the reference implementation.
  *
  * @package Nymph
+ * @license http://www.gnu.org/licenses/lgpl.html
+ * @author Hunter Perrin <hperrin@gmail.com>
+ * @copyright SciActive.com
+ * @link http://nymph.io/
  */
 class REST {
 	/**
