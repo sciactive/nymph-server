@@ -1,8 +1,8 @@
 {
 	"name": "sciactive/nymph-server",
 	"description": "Server side Nymph files.",
-	"version": "1.4.0-beta.1",
-	"time": "2015-02-16",
+	"version": "1.4.0-beta.2",
+	"time": "2015-02-18",
 	"homepage": "http://nymph.io/",
 	"type": "library",
 	"authors": [

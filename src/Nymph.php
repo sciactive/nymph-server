@@ -25,6 +25,8 @@ R::_('Nymph', ['NymphConfig'], function($NymphConfig){
 });
 
 class Nymph {
+	const VERSION = '1.4.0-beta.2';
+
 	public static function __callStatic($name, $args) {
 		return call_user_func_array(array(R::_('Nymph'), $name), $args);
 	}
