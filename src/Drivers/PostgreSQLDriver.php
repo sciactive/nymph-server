@@ -768,6 +768,13 @@ class PostgreSQLDriver implements DriverInterface {
 		$this->formatSelectors($selectors);
 		$result = $this->query($this->makeEntityQuery($options, $selectors, $etype_dirty), $etype_dirty);
 
+		$typesAlreadyChecked = ['ref', '!ref', 'guid', '!guid', 'tag', '!tag', 'isset', '!isset', 'strict', '!strict', 'like', '!like', 'pmatch', '!pmatch'];
+		if ($this->usePLPerl) {
+			$typesAlreadyChecked[] = 'match';
+			$typesAlreadyChecked[] = '!match';
+		}
+		$dataValsAreadyChecked = [true, false, 1, 0, -1, []];
+
 		$row = pg_fetch_row($result);
 		while ($row) {
 			$guid = (int) $row[0];
@@ -787,7 +794,7 @@ class PostgreSQLDriver implements DriverInterface {
 				$row = pg_fetch_row($result);
 			}
 			// Check all conditions.
-			if ($this->checkData($data, $sdata, $selectors)) {
+			if ($this->checkData($data, $sdata, $selectors, null, null, $typesAlreadyChecked, $dataValsAreadyChecked)) {
 				if (isset($options['offset']) && ($ocount < $options['offset'])) {
 					// We must be sure this entity is actually a match before
 					// incrementing the offset.
@@ -832,110 +839,6 @@ class PostgreSQLDriver implements DriverInterface {
 		pg_free_result($result);
 
 		return $entities;
-	}
-
-	private function checkData(&$data, &$sdata, $selectors) {
-		foreach ($selectors as $cur_selector) {
-			$pass = false;
-			foreach ($cur_selector as $key => $value) {
-				if ($key === 0) {
-					$type = $value;
-					$type_is_not = ($type == '!&' || $type == '!|');
-					$type_is_or = ($type == '|' || $type == '!|');
-					$pass = !$type_is_or;
-					continue;
-				}
-				if (is_numeric($key)) {
-					$tmpArr = [$value];
-					$pass = $this->checkData($data, $sdata, $tmpArr);
-				} else {
-					$clause_not = $key[0] === '!';
-					if ($key === 'ref' || $key === '!ref') {
-						// Handled by the query.
-						$pass = true;
-					} elseif ($key === 'guid' || $key === '!guid' || $key === 'tag' || $key === '!tag') {
-						// Handled by the query.
-						$pass = true;
-					} elseif ($key === 'isset' || $key === '!isset') {
-						// Handled by the query.
-						$pass = true;
-					} elseif ($key === 'strict' || $key === '!strict') {
-						// Handled by the query.
-						$pass = true;
-					} elseif ($key === 'like' || $key === '!like') {
-						// Handled by the query.
-						$pass = true;
-					} elseif ($key === 'pmatch' || $key === '!pmatch') {
-						// Handled by the query.
-						$pass = true;
-					} elseif (($key === 'match' || $key === '!match') && $this->usePLPerl) {
-						// Handled by the query.
-						$pass = true;
-					} else {
-						// Check if it doesn't pass any for &, check if it
-						// passes any for |.
-						foreach ($value as $cur_value) {
-							if (($key === 'data' || $key === '!data') && ($cur_value[1] === true || $cur_value[1] === false || $cur_value[1] === 1 || $cur_value[1] === 0 || $cur_value[1] === -1 || $cur_value[1] === [])) {
-								// Handled by the query.
-								$pass = true;
-							} else {
-								// Unserialize the data for this variable.
-								if (isset($sdata[$cur_value[0]])) {
-									$data[$cur_value[0]] = unserialize($sdata[$cur_value[0]]);
-									unset($sdata[$cur_value[0]]);
-								}
-								if (!key_exists($cur_value[0], $data)) {
-									$pass = false;
-								} else {
-									switch ($key) {
-										case 'data':
-										case '!data':
-											// If we get here, it's not one of those simple data values above.
-											$pass = (($data[$cur_value[0]] == $cur_value[1]) xor ($type_is_not xor $clause_not));
-											break;
-										case 'array':
-										case '!array':
-											$pass = (((array) $data[$cur_value[0]] === $data[$cur_value[0]] && in_array($cur_value[1], $data[$cur_value[0]])) xor ($type_is_not xor $clause_not));
-											break;
-										case 'match':
-										case '!match':
-											// If we get here, plperl functions are off.
-											$pass = ((isset($data[$cur_value[0]]) && preg_match($cur_value[1], $data[$cur_value[0]])) xor ($type_is_not xor $clause_not));
-											break;
-										case 'gt':
-										case '!gt':
-											$pass = (($data[$cur_value[0]] > $cur_value[1]) xor ($type_is_not xor $clause_not));
-											break;
-										case 'gte':
-										case '!gte':
-											$pass = (($data[$cur_value[0]] >= $cur_value[1]) xor ($type_is_not xor $clause_not));
-											break;
-										case 'lt':
-										case '!lt':
-											$pass = (($data[$cur_value[0]] < $cur_value[1]) xor ($type_is_not xor $clause_not));
-											break;
-										case 'lte':
-										case '!lte':
-											$pass = (($data[$cur_value[0]] <= $cur_value[1]) xor ($type_is_not xor $clause_not));
-											break;
-									}
-								}
-							}
-							if (!($type_is_or xor $pass)) {
-								break;
-							}
-						}
-					}
-				}
-				if (!($type_is_or xor $pass)) {
-					break;
-				}
-			}
-			if (!$pass) {
-				return false;
-			}
-		}
-		return true;
 	}
 
 	public function getUID($name) {

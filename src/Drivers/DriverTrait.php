@@ -61,6 +61,167 @@ trait DriverTrait {
 		$this->connect();
 	}
 
+	public function checkData(&$data, &$sdata, $selectors, $guid = null, $tags = null, $typesAlreadyChecked = [], $dataValsAreadyChecked = []) {
+		foreach ($selectors as $cur_selector) {
+			$pass = false;
+			foreach ($cur_selector as $key => $value) {
+				if ($key === 0) {
+					$type = $value;
+					$type_is_not = ($type == '!&' || $type == '!|');
+					$type_is_or = ($type == '|' || $type == '!|');
+					$pass = !$type_is_or;
+					continue;
+				}
+				if (is_numeric($key)) {
+					$tmpArr = [$value];
+					$pass = $this->checkData($data, $sdata, $tmpArr);
+				} else {
+					$clause_not = $key[0] === '!';
+					if (in_array($key, $typesAlreadyChecked)) {
+						// Skip because it has already been checked. (By the query.)
+						$pass = true;
+					} else {
+						// Check if it doesn't pass any for &, check if it
+						// passes any for |.
+						foreach ($value as $cur_value) {
+							if (
+									(($key === 'guid' || $key === '!guid') && !isset($guid)) ||
+									(($key === 'tag' || $key === '!tag') && !isset($tags)) ||
+									(($key === 'data' || $key === '!data') && in_array($cur_value[1], $dataValsAreadyChecked, true))
+							) {
+								// Skip because it has already been checked. (By the query.)
+								$pass = true;
+							} else {
+								// Unserialize the data for this variable.
+								if (isset($sdata[$cur_value[0]])) {
+									$data[$cur_value[0]] = unserialize($sdata[$cur_value[0]]);
+									unset($sdata[$cur_value[0]]);
+								}
+								if ($key !== 'guid' && $key !== '!guid' && $key !== 'tag' && $key !== '!tag' && !key_exists($cur_value[0], $data)) {
+									$pass = false;
+								} else {
+									switch ($key) {
+										case 'guid':
+										case '!guid':
+											$pass = (($guid == $cur_value[0]) xor ($type_is_not xor $clause_not));
+											break;
+										case 'tag':
+										case '!tag':
+											$pass = (in_array($cur_value[0], $tags) xor ($type_is_not xor $clause_not));
+											break;
+										case 'isset':
+										case '!isset':
+											$pass = (isset($data[$cur_value[0]]) xor ($type_is_not xor $clause_not));
+											break;
+										case 'ref':
+										case '!ref':
+											$pass = ($this->entityReferenceSearch($data[$cur_value[0]], $cur_value[1]) xor ($type_is_not xor $clause_not));
+											break;
+										case 'strict':
+										case '!strict':
+											$pass = (($data[$cur_value[0]] === $cur_value[1]) xor ($type_is_not xor $clause_not));
+											break;
+										case 'data':
+										case '!data':
+											$pass = (($data[$cur_value[0]] == $cur_value[1]) xor ($type_is_not xor $clause_not));
+											break;
+										case 'like':
+										case '!like':
+											$pass = ((isset($data[$cur_value[0]]) && preg_match('/^'.str_replace(['%', '_'], ['.*?', '.'], preg_quote($cur_value[1], '/')).'$/', $data[$cur_value[0]])) xor ($type_is_not xor $clause_not));
+											break;
+										case 'pmatch':
+										case '!pmatch':
+											// Convert a POSIX regex to a PCRE regex.
+											$pass = (
+												(
+													isset($data[$cur_value[0]]) &&
+													preg_match(
+														'~'.str_replace(
+															[
+																'~',
+																'[[:<:]]',
+																'[[:>:]]',
+																'[:alnum:]]',
+																'[:alpha:]]',
+																'[:blank:]]',
+																'[:cntrl:]]',
+																'[:digit:]]',
+																'[:graph:]]',
+																'[:lower:]]',
+																'[:print:]]',
+																'[:punct:]]',
+																'[:space:]]',
+																'[:upper:]]',
+																'[:xdigit:]',
+															], [
+																'\~',
+																'\b(?=\w)',
+																'(?<=\w)\b',
+																'[A-Za-z0-9]',
+																'[A-Za-z]',
+																'\s',
+																'[\000\001\002\003\004\005\006\007\008\009\010\011\012\013\014\015\016\017\018\019\020\021\022\023\024\025\026\027\028\029\030\031\032\033\034\035\036\037\177]',
+																'\d',
+																'[A-Za-z0-9!"#$%&\'()*+,\-./:;<=>?@[\\\]^_`{|}\~]',
+																'[a-z]',
+																'[A-Za-z0-9!"#$%&\'()*+,\-./:;<=>?@[\\\]^_`{|}\~]',
+																'[!"#$%&\'()*+,\-./:;<=>?@[\\\]^_`{|}\~]',
+																'[\t\n\x0B\f\r ]',
+																'[A-Z]',
+																'[0-9A-Fa-f]',
+															],
+															$cur_value[1]
+														).'~',
+														$data[$cur_value[0]]
+													)
+												) xor
+												($type_is_not xor $clause_not)
+											);
+											break;
+										case 'match':
+										case '!match':
+											$pass = ((isset($data[$cur_value[0]]) && preg_match($cur_value[1], $data[$cur_value[0]])) xor ($type_is_not xor $clause_not));
+											break;
+										case 'gt':
+										case '!gt':
+											$pass = (($data[$cur_value[0]] > $cur_value[1]) xor ($type_is_not xor $clause_not));
+											break;
+										case 'gte':
+										case '!gte':
+											$pass = (($data[$cur_value[0]] >= $cur_value[1]) xor ($type_is_not xor $clause_not));
+											break;
+										case 'lt':
+										case '!lt':
+											$pass = (($data[$cur_value[0]] < $cur_value[1]) xor ($type_is_not xor $clause_not));
+											break;
+										case 'lte':
+										case '!lte':
+											$pass = (($data[$cur_value[0]] <= $cur_value[1]) xor ($type_is_not xor $clause_not));
+											break;
+										case 'array':
+										case '!array':
+											$pass = (((array) $data[$cur_value[0]] === $data[$cur_value[0]] && in_array($cur_value[1], $data[$cur_value[0]])) xor ($type_is_not xor $clause_not));
+											break;
+									}
+								}
+							}
+							if (!($type_is_or xor $pass)) {
+								break;
+							}
+						}
+					}
+				}
+				if (!($type_is_or xor $pass)) {
+					break;
+				}
+			}
+			if (!$pass) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	/**
 	 * Remove all copies of an entity from the cache.
 	 *
@@ -89,7 +250,10 @@ trait DriverTrait {
 	 * @access protected
 	 */
 	protected function entityReferenceSearch($value, $entity) {
-		if ((array) $value !== $value || !isset($entity)) {
+		if ((array) $value !== $value && !$value instanceof Traversable) {
+			return false;
+		}
+		if (!isset($entity)) {
 			throw new Exceptions\InvalidParametersException();
 		}
 		// Get the GUID, if the passed $entity is an object.

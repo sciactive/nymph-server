@@ -1,5 +1,5 @@
 <?php
-require_once '../vendor/autoload.php';
+require file_exists(dirname(dirname(__DIR__)).'/autoload-dev.php') ? dirname(dirname(__DIR__)).'/autoload-dev.php' : dirname(__DIR__).'/vendor/autoload.php';
 use SciActive\RequirePHP as RequirePHP;
 
 RequirePHP::undef('NymphConfig');
@@ -22,6 +22,8 @@ RequirePHP::_('NymphConfig', [], function(){
 		$nymph_config->MySQL->user['value'] = 'nymph_testing';
 		$nymph_config->MySQL->password['value'] = 'password';
 	}
+
+	$nymph_config->pubsub['value'] = false;
 
 	return $nymph_config;
 });

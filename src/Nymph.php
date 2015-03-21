@@ -33,6 +33,22 @@ class Nymph {
 
 	// Any method with an argument passed by reference must be passed directly.
 	/**
+	 * Check entity data to see if it matches given selectors.
+	 *
+	 * @param array $data An array of unserialized entity data. The data array should contain the cdate and mdate.
+	 * @param array $sdata An array of serialized entity data. If a value here is checked, it will be unserialized and placed in the $data array.
+	 * @param array $selectors An array of formatted selectors.
+	 * @param int|null $guid The guid. If left null, guid will not be checked, and automatically considered passing.
+	 * @param array|null $tags The tags array. If left null, tags will not be checked, and automatically considered passing.
+	 * @param array $typesAlreadyChecked An array of criteria types that have already been checked. They will be considered passing.
+	 * @param array $dataValsAreadyChecked An array of data values that have already been checked. They will be considered passing if the value is identical.
+	 * @return boolean Whether the entity data passes the given selectors.
+	 */
+	public static function checkData(&$data, &$sdata, $selectors, $guid = null, $tags = null, $typesAlreadyChecked = [], $dataValsAreadyChecked = []) {
+		return RequirePHP::_('Nymph')->checkData(&$data, &$sdata, $selectors, $guid, $tags, $typesAlreadyChecked, $dataValsAreadyChecked);
+	}
+
+	/**
 	 * Delete an entity from the database.
 	 *
 	 * @param Entity &$entity The entity to delete.

@@ -649,7 +649,7 @@ class Entity implements EntityInterface {
 		}
 	}
 
-	public function jsonSerialize() {
+	public function jsonSerialize($clientClassName = true) {
 		$object = (object) [];
 		if ($this->isASleepingReference) {
 			return $this->sleepingReference;
@@ -689,7 +689,7 @@ class Entity implements EntityInterface {
 				$object->data[$key] = unserialize($val);
 			}
 		}
-		$object->class = isset($this->clientClassName) ? $this->clientClassName : get_class($this);
+		$object->class = ($clientClassName && isset($this->clientClassName)) ? $this->clientClassName : get_class($this);
 		return $object;
 	}
 
