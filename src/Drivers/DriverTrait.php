@@ -269,7 +269,7 @@ trait DriverTrait {
 		} else {
 			$entity = [(int) $entity];
 		}
-		if ($value[0] == 'nymph_entity_reference') {
+		if (isset($value[0]) && $value[0] == 'nymph_entity_reference') {
 			return in_array($value[1], $entity);
 		} else {
 			// Search through multidimensional arrays looking for the reference.

@@ -1,4 +1,6 @@
 <?php
+error_reporting(E_ALL);
+
 require file_exists(dirname(dirname(__DIR__)).'/autoload-dev.php') ? dirname(dirname(__DIR__)).'/autoload-dev.php' : dirname(__DIR__).'/vendor/autoload.php';
 use SciActive\RequirePHP as RequirePHP;
 
