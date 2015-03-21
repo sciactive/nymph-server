@@ -45,7 +45,7 @@ class Nymph {
 	 * @return boolean Whether the entity data passes the given selectors.
 	 */
 	public static function checkData(&$data, &$sdata, $selectors, $guid = null, $tags = null, $typesAlreadyChecked = [], $dataValsAreadyChecked = []) {
-		return RequirePHP::_('Nymph')->checkData(&$data, &$sdata, $selectors, $guid, $tags, $typesAlreadyChecked, $dataValsAreadyChecked);
+		return RequirePHP::_('Nymph')->checkData($data, $sdata, $selectors, $guid, $tags, $typesAlreadyChecked, $dataValsAreadyChecked);
 	}
 
 	/**
