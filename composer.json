@@ -1,8 +1,8 @@
 {
 	"name": "sciactive/nymph-server",
-	"description": "Server side Nymph files.",
-	"version": "1.4.0-beta.4",
-	"time": "2015-02-18",
+	"description": "Powerful object data storage and querying for collaborative web apps.",
+	"version": "1.4.0",
+	"time": "2015-03-27",
 	"homepage": "http://nymph.io/",
 	"type": "library",
 	"authors": [
@@ -19,6 +19,7 @@
 		"postgres",
 		"postgresql",
 		"object database",
+		"object data store",
 		"object relational mapper",
 		"object relational mapping"
 	],

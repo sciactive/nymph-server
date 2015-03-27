@@ -27,7 +27,7 @@ mysql:
   user: nymph_testing
   encoding: utf8
 
-install: composer install
+install: composer install --dev
 
 before_script:
   - if [[ "$DB" == "pgsql" || "$DB" == "" ]]; then psql -c "CREATE DATABASE nymph_testing;" -U postgres; fi

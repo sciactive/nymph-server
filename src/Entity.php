@@ -143,6 +143,7 @@ class Entity implements EntityInterface {
 	 *
 	 * @var array
 	 * @access protected
+	 * @todo Filter these vars from requests from the frontend with Tilmeld.
 	 */
 	protected $privateData = [];
 	/**
