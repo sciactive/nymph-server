@@ -56,16 +56,16 @@
     "packages-dev": [
         {
             "name": "sciactive/hookphp",
-            "version": "1.2.0",
+            "version": "1.2.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sciactive/hookphp.git",
-                "reference": "264223e353f10376d4b6fbe912ab7326539b7f34"
+                "reference": "08b0e9068d7e0052941bd6f2a6c1829eb54977b7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sciactive/hookphp/zipball/264223e353f10376d4b6fbe912ab7326539b7f34",
-                "reference": "264223e353f10376d4b6fbe912ab7326539b7f34",
+                "url": "https://api.github.com/repos/sciactive/hookphp/zipball/08b0e9068d7e0052941bd6f2a6c1829eb54977b7",
+                "reference": "08b0e9068d7e0052941bd6f2a6c1829eb54977b7",
                 "shasum": ""
             },
             "type": "library",
