@@ -94,7 +94,7 @@ class REST {
 			$created = [];
 			$invalidData = false;
 			foreach ($ents as $newEnt) {
-				if ((int)$newEnt['guid'] > 0) {
+				if ((int) $newEnt['guid'] > 0) {
 					$invalidData = true;
 					continue;
 				}
@@ -131,7 +131,7 @@ class REST {
 			if (!in_array($args['method'], $entity->clientEnabledMethods())) {
 				return $this->httpError(403, "Forbidden");
 			}
-			if (!$entity || ((int)$args['entity']['guid'] > 0 && !$entity->guid) || !is_callable([$entity, $args['method']])) {
+			if (!$entity || ((int) $args['entity']['guid'] > 0 && !$entity->guid) || !is_callable([$entity, $args['method']])) {
 				return $this->httpError(400, "Bad Request");
 			}
 			try {
@@ -163,7 +163,7 @@ class REST {
 			if (!isset($args['name']) || !isset($args['value']) || !is_string($args['name']) || !is_numeric($args['value'])) {
 				return $this->httpError(400, "Bad Request");
 			}
-			$result = Nymph::setUID($args['name'], (int)$args['value']);
+			$result = Nymph::setUID($args['name'], (int) $args['value']);
 			if (!$result) {
 				return $this->httpError(500, "Internal Server Error");
 			}
@@ -177,7 +177,7 @@ class REST {
 			$invalidData = false;
 			$notfound = false;
 			foreach ($ents as $newEnt) {
-				if (!is_numeric($newEnt['guid']) || (int)$newEnt['guid'] <= 0) {
+				if (!is_numeric($newEnt['guid']) || (int) $newEnt['guid'] <= 0) {
 					$invalidData = true;
 					continue;
 				}
@@ -301,11 +301,11 @@ class REST {
 		if (!class_exists($entityData['class'])) {
 			return false;
 		}
-		if ((int)$entityData['guid'] > 0) {
+		if ((int) $entityData['guid'] > 0) {
 			$entity = Nymph::getEntity(
 					['class' => $entityData['class']],
 					['&',
-						'guid' => (int)$entityData['guid']
+						'guid' => (int) $entityData['guid']
 					]
 				);
 			if ($entity === null) {

@@ -21,6 +21,7 @@ interface EntityInterface extends DataObjectInterface, \JsonSerializable {
 	 * Load an entity.
 	 *
 	 * @param int $id The ID of the entity to load, 0 for a new entity.
+	 * @return Entity|null
 	 */
 	public function __construct($id = 0);
 	/**

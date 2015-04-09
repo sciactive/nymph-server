@@ -235,7 +235,7 @@ trait DriverTrait {
 	public function deleteEntity(&$entity) {
 		$class = get_class($entity);
 		$return = $this->deleteEntityByID($entity->guid, $class::ETYPE);
-		if ( $return ) {
+		if ($return) {
 			$entity->guid = null;
 		}
 		return $return;
@@ -258,7 +258,7 @@ trait DriverTrait {
 		}
 		// Get the GUID, if the passed $entity is an object.
 		if ((array) $entity === $entity) {
-			foreach($entity as &$cur_entity) {
+			foreach ($entity as &$cur_entity) {
 				if ((object) $cur_entity === $cur_entity) {
 					$cur_entity = $cur_entity->guid;
 				}

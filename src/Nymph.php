@@ -1,7 +1,7 @@
 <?php namespace Nymph;
 use SciActive\RequirePHP as RequirePHP;
 
-RequirePHP::_('Nymph', ['NymphConfig'], function($NymphConfig){
+RequirePHP::_('Nymph', ['NymphConfig'], function($NymphConfig) {
 	$class = '\\Nymph\\Drivers\\'.$NymphConfig['driver'].'Driver';
 
 	$Nymph = new $class($NymphConfig);
@@ -174,7 +174,7 @@ class Nymph {
 	 * @param array $selectors
 	 */
 	public static function formatSelectors(&$selectors) {
-        return RequirePHP::_('Nymph')->formatSelectors($selectors);
+		return RequirePHP::_('Nymph')->formatSelectors($selectors);
 	}
 
 	// The rest of the methods are handled by __callStatic. Simple versions go
@@ -185,7 +185,7 @@ class Nymph {
 	 * @return bool Whether the instance is connected to the database.
 	 */
 	public static function connect() {
-        return self::__callStatic(__FUNCTION__, func_get_args());
+		return self::__callStatic(__FUNCTION__, func_get_args());
 	}
 	/**
 	 * Delete an entity by its GUID.
@@ -194,7 +194,7 @@ class Nymph {
 	 * @return bool True on success, false on failure.
 	 */
 	public static function deleteEntityByID($guid) {
-        return self::__callStatic(__FUNCTION__, func_get_args());
+		return self::__callStatic(__FUNCTION__, func_get_args());
 	}
 	/**
 	 * Delete a unique ID.
@@ -203,7 +203,7 @@ class Nymph {
 	 * @return bool True on success, false on failure.
 	 */
 	public static function deleteUID($name) {
-        return self::__callStatic(__FUNCTION__, func_get_args());
+		return self::__callStatic(__FUNCTION__, func_get_args());
 	}
 	/**
 	 * Disconnect from the database.
@@ -211,7 +211,7 @@ class Nymph {
 	 * @return bool Whether the instance is connected to the database.
 	 */
 	public static function disconnect() {
-        return self::__callStatic(__FUNCTION__, func_get_args());
+		return self::__callStatic(__FUNCTION__, func_get_args());
 	}
 	/**
 	 * Export entities to a local file.
@@ -247,7 +247,7 @@ class Nymph {
 	 * @return bool True on success, false on failure.
 	 */
 	public static function export($filename) {
-        return self::__callStatic(__FUNCTION__, func_get_args());
+		return self::__callStatic(__FUNCTION__, func_get_args());
 	}
 	/**
 	 * Export entities to the client as a downloadable file.
@@ -255,7 +255,7 @@ class Nymph {
 	 * @return bool True on success, false on failure.
 	 */
 	public static function exportPrint() {
-        return self::__callStatic(__FUNCTION__, func_get_args());
+		return self::__callStatic(__FUNCTION__, func_get_args());
 	}
 	/**
 	 * Get an array of entities.
@@ -389,7 +389,7 @@ class Nymph {
 	 * @todo Use an asterisk to specify any variable.
 	 */
 	public static function getEntities($options) {
-        return self::__callStatic(__FUNCTION__, func_get_args());
+		return self::__callStatic(__FUNCTION__, func_get_args());
 	}
 	/**
 	 * Get the first entity to match all options/selectors.
@@ -406,7 +406,7 @@ class Nymph {
 	 * @return Entity|null An entity, or null on failure and nothing found.
 	 */
 	public static function getEntity($options) {
-        return self::__callStatic(__FUNCTION__, func_get_args());
+		return self::__callStatic(__FUNCTION__, func_get_args());
 	}
 	/**
 	 * Get the current value of a unique ID.
@@ -415,7 +415,7 @@ class Nymph {
 	 * @return int|null The UID's value, or null on failure and if it doesn't exist.
 	 */
 	public static function getUID($name) {
-        return self::__callStatic(__FUNCTION__, func_get_args());
+		return self::__callStatic(__FUNCTION__, func_get_args());
 	}
 	/**
 	 * Import entities from a file.
@@ -424,7 +424,7 @@ class Nymph {
 	 * @return bool True on success, false on failure.
 	 */
 	public static function import($filename) {
-        return self::__callStatic(__FUNCTION__, func_get_args());
+		return self::__callStatic(__FUNCTION__, func_get_args());
 	}
 	/**
 	 * Increment or create a unique ID and return the new value.
@@ -454,7 +454,7 @@ class Nymph {
 	 * @return int|null The UID's new value, or null on failure.
 	 */
 	public static function newUID($name) {
-        return self::__callStatic(__FUNCTION__, func_get_args());
+		return self::__callStatic(__FUNCTION__, func_get_args());
 	}
 	/**
 	 * Rename a unique ID.
@@ -464,7 +464,7 @@ class Nymph {
 	 * @return bool True on success, false on failure.
 	 */
 	public static function renameUID($oldName, $newName) {
-        return self::__callStatic(__FUNCTION__, func_get_args());
+		return self::__callStatic(__FUNCTION__, func_get_args());
 	}
 	/**
 	 * Set the value of a UID.
@@ -474,6 +474,6 @@ class Nymph {
 	 * @return bool True on success, false on failure.
 	 */
 	public static function setUID($name, $value) {
-        return self::__callStatic(__FUNCTION__, func_get_args());
+		return self::__callStatic(__FUNCTION__, func_get_args());
 	}
 }
