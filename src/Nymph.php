@@ -2,10 +2,10 @@
 use SciActive\RequirePHP as RequirePHP;
 
 RequirePHP::_('Nymph', ['NymphConfig'], function($NymphConfig){
-	$class = '\\Nymph\\Drivers\\'.$NymphConfig->driver['value'].'Driver';
+	$class = '\\Nymph\\Drivers\\'.$NymphConfig['driver'].'Driver';
 
 	$Nymph = new $class($NymphConfig);
-	if ($NymphConfig->pubsub['value']) {
+	if ($NymphConfig['pubsub']) {
 		\SciActive\Hook::hookObject($Nymph, 'Nymph->');
 		\Nymph\PubSub\HookMethods::setup();
 	}
@@ -29,6 +29,40 @@ class Nymph {
 
 	public static function __callStatic($name, $args) {
 		return call_user_func_array(array(RequirePHP::_('Nymph'), $name), $args);
+	}
+
+	/**
+	 * Apply configuration to Nymph.
+	 *
+	 * $config should be an associative array of Nymph configuration. Use the
+	 * following form:
+	 *
+	 * [
+	 *     'driver' => 'MySQL',
+	 *     'pubsub' => true,
+	 *     'MySql' => [
+	 *         'host' => '127.0.0.1'
+	 *     ]
+	 * ]
+	 *
+	 * @param array $config An associative array of Nymph's configuration.
+	 */
+	public static function configure($config = []) {
+		\SciActive\RequirePHP::_('NymphConfig', [], function() use ($config){
+			$defaults = include dirname(__DIR__).'/conf/defaults.php';
+			$nymphConfig = [];
+			foreach ($defaults as $curName => $curOption) {
+				if ((array) $curOption === $curOption && isset($curOption['value'])) {
+					$nymphConfig[$curName] = $curOption['value'];
+				} else {
+					$nymphConfig[$curName] = [];
+					foreach ($curOption as $curSubName => $curSubOption) {
+						$nymphConfig[$curName][$curSubName] = $curSubOption['value'];
+					}
+				}
+			}
+			return array_replace_recursive($nymphConfig, $config);
+		});
 	}
 
 	// Any method with an argument passed by reference must be passed directly.
@@ -78,16 +112,16 @@ class Nymph {
 	 * Sort an array of entities hierarchically by a specified property's value.
 	 *
 	 * Entities will be placed immediately after their parents. The
-	 * $parent_property property must hold either null, or the entity's parent.
+	 * $parentProperty property must hold either null, or the entity's parent.
 	 *
 	 * @param array &$array The array of entities.
 	 * @param string|null $property The name of the property to sort entities by.
-	 * @param string|null $parent_property The name of the property which holds the parent of the entity.
-	 * @param bool $case_sensitive Sort case sensitively.
+	 * @param string|null $parentProperty The name of the property which holds the parent of the entity.
+	 * @param bool $caseSensitive Sort case sensitively.
 	 * @param bool $reverse Reverse the sort order.
 	 */
-	public static function hsort(&$array, $property = null, $parent_property = null, $case_sensitive = false, $reverse = false) {
-		return RequirePHP::_('Nymph')->hsort($array, $property, $parent_property, $case_sensitive, $reverse);
+	public static function hsort(&$array, $property = null, $parentProperty = null, $caseSensitive = false, $reverse = false) {
+		return RequirePHP::_('Nymph')->hsort($array, $property, $parentProperty, $caseSensitive, $reverse);
 	}
 
 	/**
@@ -98,12 +132,12 @@ class Nymph {
 	 *
 	 * @param array &$array The array of entities.
 	 * @param string|null $property The name of the property to sort entities by.
-	 * @param string|null $parent_property The name of the property which holds the parent of the entity.
-	 * @param bool $case_sensitive Sort case sensitively.
+	 * @param string|null $parentProperty The name of the property which holds the parent of the entity.
+	 * @param bool $caseSensitive Sort case sensitively.
 	 * @param bool $reverse Reverse the sort order.
 	 */
-	public static function psort(&$array, $property = null, $parent_property = null, $case_sensitive = false, $reverse = false) {
-		return RequirePHP::_('Nymph')->psort($array, $property, $parent_property, $case_sensitive, $reverse);
+	public static function psort(&$array, $property = null, $parentProperty = null, $caseSensitive = false, $reverse = false) {
+		return RequirePHP::_('Nymph')->psort($array, $property, $parentProperty, $caseSensitive, $reverse);
 	}
 
 	/**
@@ -111,11 +145,11 @@ class Nymph {
 	 *
 	 * @param array &$array The array of entities.
 	 * @param string|null $property The name of the property to sort entities by.
-	 * @param bool $case_sensitive Sort case sensitively.
+	 * @param bool $caseSensitive Sort case sensitively.
 	 * @param bool $reverse Reverse the sort order.
 	 */
-	public static function sort(&$array, $property = null, $case_sensitive = false, $reverse = false) {
-		return RequirePHP::_('Nymph')->sort($array, $property, $case_sensitive, $reverse);
+	public static function sort(&$array, $property = null, $caseSensitive = false, $reverse = false) {
+		return RequirePHP::_('Nymph')->sort($array, $property, $caseSensitive, $reverse);
 	}
 
 	/**
@@ -425,11 +459,11 @@ class Nymph {
 	/**
 	 * Rename a unique ID.
 	 *
-	 * @param string $old_name The old name.
-	 * @param string $new_name The new name.
+	 * @param string $oldName The old name.
+	 * @param string $newName The new name.
 	 * @return bool True on success, false on failure.
 	 */
-	public static function renameUID($old_name, $new_name) {
+	public static function renameUID($oldName, $newName) {
         return self::__callStatic(__FUNCTION__, func_get_args());
 	}
 	/**

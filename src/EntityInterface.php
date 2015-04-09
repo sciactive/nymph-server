@@ -15,19 +15,26 @@
  * @package Nymph
  * @property int $guid The GUID of the entity.
  * @property array $tags Array of the entity's tags.
- * @property bool $_nUseSkipAC Whether to use the skip_ac option when retrieving referenced entities.
  */
 interface EntityInterface extends DataObjectInterface, \JsonSerializable {
 	/**
 	 * Load an entity.
+	 *
 	 * @param int $id The ID of the entity to load, 0 for a new entity.
 	 */
 	public function __construct($id = 0);
 	/**
 	 * Create a new instance.
+	 *
 	 * @return Entity An entity instance.
 	 */
 	public static function factory();
+	/**
+	 * Set whether to use "skip_ac" when accessing entity references.
+	 *
+	 * @param bool $useSkipAc True or false, whether to use it.
+	 */
+	public function useSkipAc($useSkipAc);
 	/**
 	 * Add one or more tags.
 	 *

@@ -1,11 +1,16 @@
 <?php
 
 class EntityTest extends PHPUnit_Framework_TestCase {
+	public function testHookPHP() {
+		$this->assertTrue(class_exists('\SciActive\Hook'), 'HookPHP must be installed to run these tests.');
+	}
+
 	public function testInstantiate() {
 		$testEntity = TestModel::factory();
 
+		$this->assertInstanceOf('\SciActive\HookOverride_TestModel', $testEntity);
 
-		$this->assertInstanceOf('TestModel', $testEntity);
+		$this->assertInstanceOf('TestModel', $testEntity->_hookObject());
 
 		$this->assertTrue($testEntity->hasTag('test'));
 
@@ -33,7 +38,7 @@ class EntityTest extends PHPUnit_Framework_TestCase {
 
 		$this->assertTrue($testEntity->save());
 
-		$entity_reference_test = new TestModel();
+		$entity_reference_test = TestModel::factory();
 		$entity_reference_test->string = 'wrong';
 		$this->assertTrue($entity_reference_test->save());
 		$entity_reference_guid = $entity_reference_test->guid;

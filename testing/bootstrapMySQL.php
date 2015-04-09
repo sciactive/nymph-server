@@ -1,33 +1,34 @@
 <?php
+
 error_reporting(E_ALL);
 
-require file_exists(dirname(dirname(__DIR__)).'/autoload-dev.php') ? dirname(dirname(__DIR__)).'/autoload-dev.php' : dirname(__DIR__).'/vendor/autoload.php';
+require file_exists(dirname(__DIR__).'/vendor/autoload.php') ? dirname(__DIR__).'/vendor/autoload.php' : dirname(dirname(__DIR__)).'/autoload-dev.php';
 use SciActive\RequirePHP as RequirePHP;
 
 RequirePHP::undef('NymphConfig');
 RequirePHP::undef('Nymph');
 
-RequirePHP::_('NymphConfig', [], function(){
-	// Nymph's configuration.
+$nymph_config = [];
+if (getenv('DATABASE_MYSQL')) {
+	$dbopts = parse_url(getenv('DATABASE_MYSQL'));
+	$nymph_config['MySQL'] = [
+		'database' => ltrim($dbopts["path"],'/'),
+		'host' => $dbopts["host"],
+		'port' => $dbopts["port"],
+		'user' => $dbopts["user"],
+		'password' => key_exists("pass", $dbopts) ? $dbopts["pass"] : ''
+	];
+} else {
+	$nymph_config['MySQL'] = [
+		'host' => '127.0.0.1',
+		'database' => 'nymph_testing',
+		'user' => 'nymph_testing',
+		'password' => 'password'
+	];
+}
 
-	$nymph_config = include(__DIR__.DIRECTORY_SEPARATOR.'../conf/defaults.php');
-	if (getenv('DATABASE_MYSQL')) {
-		$dbopts = parse_url(getenv('DATABASE_MYSQL'));
-		$nymph_config->MySQL->database['value'] = ltrim($dbopts["path"],'/');
-		$nymph_config->MySQL->host['value'] = $dbopts["host"];
-		$nymph_config->MySQL->port['value'] = $dbopts["port"];
-		$nymph_config->MySQL->user['value'] = $dbopts["user"];
-		$nymph_config->MySQL->password['value'] = key_exists("pass", $dbopts) ? $dbopts["pass"] : '';
-	} else {
-		$nymph_config->MySQL->host['value'] = '127.0.0.1';
-		$nymph_config->MySQL->database['value'] = 'nymph_testing';
-		$nymph_config->MySQL->user['value'] = 'nymph_testing';
-		$nymph_config->MySQL->password['value'] = 'password';
-	}
+$nymph_config['pubsub'] = false;
 
-	$nymph_config->pubsub['value'] = false;
-
-	return $nymph_config;
-});
+\Nymph\Nymph::configure($nymph_config);
 
 require_once 'TestModel.php';

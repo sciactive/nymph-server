@@ -20,12 +20,12 @@ interface DriverInterface {
 	public function getEntities();
 	public function getEntity();
 	public function getUID($name);
-	public function hsort(&$array, $property = null, $parent_property = null, $case_sensitive = false, $reverse = false);
+	public function hsort(&$array, $property = null, $parentProperty = null, $caseSensitive = false, $reverse = false);
 	public function import($filename);
 	public function newUID($name);
-	public function psort(&$array, $property = null, $parent_property = null, $case_sensitive = false, $reverse = false);
-	public function renameUID($old_name, $new_name);
+	public function psort(&$array, $property = null, $parentProperty = null, $caseSensitive = false, $reverse = false);
+	public function renameUID($oldName, $newName);
 	public function saveEntity(&$entity);
 	public function setUID($name, $value);
-	public function sort(&$array, $property = null, $case_sensitive = false, $reverse = false);
+	public function sort(&$array, $property = null, $caseSensitive = false, $reverse = false);
 }

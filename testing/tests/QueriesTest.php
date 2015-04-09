@@ -39,7 +39,13 @@ class QueriesTest extends PHPUnit_Framework_TestCase {
 	public function testCreateEntity() {
 		// Creating entity...
 		$testEntity = TestModel::factory();
-		$this->assertInstanceOf('TestModel', $testEntity);
+		$this->assertThat(
+			$testEntity,
+			$this->logicalOr(
+				$this->isInstanceOf('TestModel'),
+				$this->isInstanceOf('\Sciactive\HookOverride_TestModel')
+			)
+        );
 
 		// Saving entity...
 		$testEntity->name = 'Entity Test '.time();
@@ -67,7 +73,13 @@ This one's zip code is 92064.";
 		$this->assertTrue($entity_reference_test->save());
 
 		$testEntity = Nymph::getEntity(['class' => 'TestModel'], $entity_guid);
-		$this->assertInstanceOf('TestModel', $testEntity);
+		$this->assertThat(
+			$testEntity,
+			$this->logicalOr(
+				$this->isInstanceOf('TestModel'),
+				$this->isInstanceOf('\Sciactive\HookOverride_TestModel')
+			)
+        );
 
 		return ['entity' => $testEntity, 'refGuid' => $entity_reference_guid];
 	}

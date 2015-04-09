@@ -4,7 +4,7 @@
         "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "c643c1f9eefd09e41245c54a2b814ad9",
+    "hash": "ad214de401589193a42a6dd15d6bdb33",
     "packages": [
         {
             "name": "sciactive/requirephp",
@@ -53,12 +53,55 @@
             "time": "2015-02-19 00:00:00"
         }
     ],
-    "packages-dev": null,
+    "packages-dev": [
+        {
+            "name": "sciactive/hookphp",
+            "version": "1.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/sciactive/hookphp.git",
+                "reference": "264223e353f10376d4b6fbe912ab7326539b7f34"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/sciactive/hookphp/zipball/264223e353f10376d4b6fbe912ab7326539b7f34",
+                "reference": "264223e353f10376d4b6fbe912ab7326539b7f34",
+                "shasum": ""
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "SciActive\\": "src/"
+                },
+                "psr-4": {
+                    "SciActive\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "LGPL"
+            ],
+            "authors": [
+                {
+                    "name": "Hunter Perrin",
+                    "email": "hunter@sciactive.com",
+                    "homepage": "https://github.com/hperrin",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Method hooking in PHP.",
+            "homepage": "http://hookphp.org/",
+            "keywords": [
+                "HOOK",
+                "interception",
+                "method hooking"
+            ],
+            "time": "2015-02-19 00:00:00"
+        }
+    ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "codeclimate/php-test-reporter": 20
-    },
+    "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": [],

@@ -32,8 +32,8 @@ class PostgreSQLDriver implements DriverInterface {
 
 	public function __construct($NymphConfig) {
 		$this->__traitConstruct($NymphConfig);
-		$this->usePLPerl = $this->config->use_plperl['value'];
-		$this->prefix = $this->config->PostgreSQL->prefix['value'];
+		$this->usePLPerl = $this->config['use_plperl'];
+		$this->prefix = $this->config['PostgreSQL']['prefix'];
 	}
 
 	/**
@@ -53,12 +53,12 @@ class PostgreSQLDriver implements DriverInterface {
 		if (!is_callable('pg_connect')) {
 			throw new Exceptions\UnableToConnectException('PostgreSQL PHP extension is not available. It probably has not been installed. Please install and configure it in order to use PostgreSQL.');
 		}
-		$connection_type = $this->config->PostgreSQL->connection_type['value'];
-		$host = $this->config->PostgreSQL->host['value'];
-		$port = $this->config->PostgreSQL->port['value'];
-		$user = $this->config->PostgreSQL->user['value'];
-		$password = $this->config->PostgreSQL->password['value'];
-		$database = $this->config->PostgreSQL->database['value'];
+		$connection_type = $this->config['PostgreSQL']['connection_type'];
+		$host = $this->config['PostgreSQL']['host'];
+		$port = $this->config['PostgreSQL']['port'];
+		$user = $this->config['PostgreSQL']['user'];
+		$password = $this->config['PostgreSQL']['password'];
+		$database = $this->config['PostgreSQL']['database'];
 		// Connecting, selecting database
 		if (!$this->connected) {
 			if ($connection_type == 'host') {
@@ -66,7 +66,7 @@ class PostgreSQLDriver implements DriverInterface {
 			} else {
 				$connect_string = 'dbname=\''.addslashes($database).'\' user=\''.addslashes($user).'\' password=\''.addslashes($password).'\' connect_timeout=5';
 			}
-			if ($this->config->PostgreSQL->allow_persistent['value']) {
+			if ($this->config['PostgreSQL']['allow_persistent']) {
 				$this->link = pg_connect($connect_string.' options=\'-c enable_hashjoin=off -c enable_mergejoin=off\'');
 			} else {
 				$this->link = pg_connect($connect_string.' options=\'-c enable_hashjoin=off -c enable_mergejoin=off\'', PGSQL_CONNECT_FORCE_NEW); // Don't think this is necessary, but if put in options, will guarantee connection is new. " -c timezone='.round(rand(10001000, 10009999)).'"
@@ -111,7 +111,7 @@ class PostgreSQLDriver implements DriverInterface {
 			$etype =  '_'.pg_escape_string($this->link, $etype);
 			// Create the entity table.
 			$this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}entities{$etype}\" ( guid bigint NOT NULL, tags text[], varlist text[], cdate numeric(18,6) NOT NULL, mdate numeric(18,6) NOT NULL, PRIMARY KEY (guid) ) WITH ( OIDS=FALSE ); "
-				. "ALTER TABLE \"{$this->prefix}entities{$etype}\" OWNER TO \"".pg_escape_string($this->link, $this->config->PostgreSQL->user['value'])."\"; "
+				. "ALTER TABLE \"{$this->prefix}entities{$etype}\" OWNER TO \"".pg_escape_string($this->link, $this->config['PostgreSQL']['user'])."\"; "
 				. "DROP INDEX IF EXISTS \"{$this->prefix}entities{$etype}_id_cdate\"; "
 				. "CREATE INDEX \"{$this->prefix}entities{$etype}_id_cdate\" ON \"{$this->prefix}entities{$etype}\" USING btree (cdate); "
 				. "DROP INDEX IF EXISTS \"{$this->prefix}entities{$etype}_id_mdate\"; "
@@ -122,7 +122,7 @@ class PostgreSQLDriver implements DriverInterface {
 				. "CREATE INDEX \"{$this->prefix}entities{$etype}_id_varlist\" ON \"{$this->prefix}entities{$etype}\" USING gin (varlist);");
 			// Create the data table.
 			$this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}data{$etype}\" ( guid bigint NOT NULL, \"name\" text NOT NULL, \"value\" text NOT NULL, \"references\" bigint[], compare_true boolean, compare_one boolean, compare_zero boolean, compare_negone boolean, compare_emptyarray boolean, compare_string text, PRIMARY KEY (guid, \"name\"), FOREIGN KEY (guid) REFERENCES \"{$this->prefix}entities{$etype}\" (guid) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE CASCADE ) WITH ( OIDS=FALSE ); "
-				. "ALTER TABLE \"{$this->prefix}data{$etype}\" OWNER TO \"".pg_escape_string($this->link, $this->config->PostgreSQL->user['value'])."\"; "
+				. "ALTER TABLE \"{$this->prefix}data{$etype}\" OWNER TO \"".pg_escape_string($this->link, $this->config['PostgreSQL']['user'])."\"; "
 				. "DROP INDEX IF EXISTS \"{$this->prefix}data{$etype}_id_guid\"; "
 				. "CREATE INDEX \"{$this->prefix}data{$etype}_id_guid\" ON \"{$this->prefix}data{$etype}\" USING btree (\"guid\"); "
 				. "DROP INDEX IF EXISTS \"{$this->prefix}data{$etype}_id_name\"; "
@@ -140,10 +140,10 @@ class PostgreSQLDriver implements DriverInterface {
 		} else {
 			// Create the GUID table.
 			$this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}guids\" ( \"guid\" bigint NOT NULL, PRIMARY KEY (\"guid\")); "
-				. "ALTER TABLE \"{$this->prefix}guids\" OWNER TO \"".pg_escape_string($this->link, $this->config->PostgreSQL->user['value'])."\";");
+				. "ALTER TABLE \"{$this->prefix}guids\" OWNER TO \"".pg_escape_string($this->link, $this->config['PostgreSQL']['user'])."\";");
 			// Create the UID table.
 			$this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}uids\" ( \"name\" text NOT NULL, cur_uid bigint NOT NULL, PRIMARY KEY (\"name\") ) WITH ( OIDS = FALSE ); "
-				. "ALTER TABLE \"{$this->prefix}uids\" OWNER TO \"".pg_escape_string($this->link, $this->config->PostgreSQL->user['value'])."\";");
+				. "ALTER TABLE \"{$this->prefix}uids\" OWNER TO \"".pg_escape_string($this->link, $this->config['PostgreSQL']['user'])."\";");
 			if ($this->usePLPerl) {
 				// Create the perl_match function. It's separated into two calls so
 				// Postgres will ignore the error if plperl already exists.
@@ -172,7 +172,7 @@ class PostgreSQLDriver implements DriverInterface {
 		return true;
 	}
 
-	private function query($query, $etype_dirty = null) {
+	private function query($query, $etypeDirty = null) {
 		while (pg_get_result($this->link)) {
 			// Clear the connection of all results.
 			continue;
@@ -186,8 +186,8 @@ class PostgreSQLDriver implements DriverInterface {
 		if ($error = pg_result_error_field($result, PGSQL_DIAG_SQLSTATE)) {
 			// If the tables don't exist yet, create them.
 			if ($error == '42P01' && $this->createTables()) {
-				if (isset($etype_dirty)) {
-					$this->createTables($etype_dirty);
+				if (isset($etypeDirty)) {
+					$this->createTables($etypeDirty);
 				}
 				if ( !($result = pg_query($this->link, $query)) ) {
 					throw new Exceptions\QueryFailedException('Query failed: ' . pg_last_error(), 0, null, $query);
@@ -205,7 +205,7 @@ class PostgreSQLDriver implements DriverInterface {
 		$this->query("DELETE FROM \"{$this->prefix}entities{$etype}\" WHERE \"guid\"={$guid}; DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$guid};");
 		$this->query("DELETE FROM \"{$this->prefix}guids\" WHERE \"guid\"={$guid};");
 		// Removed any cached versions of this entity.
-		if ($this->config->cache['value']) {
+		if ($this->config['cache']) {
 			$this->cleanCache($guid);
 		}
 		return true;
@@ -224,8 +224,8 @@ class PostgreSQLDriver implements DriverInterface {
 			throw new Exceptions\InvalidParametersException('Provided filename is not writeable.');
 		}
 		fwrite($fhandle, "# Nymph Entity Exchange\n");
-		fwrite($fhandle, "# Nymph Version ".NYMPH_VERSION."\n");
-		fwrite($fhandle, "# sciactive.com\n");
+		fwrite($fhandle, "# Nymph Version ".\Nymph\Nymph::VERSION."\n");
+		fwrite($fhandle, "# nymph.io\n");
 		fwrite($fhandle, "#\n");
 		fwrite($fhandle, "# Generation Time: ".date('r')."\n");
 
@@ -293,8 +293,8 @@ class PostgreSQLDriver implements DriverInterface {
 		// End all output buffering.
 		while (ob_end_clean());
 		echo "# Nymph Entity Exchange\n";
-		echo "# Nymph Version ".NYMPH_VERSION."\n";
-		echo "# sciactive.com\n";
+		echo "# Nymph Version ".\Nymph\Nymph::VERSION."\n";
+		echo "# nymph.io\n";
 		echo "#\n";
 		echo "# Generation Time: ".date('r')."\n";
 
@@ -360,13 +360,13 @@ class PostgreSQLDriver implements DriverInterface {
 	 * Generate the PostgreSQL query.
 	 * @param array $options The options array.
 	 * @param array $selectors The formatted selector array.
-	 * @param string $etype_dirty
+	 * @param string $etypeDirty
 	 * @param bool $subquery Whether only a subquery should be returned.
 	 * @return string The SQL query.
 	 */
-	private function makeEntityQuery($options, $selectors, $etype_dirty, $subquery = false) {
+	private function makeEntityQuery($options, $selectors, $etypeDirty, $subquery = false) {
 		$sort = isset($options['sort']) ? $options['sort'] : 'cdate';
-		$etype = '_'.pg_escape_string($this->link, $etype_dirty);
+		$etype = '_'.pg_escape_string($this->link, $etypeDirty);
 		$query_parts = [];
 		foreach ($selectors as $cur_selector) {
 			$cur_selector_query = '';
@@ -382,7 +382,7 @@ class PostgreSQLDriver implements DriverInterface {
 					if ( $cur_query ) {
 						$cur_query .= $type_is_or ? ' OR ' : ' AND ';
 					}
-					$cur_query .= $this->makeEntityQuery($options, [$value], $etype_dirty, true);
+					$cur_query .= $this->makeEntityQuery($options, [$value], $etypeDirty, true);
 				} else {
 					$clause_not = $key[0] === '!';
 					// Any options having to do with data only return if the
@@ -741,13 +741,13 @@ class PostgreSQLDriver implements DriverInterface {
 
 		$entities = [];
 		$class = isset($options['class']) ? $options['class'] : '\\Nymph\\Entity';
-		$etype_dirty = isset($options['etype']) ? $options['etype'] : $class::etype;
+		$etypeDirty = isset($options['etype']) ? $options['etype'] : $class::ETYPE;
 		$return = isset($options['return']) ? $options['return'] : 'entity';
 
 		$count = $ocount = 0;
 
 		// Check if the requested entity is cached.
-		if ($this->config->cache['value'] && is_int($selectors[1]['guid'])) {
+		if ($this->config['cache'] && is_int($selectors[1]['guid'])) {
 			// Only safe to use the cache option with no other selectors than a GUID and tags.
 			if (
 					count($selectors) == 1 &&
@@ -759,14 +759,14 @@ class PostgreSQLDriver implements DriverInterface {
 				) {
 				$entity = $this->pull_cache($selectors[1]['guid'], $class);
 				if (isset($entity) && (!isset($selectors[1]['tag']) || $entity->hasTag($selectors[1]['tag']))) {
-					$entity->_nUseSkipAC = (bool) $options['skip_ac'];
+					$entity->useSkipAc((bool) $options['skip_ac']);
 					return [$entity];
 				}
 			}
 		}
 
 		$this->formatSelectors($selectors);
-		$result = $this->query($this->makeEntityQuery($options, $selectors, $etype_dirty), $etype_dirty);
+		$result = $this->query($this->makeEntityQuery($options, $selectors, $etypeDirty), $etypeDirty);
 
 		$typesAlreadyChecked = ['ref', '!ref', 'guid', '!guid', 'tag', '!tag', 'isset', '!isset', 'strict', '!strict', 'like', '!like', 'pmatch', '!pmatch'];
 		if ($this->usePLPerl) {
@@ -804,7 +804,7 @@ class PostgreSQLDriver implements DriverInterface {
 				switch ($return) {
 					case 'entity':
 					default:
-						if ($this->config->cache['value']) {
+						if ($this->config['cache']) {
 							$entity = $this->pull_cache($guid, $class);
 						} else {
 							$entity = null;
@@ -816,12 +816,12 @@ class PostgreSQLDriver implements DriverInterface {
 								$entity->tags = explode(',', substr($tags, 1, -1));
 							}
 							$entity->putData($data, $sdata);
-							if ($this->config->cache['value']) {
+							if ($this->config['cache']) {
 								$this->pushCache($entity, $class);
 							}
 						}
 						if (isset($options['skip_ac'])) {
-							$entity->_nUseSkipAC = (bool) $options['skip_ac'];
+							$entity->useSkipAc((bool) $options['skip_ac']);
 						}
 						$entities[] = $entity;
 						break;
@@ -967,11 +967,11 @@ class PostgreSQLDriver implements DriverInterface {
 		return $cur_uid;
 	}
 
-	public function renameUID($old_name, $new_name) {
-		if (!$old_name || !$new_name) {
+	public function renameUID($oldName, $newName) {
+		if (!$oldName || !$newName) {
 			throw new Exceptions\InvalidParametersException('Name not given for UID.');
 		}
-		$this->query("UPDATE \"{$this->prefix}uids\" SET \"name\"='".pg_escape_string($this->link, $new_name)."' WHERE \"name\"='".pg_escape_string($this->link, $old_name)."';");
+		$this->query("UPDATE \"{$this->prefix}uids\" SET \"name\"='".pg_escape_string($this->link, $newName)."' WHERE \"name\"='".pg_escape_string($this->link, $oldName)."';");
 		return true;
 	}
 
@@ -986,8 +986,8 @@ class PostgreSQLDriver implements DriverInterface {
 		$sdata = $entity->getSData();
 		$varlist = array_merge(array_keys($data), array_keys($sdata));
 		$class = get_class($entity);
-		$etype_dirty = $class::etype;
-		$etype = '_'.pg_escape_string($this->link, $etype_dirty);
+		$etypeDirty = $class::ETYPE;
+		$etype = '_'.pg_escape_string($this->link, $etypeDirty);
 		$this->query('BEGIN;');
 		if ( !isset($entity->guid) ) {
 			while (true) {
@@ -996,7 +996,7 @@ class PostgreSQLDriver implements DriverInterface {
 				if ($new_id < 1) {
 					$new_id = rand(1, 0x7FFFFFFF);
 				}
-				$result = $this->query("SELECT \"guid\" FROM \"{$this->prefix}guids\" WHERE \"guid\"={$new_id};", $etype_dirty);
+				$result = $this->query("SELECT \"guid\" FROM \"{$this->prefix}guids\" WHERE \"guid\"={$new_id};", $etypeDirty);
 				$row = pg_fetch_row($result);
 				pg_free_result($result);
 				if (!isset($row[0])) {
@@ -1005,7 +1005,7 @@ class PostgreSQLDriver implements DriverInterface {
 			}
 			$entity->guid = $new_id;
 			$this->query("INSERT INTO \"{$this->prefix}guids\" (\"guid\") VALUES ({$new_id});");
-			$this->query("INSERT INTO \"{$this->prefix}entities{$etype}\" (\"guid\", \"tags\", \"varlist\", \"cdate\", \"mdate\") VALUES ({$entity->guid}, '".pg_escape_string($this->link, '{'.implode(',', array_diff($entity->tags, [''])).'}')."', '".pg_escape_string($this->link, '{'.implode(',', $varlist).'}')."', ".((float) $data['cdate']).", ".((float) $data['mdate']).");", $etype_dirty);
+			$this->query("INSERT INTO \"{$this->prefix}entities{$etype}\" (\"guid\", \"tags\", \"varlist\", \"cdate\", \"mdate\") VALUES ({$entity->guid}, '".pg_escape_string($this->link, '{'.implode(',', array_diff($entity->tags, [''])).'}')."', '".pg_escape_string($this->link, '{'.implode(',', $varlist).'}')."', ".((float) $data['cdate']).", ".((float) $data['mdate']).");", $etypeDirty);
 			unset($data['cdate'], $data['mdate']);
 			$values = [];
 			foreach ($data as $name => $value) {
@@ -1042,13 +1042,13 @@ class PostgreSQLDriver implements DriverInterface {
 						is_string($uvalue) ? '\''.pg_escape_string($this->link, $uvalue).'\'' : 'NULL'
 					);
 			}
-			$this->query(implode(' ', $values), $etype_dirty);
+			$this->query(implode(' ', $values), $etypeDirty);
 		} else {
 			// Removed any cached versions of this entity.
-			if ($this->config->cache['value']) {
+			if ($this->config['cache']) {
 				$this->cleanCache($entity->guid);
 			}
-			$this->query("UPDATE \"{$this->prefix}entities{$etype}\" SET \"tags\"='".pg_escape_string($this->link, '{'.implode(',', array_diff($entity->tags, [''])).'}')."', \"varlist\"='".pg_escape_string($this->link, '{'.implode(',', $varlist).'}')."', \"cdate\"=".((float) $data['cdate']).", \"mdate\"=".((float) $data['mdate'])." WHERE \"guid\"={$entity->guid};", $etype_dirty);
+			$this->query("UPDATE \"{$this->prefix}entities{$etype}\" SET \"tags\"='".pg_escape_string($this->link, '{'.implode(',', array_diff($entity->tags, [''])).'}')."', \"varlist\"='".pg_escape_string($this->link, '{'.implode(',', $varlist).'}')."', \"cdate\"=".((float) $data['cdate']).", \"mdate\"=".((float) $data['mdate'])." WHERE \"guid\"={$entity->guid};", $etypeDirty);
 			$this->query("DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$entity->guid};");
 			unset($data['cdate'], $data['mdate']);
 			$values = [];
@@ -1086,12 +1086,12 @@ class PostgreSQLDriver implements DriverInterface {
 						is_string($uvalue) ? '\''.pg_escape_string($this->link, $uvalue).'\'' : 'NULL'
 					);
 			}
-			$this->query(implode(' ', $values), $etype_dirty);
+			$this->query(implode(' ', $values), $etypeDirty);
 		}
 		pg_get_result($this->link); // Clear any pending result.
 		$this->query('COMMIT;');
 		// Cache the entity.
-		if ($this->config->cache['value']) {
+		if ($this->config['cache']) {
 			$class = get_class($entity);
 			// Replace hook override in the class name.
 			if (strpos($class, '\\SciActive\\HookOverride_') === 0) {

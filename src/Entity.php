@@ -72,9 +72,10 @@
  * @property int $guid The entity's Globally Unique ID.
  * @property int $cdate The entity's creation date, as a Unix timestamp.
  * @property int $mdate The entity's modification date, as a Unix timestamp.
+ * @property string $name An optional name of the entity. This will be provided in the "info" property of the JS object.
  */
 class Entity implements EntityInterface {
-	const etype = 'entity';
+	const ETYPE = 'entity';
 
 	/**
 	 * The GUID of the entity.
@@ -206,9 +207,9 @@ class Entity implements EntityInterface {
 	 * Whether to use "skip_ac" when accessing entity references.
 	 *
 	 * @var bool
-	 * @access public
+	 * @access private
 	 */
-	public $_nUseSkipAC = false;
+	private $useSkipAc = false;
 
 	/**
 	 * Load an entity.
@@ -232,14 +233,13 @@ class Entity implements EntityInterface {
 	 * @return \Nymph\Entity The new instance.
 	 */
 	public static function factory() {
-		global $_;
 		$class = get_called_class();
 		$args = func_get_args();
 		$reflector = new \ReflectionClass($class);
 		$entity = $reflector->newInstanceArgs($args);
 		// Use hook functionality when in 2be.
-		if (isset($_) && isset($_->hook)) {
-			$_->hook->hook_object($entity, $class.'->', false);
+		if (class_exists('\SciActive\Hook')) {
+			\SciActive\Hook::hookObject($entity, $class.'->', false);
 		}
 		return $entity;
 	}
@@ -282,7 +282,7 @@ class Entity implements EntityInterface {
 			unset($this->sdata[$name]);
 		}
 		// Check for peditor sources.
-		if (substr($name, -9) === "_pesource" && !isset($this->sdata[$name]) && isset($this->sdata[substr($name, 0, -9)])) {
+		if (substr($name, -9) === '_pesource' && !isset($this->sdata[$name]) && isset($this->sdata[substr($name, 0, -9)])) {
 			$this->data[substr($name, 0, -9)] = unserialize($this->sdata[substr($name, 0, -9)]);
 			unset($this->sdata[substr($name, 0, -9)]);
 		}
@@ -293,7 +293,7 @@ class Entity implements EntityInterface {
 					// The entity hasn't been loaded yet, so load it now.
 					$class = $this->data[$name][2];
 					$this->entityCache[$name] = $class::factoryReference($this->data[$name]);
-					$this->entityCache[$name]->_nUseSkipAC = (bool) $this->_nUseSkipAC;
+					$this->entityCache[$name]->useSkipAc($this->useSkipAc);
 				}
 				return $this->entityCache[$name];
 			} else {
@@ -308,15 +308,15 @@ class Entity implements EntityInterface {
 		if ((array) $this->data[$name] === $this->data[$name]) {
 			// But, if it's an array, check all the values for entity references, and change them.
 			array_walk($this->data[$name], [$this, 'referenceToEntity']);
-		} elseif ((object) $this->data[$name] === $this->data[$name] && !(((is_a($this->data[$name], '\\Nymph\\Entity') || is_a($this->data[$name], '\\SciActive\\HookOverride'))) && is_callable([$this->data[$name], 'toReference']))) {
+		} elseif ((object) $this->data[$name] === $this->data[$name] && !(((is_a($this->data[$name], '\Nymph\Entity') || is_a($this->data[$name], '\SciActive\HookOverride'))) && is_callable([$this->data[$name], 'toReference']))) {
 			// Only do this for non-entity objects.
-			foreach ($this->data[$name] as &$cur_property) {
-				$this->referenceToEntity($cur_property, null);
+			foreach ($this->data[$name] as &$curProperty) {
+				$this->referenceToEntity($curProperty, null);
 			}
-			unset($cur_property);
+			unset($curProperty);
 		}
 		// Check for peditor sources.
-		if (substr($name, -9) === "_pesource" && !isset($this->data[$name])) {
+		if (substr($name, -9) === '_pesource' && !isset($this->data[$name])) {
 			return $this->data[substr($name, 0, -9)];
 		}
 		return $this->data[$name];
@@ -354,7 +354,7 @@ class Entity implements EntityInterface {
 	 * you access the variable normally.
 	 *
 	 * @param string $name The name of the variable.
-	 * @param string $value The value of the variable.
+	 * @param mixed $value The value of the variable.
 	 * @return mixed The value of the variable.
 	 */
 	public function __set($name, $value) {
@@ -371,19 +371,19 @@ class Entity implements EntityInterface {
 		if (isset($this->sdata[$name])) {
 			unset($this->sdata[$name]);
 		}
-		if ((is_a($value, '\\Nymph\\Entity') || is_a($value, '\\SciActive\\HookOverride')) && is_callable([$value, 'toReference'])) {
+		if ((is_a($value, '\Nymph\Entity') || is_a($value, '\SciActive\HookOverride')) && is_callable([$value, 'toReference'])) {
 			// Store a reference to the entity (its GUID and the class it was loaded as).
 			// We don't want to manipulate $value itself, because it could be a variable that the program is still using.
-			$save_value = $value->toReference();
+			$saveValue = $value->toReference();
 			// If toReference returns an array, the GUID of the entity is set
 			// or it's a sleeping reference, so this is an entity and we don't
 			// store it in the data array.
-			if ((array) $save_value === $save_value) {
+			if ((array) $saveValue === $saveValue) {
 				$this->entityCache[$name] = $value;
 			} elseif (isset($this->entityCache[$name])) {
 				unset($this->entityCache[$name]);
 			}
-			$this->data[$name] = $save_value;
+			$this->data[$name] = $saveValue;
 			return $value;
 		} else {
 			// This is not an entity, so if it was one, delete the cached entity.
@@ -391,12 +391,12 @@ class Entity implements EntityInterface {
 				unset($this->entityCache[$name]);
 			}
 			// Store the actual value passed.
-			$save_value = $value;
+			$saveValue = $value;
 			// If the variable is an array, look through it and change entities to references.
-			if ((array) $save_value === $save_value) {
-				array_walk_recursive($save_value, [$this, 'entityToReference']);
+			if ((array) $saveValue === $saveValue) {
+				array_walk_recursive($saveValue, [$this, 'entityToReference']);
 			}
-			return ($this->data[$name] = $save_value);
+			return ($this->data[$name] = $saveValue);
 		}
 	}
 
@@ -431,14 +431,14 @@ class Entity implements EntityInterface {
 		if ($this->isASleepingReference) {
 			$this->referenceWake();
 		}
-		$tag_array = func_get_args();
-		if ((array) $tag_array[0] === $tag_array[0]) {
-			$tag_array = $tag_array[0];
+		$tagArray = func_get_args();
+		if ((array) $tagArray[0] === $tagArray[0]) {
+			$tagArray = $tagArray[0];
 		}
-		if (empty($tag_array)) {
+		if (empty($tagArray)) {
 			return;
 		}
-		foreach ($tag_array as $tag) {
+		foreach ($tagArray as $tag) {
 			$this->tags[] = $tag;
 		}
 		$this->tags = array_keys(array_flip($this->tags));
@@ -451,8 +451,8 @@ class Entity implements EntityInterface {
 		if ((array) $array !== $array) {
 			return false;
 		}
-		foreach ($array as $key => $cur_entity) {
-			if ($strict ? $this->equals($cur_entity) : $this->is($cur_entity)) {
+		foreach ($array as $key => $curEntity) {
+			if ($strict ? $this->equals($curEntity) : $this->is($curEntity)) {
 				return $key;
 			}
 		}
@@ -499,14 +499,14 @@ class Entity implements EntityInterface {
 	 * Check if an item is an entity, and if it is, convert it to a reference.
 	 *
 	 * @param mixed &$item The item to check.
-	 * @param mixed $key Unused.
+	 * @param mixed $key Unused, but can't be removed because array_walk_recursive will fail.
 	 * @access private
 	 */
 	private function entityToReference(&$item, $key) {
 		if ($this->isASleepingReference) {
 			$this->referenceWake();
 		}
-		if ((is_a($item, '\\Nymph\\Entity') || is_a($item, '\\SciActive\\HookOverride')) && isset($item->guid) && is_callable([$item, 'toReference'])) {
+		if ((is_a($item, '\Nymph\Entity') || is_a($item, '\SciActive\HookOverride')) && isset($item->guid) && is_callable([$item, 'toReference'])) {
 			// This is an entity, so we should put it in the entity cache.
 			if (!isset($this->entityCache["reference_guid: {$item->guid}"])) {
 				$this->entityCache["reference_guid: {$item->guid}"] = clone $item;
@@ -520,20 +520,26 @@ class Entity implements EntityInterface {
 		if ($this->isASleepingReference) {
 			$this->referenceWake();
 		}
-		if (!(is_a($object, '\\Nymph\\Entity') || is_a($object, '\\SciActive\\HookOverride'))) {
+		// If this object is hooked, get the real object.
+		if (is_a($object, '\SciActive\HookOverride')) {
+			$testObject = $object->_hookObject();
+		} else {
+			$testObject = $object;
+		}
+		if (!is_a($testObject, '\Nymph\Entity')) {
 			return false;
 		}
-		if (isset($this->guid) || isset($object->guid)) {
-			if ($this->guid != $object->guid) {
+		if (isset($this->guid) || isset($testObject->guid)) {
+			if ($this->guid != $testObject->guid) {
 				return false;
 			}
 		}
-		if (get_class($object) != get_class($this)) {
+		if (get_class($testObject) != get_class($this)) {
 			return false;
 		}
-		$ob_data = $object->getData(true);
-		$my_data = $this->getData(true);
-		return ($ob_data == $my_data);
+		$obData = $testObject->getData(true);
+		$myData = $this->getData(true);
+		return ($obData == $myData);
 	}
 
 	public function getData($includeSData = false) {
@@ -560,17 +566,17 @@ class Entity implements EntityInterface {
 		if ($this->isASleepingReference) {
 			$this->referenceWake();
 		}
-		if ((is_a($item, '\\Nymph\\Entity') || is_a($item, '\\SciActive\\HookOverride')) && is_callable([$item, 'toReference'])) {
+		if ((is_a($item, '\Nymph\Entity') || is_a($item, '\SciActive\HookOverride')) && is_callable([$item, 'toReference'])) {
 			// Convert entities to references.
 			return $item->toReference();
 		} elseif ((array) $item === $item) {
 			// Recurse into lower arrays.
 			return array_map([$this, 'getDataReference'], $item);
 		} elseif ((object) $item === $item) {
-			foreach ($item as &$cur_property) {
-				$cur_property = $this->getDataReference($cur_property);
+			foreach ($item as &$curProperty) {
+				$curProperty = $this->getDataReference($curProperty);
 			}
-			unset($cur_property);
+			unset($curProperty);
 		}
 		// Not an entity or array, just return it.
 		return $item;
@@ -594,11 +600,11 @@ class Entity implements EntityInterface {
 		if ((array) $this->tags !== $this->tags) {
 			return false;
 		}
-		$tag_array = func_get_args();
-		if ((array) $tag_array[0] === $tag_array[0]) {
-			$tag_array = $tag_array[0];
+		$tagArray = func_get_args();
+		if ((array) $tagArray[0] === $tagArray[0]) {
+			$tagArray = $tagArray[0];
 		}
-		foreach ($tag_array as $tag) {
+		foreach ($tagArray as $tag) {
 			if ( !in_array($tag, $this->tags) ) {
 				return false;
 			}
@@ -607,18 +613,7 @@ class Entity implements EntityInterface {
 	}
 
 	public function inArray($array, $strict = false) {
-		if ($this->isASleepingReference) {
-			$this->referenceWake();
-		}
-		if ((array) $array !== $array) {
-			return false;
-		}
-		foreach ($array as $cur_entity) {
-			if ($strict ? $this->equals($cur_entity) : $this->is($cur_entity)) {
-				return true;
-			}
-		}
-		return false;
+		return $this->arraySearch($array, $strict) !== false;
 	}
 
 	public function info($type) {
@@ -636,17 +631,23 @@ class Entity implements EntityInterface {
 		if ($this->isASleepingReference) {
 			$this->referenceWake();
 		}
-		if (!(is_a($object, '\\Nymph\\Entity') || is_a($object, '\\SciActive\\HookOverride'))) {
+		// If this object is hooked, get the real object.
+		if (is_a($object, '\SciActive\HookOverride')) {
+			$testObject = $object->_hookObject();
+		} else {
+			$testObject = $object;
+		}
+		if (!is_a($testObject, '\Nymph\Entity')) {
 			return false;
 		}
-		if (isset($this->guid) || isset($object->guid)) {
-			return ($this->guid == $object->guid);
-		} elseif (!is_callable([$object, 'getData'])) {
+		if (isset($this->guid) || isset($testObject->guid)) {
+			return ($this->guid == $testObject->guid);
+		} elseif (!is_callable([$testObject, 'getData'])) {
 			return false;
 		} else {
-			$ob_data = $object->getData();
-			$my_data = $this->getData();
-			return ($ob_data == $my_data);
+			$obData = $testObject->getData(true);
+			$myData = $this->getData(true);
+			return ($obData == $myData);
 		}
 	}
 
@@ -680,14 +681,9 @@ class Entity implements EntityInterface {
 			$object->info['image'] = $this->info('image');
 		}
 		$object->data = [];
-		foreach ($this->getData() as $key => $val) {
+		foreach ($this->getData(true) as $key => $val) {
 			if ($key !== 'cdate' && $key !== 'mdate' && !in_array($key, $this->privateData)) {
 				$object->data[$key] = $val;
-			}
-		}
-		foreach ($this->sdata as $key => $val) {
-			if ($key !== 'cdate' && $key !== 'mdate' && !in_array($key, $this->privateData)) {
-				$object->data[$key] = unserialize($val);
 			}
 		}
 		$object->class = ($clientClassName && isset($this->clientClassName)) ? $this->clientClassName : get_class($this);
@@ -810,7 +806,7 @@ class Entity implements EntityInterface {
 	 * This function will recurse into deeper arrays.
 	 *
 	 * @param mixed &$item The item to check.
-	 * @param mixed $key Unused.
+	 * @param mixed $key Unused, but can't be removed because array_walk will fail.
 	 * @access private
 	 */
 	private function referenceToEntity(&$item, $key) {
@@ -826,12 +822,12 @@ class Entity implements EntityInterface {
 			} else {
 				array_walk($item, [$this, 'referenceToEntity']);
 			}
-		} elseif ((object) $item === $item && !(((is_a($item, '\\Nymph\\Entity') || is_a($item, '\\SciActive\\HookOverride'))) && is_callable([$item, 'toReference']))) {
+		} elseif ((object) $item === $item && !(((is_a($item, '\Nymph\Entity') || is_a($item, '\SciActive\HookOverride'))) && is_callable([$item, 'toReference']))) {
 			// Only do this for non-entity objects.
-			foreach ($item as &$cur_property) {
-				$this->referenceToEntity($cur_property, null);
+			foreach ($item as &$curProperty) {
+				$this->referenceToEntity($curProperty, null);
 			}
-			unset($cur_property);
+			unset($curProperty);
 		}
 	}
 
@@ -844,7 +840,7 @@ class Entity implements EntityInterface {
 		if (!$this->isASleepingReference) {
 			return true;
 		}
-		$entity = Nymph::getEntity(['class' => $this->sleepingReference[2], 'skip_ac' => (bool) $this->_nUseSkipAC], ['&', 'guid' => $this->sleepingReference[1]]);
+		$entity = Nymph::getEntity(['class' => $this->sleepingReference[2], 'skip_ac' => $this->useSkipAc], ['&', 'guid' => $this->sleepingReference[1]]);
 		if (!isset($entity)) {
 			return false;
 		}
@@ -877,15 +873,15 @@ class Entity implements EntityInterface {
 		if ($this->isASleepingReference) {
 			$this->referenceWake();
 		}
-		$tag_array = func_get_args();
-		if ((array) $tag_array[0] === $tag_array[0]) {
-			$tag_array = $tag_array[0];
+		$tagArray = func_get_args();
+		if ((array) $tagArray[0] === $tagArray[0]) {
+			$tagArray = $tagArray[0];
 		}
-		foreach ($tag_array as $tag) {
+		foreach ($tagArray as $tag) {
 			// Can't use array_search, because $tag may exist more than once.
-			foreach ($this->tags as $cur_key => $cur_tag) {
+			foreach ($this->tags as $curKey => $cur_tag) {
 				if ( $cur_tag === $tag ) {
-					unset($this->tags[$cur_key]);
+					unset($this->tags[$curKey]);
 				}
 			}
 		}
@@ -907,5 +903,9 @@ class Entity implements EntityInterface {
 			return $this;
 		}
 		return ['nymph_entity_reference', $this->guid, get_class($this)];
+	}
+
+	public function useSkipAc($useSkipAc) {
+		$this->useSkipAc = (bool) $useSkipAc;
 	}
 }

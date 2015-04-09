@@ -242,7 +242,7 @@ class REST {
 				$result = call_user_func_array("\Nymph\Nymph::$method", $args);
 			}
 			if (empty($result)) {
-				if ($action === 'entity' || RequirePHP::_('NymphConfig')->empty_list_error['value']) {
+				if ($action === 'entity' || RequirePHP::_('NymphConfig')['empty_list_error']) {
 					return $this->httpError(404, "Not Found");
 				}
 			}

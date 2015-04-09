@@ -1,34 +1,35 @@
 <?php
+
 error_reporting(E_ALL);
 
-require file_exists(dirname(dirname(__DIR__)).'/autoload-dev.php') ? dirname(dirname(__DIR__)).'/autoload-dev.php' : dirname(__DIR__).'/vendor/autoload.php';
+require file_exists(dirname(__DIR__).'/vendor/autoload.php') ? dirname(__DIR__).'/vendor/autoload.php' : dirname(dirname(__DIR__)).'/autoload-dev.php';
 use SciActive\RequirePHP as RequirePHP;
 
 RequirePHP::undef('NymphConfig');
 RequirePHP::undef('Nymph');
 
-RequirePHP::_('NymphConfig', [], function(){
-	// Nymph's configuration.
+$nymph_config = [
+	'driver' => 'PostgreSQL'
+];
+if (getenv('DATABASE_PGSQL')) {
+	$dbopts = parse_url(getenv('DATABASE_PGSQL'));
+	$nymph_config['PostgreSQL'] = [
+		'database' => ltrim($dbopts["path"],'/'),
+		'host' => $dbopts["host"],
+		'port' => $dbopts["port"],
+		'user' => $dbopts["user"],
+		'password' => key_exists("pass", $dbopts) ? $dbopts["pass"] : ''
+	];
+} else {
+	$nymph_config['PostgreSQL'] = [
+		'database' => 'nymph_testing',
+		'user' => 'nymph_testing',
+		'password' => 'password'
+	];
+}
 
-	$nymph_config = include(__DIR__.DIRECTORY_SEPARATOR.'../conf/defaults.php');
+$nymph_config['pubsub'] = false;
 
-		$nymph_config->driver['value'] = 'PostgreSQL';
-	if (getenv('DATABASE_PGSQL')) {
-		$dbopts = parse_url(getenv('DATABASE_PGSQL'));
-		$nymph_config->PostgreSQL->database['value'] = ltrim($dbopts["path"],'/');
-		$nymph_config->PostgreSQL->host['value'] = $dbopts["host"];
-		$nymph_config->PostgreSQL->port['value'] = $dbopts["port"];
-		$nymph_config->PostgreSQL->user['value'] = $dbopts["user"];
-		$nymph_config->PostgreSQL->password['value'] = key_exists("pass", $dbopts) ? $dbopts["pass"] : '';
-	} else {
-		$nymph_config->PostgreSQL->database['value'] = 'nymph_testing';
-		$nymph_config->PostgreSQL->user['value'] = 'nymph_testing';
-		$nymph_config->PostgreSQL->password['value'] = 'password';
-	}
-
-	$nymph_config->pubsub['value'] = false;
-
-	return $nymph_config;
-});
+\Nymph\Nymph::configure($nymph_config);
 
 require_once 'TestModel.php';

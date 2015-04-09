@@ -25,7 +25,7 @@ class MySQLDriver implements DriverInterface {
 
 	public function __construct($NymphConfig) {
 		$this->__traitConstruct($NymphConfig);
-		$this->prefix = $this->config->MySQL->prefix['value'];
+		$this->prefix = $this->config['MySQL']['prefix'];
 	}
 
 	/**
@@ -43,16 +43,16 @@ class MySQLDriver implements DriverInterface {
 	public function connect() {
 		// Check that the MySQLi extension is installed.
 		if (!is_callable('mysqli_connect')) {
-			throw new Exceptions\UnableToConnectException('MySQL PHP extension is not available. It probably has not been installed. Please install and configure it in order to use MySQL.');
+			throw new Exceptions\UnableToConnectException('MySQLi PHP extension is not available. It probably has not been installed. Please install and configure it in order to use MySQL.');
 		}
-		$host = $this->config->MySQL->host['value'];
-		$user = $this->config->MySQL->user['value'];
-		$password = $this->config->MySQL->password['value'];
-		$database = $this->config->MySQL->database['value'];
-		$port = $this->config->MySQL->port['value'];
+		$host = $this->config['MySQL']['host'];
+		$user = $this->config['MySQL']['user'];
+		$password = $this->config['MySQL']['password'];
+		$database = $this->config['MySQL']['database'];
+		$port = $this->config['MySQL']['port'];
 		// Connecting, selecting database
 		if (!$this->connected) {
-			if ( $this->link = mysqli_connect($host,  $user,  $password, $database, $port) ) {
+			if ($this->link = mysqli_connect($host, $user, $password, $database, $port)) {
 				$this->connected = true;
 			} else {
 				$this->connected = false;
@@ -93,24 +93,24 @@ class MySQLDriver implements DriverInterface {
 		if (isset($etype)) {
 			$etype =  '_'.mysqli_real_escape_string($this->link, $etype);
 			// Create the entity table.
-			$this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}entities{$etype}` (`guid` bigint(20) unsigned NOT NULL, `tags` text, `varlist` text, `cdate` decimal(18,6) NOT NULL, `mdate` decimal(18,6) NOT NULL, PRIMARY KEY (`guid`), FULLTEXT `id_tags` (`tags`), FULLTEXT `id_varlist` (`varlist`)) ENGINE ".$this->config->MySQL->engine['value']." CHARACTER SET utf8 COLLATE utf8_bin;");
+			$this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}entities{$etype}` (`guid` bigint(20) unsigned NOT NULL, `tags` text, `varlist` text, `cdate` decimal(18,6) NOT NULL, `mdate` decimal(18,6) NOT NULL, PRIMARY KEY (`guid`), FULLTEXT `id_tags` (`tags`), FULLTEXT `id_varlist` (`varlist`)) ENGINE ".$this->config['MySQL']['engine']." CHARACTER SET utf8 COLLATE utf8_bin;");
 			// Create the data table.
-			$this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}data{$etype}` (`guid` bigint(20) unsigned NOT NULL, `name` text NOT NULL, `value` longtext NOT NULL, `references` longtext, `compare_true` boolean, `compare_one` boolean, `compare_zero` boolean, `compare_negone` boolean, `compare_emptyarray` boolean, `compare_string` longtext, PRIMARY KEY (`guid`,`name`(255)), FULLTEXT `id_references` (`references`)) ENGINE ".$this->config->MySQL->engine['value']." CHARACTER SET utf8 COLLATE utf8_bin;");
+			$this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}data{$etype}` (`guid` bigint(20) unsigned NOT NULL, `name` text NOT NULL, `value` longtext NOT NULL, `references` longtext, `compare_true` boolean, `compare_one` boolean, `compare_zero` boolean, `compare_negone` boolean, `compare_emptyarray` boolean, `compare_string` longtext, PRIMARY KEY (`guid`,`name`(255)), FULLTEXT `id_references` (`references`)) ENGINE ".$this->config['MySQL']['engine']." CHARACTER SET utf8 COLLATE utf8_bin;");
 		} else {
 			// Create the GUID table.
-			$this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}guids` (`guid` bigint(20) unsigned NOT NULL, PRIMARY KEY (`guid`)) ENGINE ".$this->config->MySQL->engine['value']." CHARACTER SET utf8 COLLATE utf8_bin;");
+			$this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}guids` (`guid` bigint(20) unsigned NOT NULL, PRIMARY KEY (`guid`)) ENGINE ".$this->config['MySQL']['engine']." CHARACTER SET utf8 COLLATE utf8_bin;");
 			// Create the UID table.
-			$this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}uids` (`name` text NOT NULL, `cur_uid` bigint(20) unsigned NOT NULL, PRIMARY KEY (`name`(100))) ENGINE ".$this->config->MySQL->engine['value']." CHARACTER SET utf8 COLLATE utf8_bin;");
+			$this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}uids` (`name` text NOT NULL, `cur_uid` bigint(20) unsigned NOT NULL, PRIMARY KEY (`name`(100))) ENGINE ".$this->config['MySQL']['engine']." CHARACTER SET utf8 COLLATE utf8_bin;");
 		}
 		return true;
 	}
 
-	private function query($query, $etype_dirty = null) {
+	private function query($query, $etypeDirty = null) {
 		if ( !($result = mysqli_query($this->link, $query)) ) {
 			// If the tables don't exist yet, create them.
 			if (mysqli_errno($this->link) == 1146 && $this->createTables()) {
-				if (isset($etype_dirty)) {
-					$this->createTables($etype_dirty);
+				if (isset($etypeDirty)) {
+					$this->createTables($etypeDirty);
 				}
 				if ( !($result = mysqli_query($this->link, $query)) ) {
 					throw new Exceptions\QueryFailedException('Query failed: ' . mysqli_errno($this->link) . ': ' . mysqli_error($this->link), 0, null, $query);
@@ -127,7 +127,7 @@ class MySQLDriver implements DriverInterface {
 		$this->query("DELETE e, d FROM `{$this->prefix}entities{$etype}` e LEFT JOIN `{$this->prefix}data{$etype}` d ON e.`guid`=d.`guid` WHERE e.`guid`='".((int) $guid)."';", $etype);
 		$this->query("DELETE FROM `{$this->prefix}guids` WHERE `guid`='".((int) $guid)."';", $etype);
 		// Removed any cached versions of this entity.
-		if ($this->config->cache['value']) {
+		if ($this->config['cache']) {
 			$this->cleanCache($guid);
 		}
 		return true;
@@ -146,8 +146,8 @@ class MySQLDriver implements DriverInterface {
 			throw new Exceptions\InvalidParametersException('Provided filename is not writeable.');
 		}
 		fwrite($fhandle, "# Nymph Entity Exchange\n");
-		fwrite($fhandle, "# Nymph Version ".NYMPH_VERSION."\n");
-		fwrite($fhandle, "# sciactive.com\n");
+		fwrite($fhandle, "# Nymph Version ".\Nymph\Nymph::VERSION."\n");
+		fwrite($fhandle, "# nymph.io\n");
 		fwrite($fhandle, "#\n");
 		fwrite($fhandle, "# Generation Time: ".date('r')."\n");
 
@@ -215,8 +215,8 @@ class MySQLDriver implements DriverInterface {
 		// End all output buffering.
 		while (ob_end_clean());
 		echo "# Nymph Entity Exchange\n";
-		echo "# Nymph Version ".NYMPH_VERSION."\n";
-		echo "# sciactive.com\n";
+		echo "# Nymph Version ".\Nymph\Nymph::VERSION."\n";
+		echo "# nymph.io\n";
 		echo "#\n";
 		echo "# Generation Time: ".date('r')."\n";
 
@@ -282,14 +282,14 @@ class MySQLDriver implements DriverInterface {
 	 * Generate the MySQL query.
 	 * @param array $options The options array.
 	 * @param array $selectors The formatted selector array.
-	 * @param string $etype_dirty
+	 * @param string $etypeDirty
 	 * @param bool $subquery Whether only a subquery should be returned.
 	 * @param array $data_aliases The data alias array to use for subqueries.
 	 * @return string The SQL query.
 	 */
-	private function makeEntityQuery($options, $selectors, $etype_dirty, $subquery = false, &$data_aliases = []) {
+	private function makeEntityQuery($options, $selectors, $etypeDirty, $subquery = false, &$data_aliases = []) {
 		$sort = isset($options['sort']) ? $options['sort'] : 'cdate';
-		$etype = '_'.mysqli_real_escape_string($this->link, $etype_dirty);
+		$etype = '_'.mysqli_real_escape_string($this->link, $etypeDirty);
 		$query_parts = [];
 		foreach ($selectors as $cur_selector) {
 			$cur_selector_query = '';
@@ -305,7 +305,7 @@ class MySQLDriver implements DriverInterface {
 					if ( $cur_query ) {
 						$cur_query .= $type_is_or ? ' OR ' : ' AND ';
 					}
-					$cur_query .= $this->makeEntityQuery($options, [$value], $etype_dirty, true, $data_aliases);
+					$cur_query .= $this->makeEntityQuery($options, [$value], $etypeDirty, true, $data_aliases);
 				} else {
 					$clause_not = $key[0] === '!';
 					// Any options having to do with data only return if the
@@ -694,13 +694,13 @@ class MySQLDriver implements DriverInterface {
 
 		$entities = [];
 		$class = isset($options['class']) ? $options['class'] : '\\Nymph\\Entity';
-		$etype_dirty = isset($options['etype']) ? $options['etype'] : $class::etype;
+		$etypeDirty = isset($options['etype']) ? $options['etype'] : $class::ETYPE;
 		$return = isset($options['return']) ? $options['return'] : 'entity';
 
 		$count = $ocount = 0;
 
 		// Check if the requested entity is cached.
-		if ($this->config->cache['value'] && is_int($selectors[1]['guid'])) {
+		if ($this->config['cache'] && is_int($selectors[1]['guid'])) {
 			// Only safe to use the cache option with no other selectors than a GUID and tags.
 			if (
 					count($selectors) == 1 &&
@@ -712,14 +712,14 @@ class MySQLDriver implements DriverInterface {
 				) {
 				$entity = $this->pull_cache($selectors[1]['guid'], $class);
 				if (isset($entity) && (!isset($selectors[1]['tag']) || $entity->hasTag($selectors[1]['tag']))) {
-					$entity->_nUseSkipAC = (bool) $options['skip_ac'];
+					$entity->useSkipAc((bool) $options['skip_ac']);
 					return [$entity];
 				}
 			}
 		}
 
 		$this->formatSelectors($selectors);
-		$result = $this->query($this->makeEntityQuery($options, $selectors, $etype_dirty), $etype_dirty);
+		$result = $this->query($this->makeEntityQuery($options, $selectors, $etypeDirty), $etypeDirty);
 
 		$typesAlreadyChecked = ['ref', '!ref', 'guid', '!guid', 'tag', '!tag', 'isset', '!isset', 'strict', '!strict', 'like', '!like', 'pmatch', '!pmatch'];
 		$dataValsAreadyChecked = [true, false, 1, 0, -1, []];
@@ -753,7 +753,7 @@ class MySQLDriver implements DriverInterface {
 				switch ($return) {
 					case 'entity':
 					default:
-						if ($this->config->cache['value']) {
+						if ($this->config['cache']) {
 							$entity = $this->pull_cache($guid, $class);
 						} else {
 							$entity = null;
@@ -765,12 +765,12 @@ class MySQLDriver implements DriverInterface {
 								$entity->tags = explode(' ', $tags);
 							}
 							$entity->putData($data, $sdata);
-							if ($this->config->cache['value']) {
+							if ($this->config['cache']) {
 								$this->pushCache($entity, $class);
 							}
 						}
 						if (isset($options['skip_ac'])) {
-							$entity->_nUseSkipAC = (bool) $options['skip_ac'];
+							$entity->useSkipAc((bool) $options['skip_ac']);
 						}
 						$entities[] = $entity;
 						break;
@@ -907,11 +907,11 @@ class MySQLDriver implements DriverInterface {
 		return isset($row[0]) ? (int) $row[0] : null;
 	}
 
-	public function renameUID($old_name, $new_name) {
-		if (!$old_name || !$new_name) {
+	public function renameUID($oldName, $newName) {
+		if (!$oldName || !$newName) {
 			throw new Exceptions\InvalidParametersException('Name not given for UID');
 		}
-		$this->query("UPDATE `{$this->prefix}uids` SET `name`='".mysqli_real_escape_string($this->link, $new_name)."' WHERE `name`='".mysqli_real_escape_string($this->link, $old_name)."';");
+		$this->query("UPDATE `{$this->prefix}uids` SET `name`='".mysqli_real_escape_string($this->link, $newName)."' WHERE `name`='".mysqli_real_escape_string($this->link, $oldName)."';");
 		return true;
 	}
 
@@ -929,8 +929,8 @@ class MySQLDriver implements DriverInterface {
 		$sdata = $entity->getSData();
 		$varlist = array_merge(array_keys($data), array_keys($sdata));
 		$class = get_class($entity);
-		$etype_dirty = $class::etype;
-		$etype = '_'.mysqli_real_escape_string($this->link, $etype_dirty);
+		$etypeDirty = $class::ETYPE;
+		$etype = '_'.mysqli_real_escape_string($this->link, $etypeDirty);
 		if ( !isset($entity->guid) ) {
 			while (true) {
 				$new_id = mt_rand(1, pow(2, 53)); // 2^53 is the maximum number in JavaScript (http://ecma262-5.com/ELS5_HTML.htm#Section_8.5)
@@ -938,7 +938,7 @@ class MySQLDriver implements DriverInterface {
 				if ($new_id < 1) {
 					$new_id = rand(1, 0x7FFFFFFF);
 				}
-				$result = $this->query("SELECT `guid` FROM `{$this->prefix}guids` WHERE `guid`='{$new_id}';", $etype_dirty);
+				$result = $this->query("SELECT `guid` FROM `{$this->prefix}guids` WHERE `guid`='{$new_id}';", $etypeDirty);
 				$row = mysqli_fetch_row($result);
 				mysqli_free_result($result);
 				if (!isset($row[0])) {
@@ -947,7 +947,7 @@ class MySQLDriver implements DriverInterface {
 			}
 			$entity->guid = $new_id;
 			$this->query("INSERT INTO `{$this->prefix}guids` (`guid`) VALUES ({$entity->guid});");
-			$this->query("INSERT INTO `{$this->prefix}entities{$etype}` (`guid`, `tags`, `varlist`, `cdate`, `mdate`) VALUES ({$entity->guid}, '".mysqli_real_escape_string($this->link, implode(' ', array_diff($entity->tags, [''])))."', '".mysqli_real_escape_string($this->link, implode(' ', $varlist))."', ".((float) $data['cdate']).", ".((float) $data['mdate']).");", $etype_dirty);
+			$this->query("INSERT INTO `{$this->prefix}entities{$etype}` (`guid`, `tags`, `varlist`, `cdate`, `mdate`) VALUES ({$entity->guid}, '".mysqli_real_escape_string($this->link, implode(' ', array_diff($entity->tags, [''])))."', '".mysqli_real_escape_string($this->link, implode(' ', $varlist))."', ".((float) $data['cdate']).", ".((float) $data['mdate']).");", $etypeDirty);
 			unset($data['cdate'], $data['mdate']);
 			$values = [];
 			foreach ($data as $name => $value) {
@@ -985,10 +985,10 @@ class MySQLDriver implements DriverInterface {
 			$this->query($query);
 		} else {
 			// Removed any cached versions of this entity.
-			if ($this->config->cache['value']) {
+			if ($this->config['cache']) {
 				$this->cleanCache($entity->guid);
 			}
-			$this->query("UPDATE `{$this->prefix}entities{$etype}` SET `tags`='".mysqli_real_escape_string($this->link, implode(' ', array_diff($entity->tags, [''])))."', `varlist`='".mysqli_real_escape_string($this->link, implode(' ', $varlist))."', `mdate`=".((float) $data['mdate'])." WHERE `guid`='".((int) $entity->guid)."';", $etype_dirty);
+			$this->query("UPDATE `{$this->prefix}entities{$etype}` SET `tags`='".mysqli_real_escape_string($this->link, implode(' ', array_diff($entity->tags, [''])))."', `varlist`='".mysqli_real_escape_string($this->link, implode(' ', $varlist))."', `mdate`=".((float) $data['mdate'])." WHERE `guid`='".((int) $entity->guid)."';", $etypeDirty);
 			$this->query("DELETE FROM `{$this->prefix}data{$etype}` WHERE `guid`='".((int) $entity->guid)."';");
 			unset($data['cdate'], $data['mdate']);
 			$values = [];
@@ -1027,7 +1027,7 @@ class MySQLDriver implements DriverInterface {
 			$this->query($query);
 		}
 		// Cache the entity.
-		if ($this->config->cache['value']) {
+		if ($this->config['cache']) {
 			$class = get_class($entity);
 			// Replace hook override in the class name.
 			if (strpos($class, '\\SciActive\\HookOverride_') === 0) {

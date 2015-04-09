@@ -17,7 +17,7 @@
  * @property TestModel $parent A parent entity.
  */
 class TestModel extends \Nymph\Entity {
-	const etype = 'test_model';
+	const ETYPE = 'test_model';
 	protected $privateData = ['boolean'];
 	protected $whitelistData = ['string', 'array', 'mdate'];
 	protected $protectedTags = ['test', 'notag'];

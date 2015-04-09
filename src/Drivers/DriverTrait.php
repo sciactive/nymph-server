@@ -234,7 +234,7 @@ trait DriverTrait {
 
 	public function deleteEntity(&$entity) {
 		$class = get_class($entity);
-		$return = $this->deleteEntityByID($entity->guid, $class::etype);
+		$return = $this->deleteEntityByID($entity->guid, $class::ETYPE);
 		if ( $return ) {
 			$entity->guid = null;
 		}
@@ -434,14 +434,14 @@ trait DriverTrait {
 		}
 		$this->entityCount[$entity->guid]++;
 		// Check the threshold.
-		if ($this->entityCount[$entity->guid] < $this->config->cache_threshold['value']) {
+		if ($this->entityCount[$entity->guid] < $this->config['cache_threshold']) {
 			return;
 		}
 		// Cache the entity.
 		if ((array) $this->entityCache[$entity->guid] === $this->entityCache[$entity->guid]) {
 			$this->entityCache[$entity->guid][$class] = clone $entity;
 		} else {
-			while ($this->config->cache_limit['value'] && count($this->entityCache) >= $this->config->cache_limit['value']) {
+			while ($this->config['cache_limit'] && count($this->entityCache) >= $this->config['cache_limit']) {
 				// Find which entity has been accessed the least.
 				asort($this->entityCount);
 				foreach ($this->entityCount as $key => $val) {
