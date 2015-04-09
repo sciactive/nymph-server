@@ -605,7 +605,7 @@ class Entity implements EntityInterface {
 			$tagArray = $tagArray[0];
 		}
 		foreach ($tagArray as $tag) {
-			if ( !in_array($tag, $this->tags) ) {
+			if (!in_array($tag, $this->tags)) {
 				return false;
 			}
 		}
@@ -880,7 +880,7 @@ class Entity implements EntityInterface {
 		foreach ($tagArray as $tag) {
 			// Can't use array_search, because $tag may exist more than once.
 			foreach ($this->tags as $curKey => $cur_tag) {
-				if ( $cur_tag === $tag ) {
+				if ($cur_tag === $tag) {
 					unset($this->tags[$curKey]);
 				}
 			}
