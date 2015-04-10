@@ -56,16 +56,16 @@
     "packages-dev": [
         {
             "name": "sciactive/hookphp",
-            "version": "1.2.1",
+            "version": "1.2.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sciactive/hookphp.git",
-                "reference": "08b0e9068d7e0052941bd6f2a6c1829eb54977b7"
+                "reference": "ef78d5af0943c1fd0b627426ec9905aeb6ac1c6c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sciactive/hookphp/zipball/08b0e9068d7e0052941bd6f2a6c1829eb54977b7",
-                "reference": "08b0e9068d7e0052941bd6f2a6c1829eb54977b7",
+                "url": "https://api.github.com/repos/sciactive/hookphp/zipball/ef78d5af0943c1fd0b627426ec9905aeb6ac1c6c",
+                "reference": "ef78d5af0943c1fd0b627426ec9905aeb6ac1c6c",
                 "shasum": ""
             },
             "type": "library",
@@ -96,7 +96,7 @@
                 "interception",
                 "method hooking"
             ],
-            "time": "2015-02-19 00:00:00"
+            "time": "2015-04-10 00:00:00"
         }
     ],
     "aliases": [],

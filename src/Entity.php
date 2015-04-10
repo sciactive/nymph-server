@@ -601,6 +601,9 @@ class Entity implements EntityInterface {
 			return false;
 		}
 		$tagArray = func_get_args();
+		if (!$tagArray) {
+			return false;
+		}
 		if ((array) $tagArray[0] === $tagArray[0]) {
 			$tagArray = $tagArray[0];
 		}
