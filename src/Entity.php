@@ -196,6 +196,17 @@ class Entity implements EntityInterface {
 	 */
 	protected $clientEnabledMethods = [];
 	/**
+	 * The names of the static methods allowed to be called by client side
+	 * JavaScript with serverCallStatic.
+	 *
+	 * Static methods should be called from their class' object, rather than an
+	 * instance, in JavaScript.
+	 *
+	 * @var array
+	 * @access public
+	 */
+	public static $clientEnabledStaticMethods = [];
+	/**
 	 * The name of the corresponding class on the client side. Leave null to use
 	 * the same name.
 	 *
@@ -255,6 +266,9 @@ class Entity implements EntityInterface {
 	 */
 	public static function factoryReference($reference) {
 		$class = $reference[2];
+		if (!class_exists($class)) {
+			throw new Exceptions\EntityClassNotFoundException("factoryReference called for a class that can't be found, $class.");
+		}
 		$entity = call_user_func([$class, 'factory']);
 		$entity->referenceSleep($reference);
 		return $entity;
@@ -292,12 +306,15 @@ class Entity implements EntityInterface {
 				if ($this->entityCache[$name] === 0) {
 					// The entity hasn't been loaded yet, so load it now.
 					$class = $this->data[$name][2];
+					if (!class_exists($class)) {
+						throw new Exceptions\EntityCorruptedException("Entity reference refers to a class that can't be found, $class.");
+					}
 					$this->entityCache[$name] = $class::factoryReference($this->data[$name]);
 					$this->entityCache[$name]->useSkipAc($this->useSkipAc);
 				}
 				return $this->entityCache[$name];
 			} else {
-				throw new Exceptions\EntityCorruptedException("Corrupted entity data found on entity with GUID {$this->guid}.");
+				throw new Exceptions\EntityCorruptedException("Entity data has become corrupt and cannot be determined.");
 			}
 		}
 		// Check if it's set.
@@ -305,15 +322,19 @@ class Entity implements EntityInterface {
 			return $this->data[$name];
 		}
 		// If it's not an entity, return the regular value.
-		if ((array) $this->data[$name] === $this->data[$name]) {
-			// But, if it's an array, check all the values for entity references, and change them.
-			array_walk($this->data[$name], [$this, 'referenceToEntity']);
-		} elseif ((object) $this->data[$name] === $this->data[$name] && !(((is_a($this->data[$name], '\Nymph\Entity') || is_a($this->data[$name], '\SciActive\HookOverride'))) && is_callable([$this->data[$name], 'toReference']))) {
-			// Only do this for non-entity objects.
-			foreach ($this->data[$name] as &$curProperty) {
-				$this->referenceToEntity($curProperty, null);
+		try {
+			if ((array) $this->data[$name] === $this->data[$name]) {
+				// But, if it's an array, check all the values for entity references, and change them.
+				array_walk($this->data[$name], [$this, 'referenceToEntity']);
+			} elseif ((object) $this->data[$name] === $this->data[$name] && !(((is_a($this->data[$name], '\Nymph\Entity') || is_a($this->data[$name], '\SciActive\HookOverride'))) && is_callable([$this->data[$name], 'toReference']))) {
+				// Only do this for non-entity objects.
+				foreach ($this->data[$name] as &$curProperty) {
+					$this->referenceToEntity($curProperty, null);
+				}
+				unset($curProperty);
 			}
-			unset($curProperty);
+		} catch (Exceptions\EntityClassNotFoundException $e) {
+			throw new Exceptions\EntityCorruptedException($e->getMessage());
 		}
 		// Check for peditor sources.
 		if (substr($name, -9) === '_pesource' && !isset($this->data[$name])) {
@@ -799,6 +820,13 @@ class Entity implements EntityInterface {
 	 * @param array $reference The reference to use to wake.
 	 */
 	public function referenceSleep($reference) {
+		if (count($reference) !== 3 || $reference[0] !== 'nymph_entity_reference' || (int) $reference[1] !== $reference[1] || (string) $reference[2] !== $reference[2]) {
+			throw new Exceptions\InvalidParametersException('referenceSleep expects parameter 1 to be a valid Nymph entity reference.');
+		}
+		$thisClass = get_class($this);
+		if ($reference[2] !== $thisClass) {
+			throw new Exceptions\InvalidParametersException("referenceSleep can only be called with an entity reference of the same class. Given class: {$reference[2]}; this class: $thisClass.");
+		}
 		$this->isASleepingReference = true;
 		$this->sleepingReference = $reference;
 	}
@@ -819,6 +847,9 @@ class Entity implements EntityInterface {
 		if ((array) $item === $item) {
 			if (isset($item[0]) && $item[0] === 'nymph_entity_reference') {
 				if (!isset($this->entityCache["reference_guid: {$item[1]}"])) {
+					if (!class_exists($item[2])) {
+						throw new Exceptions\EntityClassNotFoundException("Tried to load entity reference that refers to a class that can't be found, {$item[2]}.");
+					}
 					$this->entityCache["reference_guid: {$item[1]}"] = call_user_func([$item[2], 'factoryReference'], $item);
 				}
 				$item = $this->entityCache["reference_guid: {$item[1]}"];
@@ -842,6 +873,9 @@ class Entity implements EntityInterface {
 	private function referenceWake() {
 		if (!$this->isASleepingReference) {
 			return true;
+		}
+		if (!class_exists($this->sleepingReference[2])) {
+			throw new Exceptions\EntityClassNotFoundException("Tried to wake sleeping reference entity that refers to a class that can't be found, {$this->sleepingReference[2]}.");
 		}
 		$entity = Nymph::getEntity(['class' => $this->sleepingReference[2], 'skip_ac' => $this->useSkipAc], ['&', 'guid' => $this->sleepingReference[1]]);
 		if (!isset($entity)) {

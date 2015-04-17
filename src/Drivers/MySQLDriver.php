@@ -694,6 +694,9 @@ class MySQLDriver implements DriverInterface {
 
 		$entities = [];
 		$class = isset($options['class']) ? $options['class'] : '\\Nymph\\Entity';
+		if (!class_exists($class)) {
+			throw new Exceptions\EntityClassNotFoundException("Query requested using a class that can't be found: $class.");
+		}
 		$etypeDirty = isset($options['etype']) ? $options['etype'] : $class::ETYPE;
 		$return = isset($options['return']) ? $options['return'] : 'entity';
 
@@ -804,6 +807,7 @@ class MySQLDriver implements DriverInterface {
 		if (!$fhandle = fopen($filename, 'r')) {
 			throw new Exceptions\InvalidParametersException('Provided filename is unreadable.');
 		}
+		$guid = null;
 		$line = '';
 		$data = [];
 		while (!feof($fhandle)) {

@@ -192,7 +192,7 @@ class EntityTest extends PHPUnit_Framework_TestCase {
 	public function testSleepingReferences($arr) {
 		$testEntity = $arr['entity'];
 
-		$entity = TestModel::factoryReference(['nymph_sleeping_reference', $testEntity->guid, 'TestModel']);
+		$entity = TestModel::factoryReference(['nymph_entity_reference', $testEntity->guid, 'TestModel']);
 
 		$this->assertSame('Entity Test', $entity->name);
 		$this->assertNull($entity->null);

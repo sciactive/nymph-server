@@ -3,6 +3,9 @@
 /**
  * EntityInvalidDataException exception.
  *
+ * This exception is meant to be thrown when an attempt to save an entity is
+ * made, and validation on the data of that entity fails.
+ *
  * @package Nymph
  * @license http://www.gnu.org/licenses/lgpl.html
  * @author Hunter Perrin <hperrin@gmail.com>

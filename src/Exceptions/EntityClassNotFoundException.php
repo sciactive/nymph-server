@@ -1,9 +1,10 @@
 <?php namespace Nymph\Exceptions;
 
 /**
- * InvalidParametersException exception.
+ * EntityClassNotFoundException exception.
  *
- * This exception is thrown when a method is called with invalid parameters.
+ * This exception is thrown when an entity query is provided for an entity class
+ * that is not found.
  *
  * @package Nymph
  * @license http://www.gnu.org/licenses/lgpl.html
@@ -11,4 +12,4 @@
  * @copyright SciActive.com
  * @link http://nymph.io/
  */
-class InvalidParametersException extends \InvalidArgumentException {}
+class EntityClassNotFoundException extends \Exception {}

@@ -3,6 +3,8 @@
 /**
  * QueryFailedException exception.
  *
+ * This exception is thrown when a query to the database returns an error.
+ *
  * @package Nymph
  * @license http://www.gnu.org/licenses/lgpl.html
  * @author Hunter Perrin <hperrin@gmail.com>

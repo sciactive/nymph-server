@@ -2,7 +2,7 @@
 
 error_reporting(E_ALL);
 
-require file_exists(dirname(__DIR__).'/vendor/autoload.php') ? dirname(__DIR__).'/vendor/autoload.php' : dirname(dirname(__DIR__)).'/autoload-dev.php';
+require file_exists(__DIR__.'/../vendor/autoload.php') ? __DIR__.'/../vendor/autoload.php' : __DIR__.'/../../autoload-dev.php';
 use SciActive\RequirePHP as RequirePHP;
 
 RequirePHP::undef('NymphConfig');
