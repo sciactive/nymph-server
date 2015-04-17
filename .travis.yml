@@ -9,18 +9,11 @@ php:
 env:
   - DB=mysql DATABASE_MYSQL=mysql://root@localhost:3306/nymph_testing
   - DB=pgsql DATABASE_PGSQL=postgres://postgres@localhost:5432/nymph_testing
-  - DATABASE_MYSQL=mysql://root@localhost:3306/nymph_testing DATABASE_PGSQL=postgres://postgres@localhost:5432/nymph_testing
 
 matrix:
   exclude:
     - php: hhvm
       env: DB=pgsql DATABASE_PGSQL=postgres://postgres@localhost:5432/nymph_testing
-    - php: hhvm
-      env: DATABASE_MYSQL=mysql://root@localhost:3306/nymph_testing DATABASE_PGSQL=postgres://postgres@localhost:5432/nymph_testing
-    - php: 5.5
-      env: DATABASE_MYSQL=mysql://root@localhost:3306/nymph_testing DATABASE_PGSQL=postgres://postgres@localhost:5432/nymph_testing
-    - php: 5.6
-      env: DATABASE_MYSQL=mysql://root@localhost:3306/nymph_testing DATABASE_PGSQL=postgres://postgres@localhost:5432/nymph_testing
 
 mysql:
   database: nymph_testing
