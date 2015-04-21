@@ -498,6 +498,27 @@ class PostgreSQLDriver implements DriverInterface {
 									if ($cur_query) {
 										$cur_query .= ($type_is_or ? ' OR ' : ' AND ');
 									}
+									$cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '').'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data'.$etype.'" WHERE "name"=\''.pg_escape_string($this->link, $cur_value[0]).'\' AND "compare_string" LIKE \''.pg_escape_string($this->link, $cur_value[1]).'\')';
+								}
+								break;
+							case 'ilike':
+							case '!ilike':
+								if ($cur_value[0] == 'cdate') {
+									if ($cur_query) {
+										$cur_query .= $type_is_or ? ' OR ' : ' AND ';
+									}
+									$cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '').'(e."cdate" ILIKE \''.pg_escape_string($this->link, $cur_value[1]).'\')';
+									break;
+								} elseif ($cur_value[0] == 'mdate') {
+									if ($cur_query) {
+										$cur_query .= $type_is_or ? ' OR ' : ' AND ';
+									}
+									$cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '').'(e."mdate" ILIKE \''.pg_escape_string($this->link, $cur_value[1]).'\')';
+									break;
+								} else {
+									if ($cur_query) {
+										$cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+									}
 									$cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '').'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data'.$etype.'" WHERE "name"=\''.pg_escape_string($this->link, $cur_value[0]).'\' AND "compare_string" ILIKE \''.pg_escape_string($this->link, $cur_value[1]).'\')';
 								}
 								break;
@@ -520,6 +541,27 @@ class PostgreSQLDriver implements DriverInterface {
 										$cur_query .= ($type_is_or ? ' OR ' : ' AND ');
 									}
 									$cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '').'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data'.$etype.'" WHERE "name"=\''.pg_escape_string($this->link, $cur_value[0]).'\' AND "compare_string" ~ \''.pg_escape_string($this->link, $cur_value[1]).'\')';
+								}
+								break;
+							case 'ipmatch':
+							case '!ipmatch':
+								if ($cur_value[0] == 'cdate') {
+									if ($cur_query) {
+										$cur_query .= $type_is_or ? ' OR ' : ' AND ';
+									}
+									$cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '').'(e."cdate" ~* \''.pg_escape_string($this->link, $cur_value[1]).'\')';
+									break;
+								} elseif ($cur_value[0] == 'mdate') {
+									if ($cur_query) {
+										$cur_query .= $type_is_or ? ' OR ' : ' AND ';
+									}
+									$cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '').'(e."mdate" ~* \''.pg_escape_string($this->link, $cur_value[1]).'\')';
+									break;
+								} else {
+									if ($cur_query) {
+										$cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+									}
+									$cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '').'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data'.$etype.'" WHERE "name"=\''.pg_escape_string($this->link, $cur_value[0]).'\' AND "compare_string" ~* \''.pg_escape_string($this->link, $cur_value[1]).'\')';
 								}
 								break;
 							case 'match':
@@ -771,7 +813,7 @@ class PostgreSQLDriver implements DriverInterface {
 		$this->formatSelectors($selectors);
 		$result = $this->query($this->makeEntityQuery($options, $selectors, $etypeDirty), $etypeDirty);
 
-		$typesAlreadyChecked = ['ref', '!ref', 'guid', '!guid', 'tag', '!tag', 'isset', '!isset', 'strict', '!strict', 'like', '!like', 'pmatch', '!pmatch'];
+		$typesAlreadyChecked = ['ref', '!ref', 'guid', '!guid', 'tag', '!tag', 'isset', '!isset', 'strict', '!strict', 'like', '!like', 'ilike', '!ilike', 'pmatch', '!pmatch', 'ipmatch', '!ipmatch'];
 		if ($this->usePLPerl) {
 			$typesAlreadyChecked[] = 'match';
 			$typesAlreadyChecked[] = '!match';

@@ -464,6 +464,28 @@ class MySQLDriver implements DriverInterface {
 									$cur_query .= '('.(($type_is_not xor $clause_not) ? 'e.`varlist` NOT REGEXP \'[[:<:]]'.mysqli_real_escape_string($this->link, $cur_value[0]).'[[:>:]]\' OR ' : '').'(e.`guid`='.$alias.'.`guid` AND '.$alias.'.`name`=\''.mysqli_real_escape_string($this->link, $cur_value[0]).'\' AND '.(($type_is_not xor $clause_not) ? 'NOT ' : '').$alias.'.`compare_string` LIKE \''.mysqli_real_escape_string($this->link, $cur_value[1]).'\'))';
 								}
 								break;
+							case 'ilike':
+							case '!ilike':
+								if ($cur_value[0] == 'cdate') {
+									if ($cur_query) {
+										$cur_query .= $type_is_or ? ' OR ' : ' AND ';
+									}
+									$cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '').'(e.`cdate` LIKE LOWER(\''.mysqli_real_escape_string($this->link, $cur_value[1]).'\'))';
+									break;
+								} elseif ($cur_value[0] == 'mdate') {
+									if ($cur_query) {
+										$cur_query .= $type_is_or ? ' OR ' : ' AND ';
+									}
+									$cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '').'(e.`mdate` LIKE LOWER(\''.mysqli_real_escape_string($this->link, $cur_value[1]).'\'))';
+									break;
+								} else {
+									if ($cur_query) {
+										$cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+									}
+									$alias = $this->addDataAlias($data_aliases);
+									$cur_query .= '('.(($type_is_not xor $clause_not) ? 'e.`varlist` NOT REGEXP \'[[:<:]]'.mysqli_real_escape_string($this->link, $cur_value[0]).'[[:>:]]\' OR ' : '').'(e.`guid`='.$alias.'.`guid` AND '.$alias.'.`name`=\''.mysqli_real_escape_string($this->link, $cur_value[0]).'\' AND '.(($type_is_not xor $clause_not) ? 'NOT ' : '').'LOWER('.$alias.'.`compare_string`) LIKE LOWER(\''.mysqli_real_escape_string($this->link, $cur_value[1]).'\')))';
+								}
+								break;
 							case 'pmatch':
 							case '!pmatch':
 								if ($cur_value[0] == 'cdate') {
@@ -484,6 +506,28 @@ class MySQLDriver implements DriverInterface {
 									}
 									$alias = $this->addDataAlias($data_aliases);
 									$cur_query .= '('.(($type_is_not xor $clause_not) ? 'e.`varlist` NOT REGEXP \'[[:<:]]'.mysqli_real_escape_string($this->link, $cur_value[0]).'[[:>:]]\' OR ' : '').'(e.`guid`='.$alias.'.`guid` AND '.$alias.'.`name`=\''.mysqli_real_escape_string($this->link, $cur_value[0]).'\' AND '.(($type_is_not xor $clause_not) ? 'NOT ' : '').$alias.'.`compare_string` REGEXP \''.mysqli_real_escape_string($this->link, $cur_value[1]).'\'))';
+								}
+								break;
+							case 'ipmatch':
+							case '!ipmatch':
+								if ($cur_value[0] == 'cdate') {
+									if ($cur_query) {
+										$cur_query .= $type_is_or ? ' OR ' : ' AND ';
+									}
+									$cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '').'(e.`cdate` REGEXP LOWER(\''.mysqli_real_escape_string($this->link, $cur_value[1]).'\'))';
+									break;
+								} elseif ($cur_value[0] == 'mdate') {
+									if ($cur_query) {
+										$cur_query .= $type_is_or ? ' OR ' : ' AND ';
+									}
+									$cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '').'(e.`mdate` REGEXP LOWER(\''.mysqli_real_escape_string($this->link, $cur_value[1]).'\'))';
+									break;
+								} else {
+									if ($cur_query) {
+										$cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+									}
+									$alias = $this->addDataAlias($data_aliases);
+									$cur_query .= '('.(($type_is_not xor $clause_not) ? 'e.`varlist` NOT REGEXP \'[[:<:]]'.mysqli_real_escape_string($this->link, $cur_value[0]).'[[:>:]]\' OR ' : '').'(e.`guid`='.$alias.'.`guid` AND '.$alias.'.`name`=\''.mysqli_real_escape_string($this->link, $cur_value[0]).'\' AND '.(($type_is_not xor $clause_not) ? 'NOT ' : '').'LOWER('.$alias.'.`compare_string`) REGEXP LOWER(\''.mysqli_real_escape_string($this->link, $cur_value[1]).'\')))';
 								}
 								break;
 							case 'match':
@@ -724,7 +768,7 @@ class MySQLDriver implements DriverInterface {
 		$this->formatSelectors($selectors);
 		$result = $this->query($this->makeEntityQuery($options, $selectors, $etypeDirty), $etypeDirty);
 
-		$typesAlreadyChecked = ['ref', '!ref', 'guid', '!guid', 'tag', '!tag', 'isset', '!isset', 'strict', '!strict', 'like', '!like', 'pmatch', '!pmatch'];
+		$typesAlreadyChecked = ['ref', '!ref', 'guid', '!guid', 'tag', '!tag', 'isset', '!isset', 'strict', '!strict', 'like', '!like', 'ilike', '!ilike', 'pmatch', '!pmatch', 'ipmatch', '!ipmatch'];
 		$dataValsAreadyChecked = [true, false, 1, 0, -1, []];
 
 		$row = mysqli_fetch_row($result);

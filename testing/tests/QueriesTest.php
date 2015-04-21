@@ -414,37 +414,6 @@ This one's zip code is 92064.";
 	/**
 	 * @depends testCreateEntity
 	 */
-	public function testLike($arr) {
-		$testEntity = $arr['entity'];
-
-		// Retrieving entity by data...
-		$resultEntity = Nymph::getEntities(
-				['class' => 'TestModel'],
-				['&', 'like' => ['string', 't_s%']]
-			);
-		$this->assertTrue($testEntity->inArray($resultEntity));
-	}
-
-	/**
-	 * @depends testCreateEntity
-	 */
-	public function testNotLike($arr) {
-		$testEntity = $arr['entity'];
-		$referenceEntity = TestModel::factory($arr['refGuid']);
-		$this->assertSame($arr['refGuid'], $referenceEntity->guid);
-
-		// Retrieving entity by !data...
-		$resultEntity = Nymph::getEntities(
-				['class' => 'TestModel'],
-				['&', 'tag' => 'test', '!like' => ['string', 'wr_n%']]
-			);
-		$this->assertTrue($testEntity->inArray($resultEntity));
-		$this->assertFalse($referenceEntity->inArray($resultEntity));
-	}
-
-	/**
-	 * @depends testCreateEntity
-	 */
 	public function testDataInclusive($arr) {
 		$testEntity = $arr['entity'];
 
@@ -482,6 +451,82 @@ This one's zip code is 92064.";
 		$resultEntity = Nymph::getEntities(
 				['class' => 'TestModel'],
 				['&', 'data' => ['string', 'pickles']]
+			);
+		$this->assertFalse($testEntity->inArray($resultEntity));
+	}
+
+	/**
+	 * @depends testCreateEntity
+	 */
+	public function testLike($arr) {
+		$testEntity = $arr['entity'];
+
+		// Retrieving entity by like...
+		$resultEntity = Nymph::getEntities(
+				['class' => 'TestModel'],
+				['&', 'like' => ['string', 't_s%']]
+			);
+		$this->assertTrue($testEntity->inArray($resultEntity));
+	}
+
+	/**
+	 * @depends testCreateEntity
+	 */
+	public function testNotLike($arr) {
+		$testEntity = $arr['entity'];
+		$referenceEntity = TestModel::factory($arr['refGuid']);
+		$this->assertSame($arr['refGuid'], $referenceEntity->guid);
+
+		// Retrieving entity by !data...
+		$resultEntity = Nymph::getEntities(
+				['class' => 'TestModel'],
+				['&', 'tag' => 'test', '!like' => ['string', 'wr_n%']]
+			);
+		$this->assertTrue($testEntity->inArray($resultEntity));
+		$this->assertFalse($referenceEntity->inArray($resultEntity));
+	}
+
+	/**
+	 * @depends testCreateEntity
+	 */
+	public function testIlike($arr) {
+		$testEntity = $arr['entity'];
+
+		// Retrieving entity by data...
+		$resultEntity = Nymph::getEntities(
+				['class' => 'TestModel'],
+				['&', 'ilike' => ['string', 'T_s%']]
+			);
+		$this->assertTrue($testEntity->inArray($resultEntity));
+	}
+
+	/**
+	 * @depends testCreateEntity
+	 */
+	public function testNotIlike($arr) {
+		$testEntity = $arr['entity'];
+		$referenceEntity = TestModel::factory($arr['refGuid']);
+		$this->assertSame($arr['refGuid'], $referenceEntity->guid);
+
+		// Retrieving entity by !data...
+		$resultEntity = Nymph::getEntities(
+				['class' => 'TestModel'],
+				['&', 'tag' => 'test', '!ilike' => ['string', 'wr_n%']]
+			);
+		$this->assertTrue($testEntity->inArray($resultEntity));
+		$this->assertFalse($referenceEntity->inArray($resultEntity));
+	}
+
+	/**
+	 * @depends testCreateEntity
+	 */
+	public function testLikeWrongCase($arr) {
+		$testEntity = $arr['entity'];
+
+		// Retrieving entity by data...
+		$resultEntity = Nymph::getEntities(
+				['class' => 'TestModel'],
+				['&', 'like' => ['string', 'T_s%']]
 			);
 		$this->assertFalse($testEntity->inArray($resultEntity));
 	}
@@ -697,13 +742,27 @@ This one's zip code is 92064.";
 	/**
 	 * @depends testCreateEntity
 	 */
+	public function testPosixRegexCase($arr) {
+		$testEntity = $arr['entity'];
+
+		// Retrieving entity by regex match...
+		$resultEntity = Nymph::getEntities(
+				['class' => 'TestModel'],
+				['&', 'tag' => 'test', 'ipmatch' => ['match', 'edward mccheese']] // a substring
+			);
+		$this->assertTrue($testEntity->inArray($resultEntity));
+	}
+
+	/**
+	 * @depends testCreateEntity
+	 */
 	public function testWrongPosixRegex($arr) {
 		$testEntity = $arr['entity'];
 
 		// Testing wrong regex match...
 		$resultEntity = Nymph::getEntities(
 				['class' => 'TestModel'],
-				['&', 'match' => ['pmatch', 'Q']]
+				['&', 'pmatch' => ['match', 'Q']]
 			);
 		$this->assertFalse($testEntity->inArray($resultEntity));
 		$resultEntity = Nymph::getEntities(
@@ -714,6 +773,20 @@ This one's zip code is 92064.";
 		$resultEntity = Nymph::getEntities(
 				['class' => 'TestModel'],
 				['|', 'pmatch' => [['string', '[0-9]'], ['match', ',,']]]
+			);
+		$this->assertFalse($testEntity->inArray($resultEntity));
+	}
+
+	/**
+	 * @depends testCreateEntity
+	 */
+	public function testPosixRegexWrongCase($arr) {
+		$testEntity = $arr['entity'];
+
+		// Retrieving entity by regex match...
+		$resultEntity = Nymph::getEntities(
+				['class' => 'TestModel'],
+				['&', 'tag' => 'test', 'pmatch' => ['match', 'edward mccheese']] // a substring
 			);
 		$this->assertFalse($testEntity->inArray($resultEntity));
 	}

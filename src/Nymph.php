@@ -234,7 +234,7 @@ class Nymph {
 	 * # varname=json_encode(serialize(value))
 	 *     abilities="a:1:{i:0;s:10:\"system\/all\";}"
 	 *     groups="a:0:{}"
-	 *     inherit_abilities="b:0;"
+	 *     inheritAbilities="b:0;"
 	 *     name="s:5:\"admin\";"
 	 * # White space before/after "=" and at beginning/end of line is ignored.
 	 *         username  =     "s:5:\"admin\";"
@@ -306,9 +306,15 @@ class Nymph {
 	 * - pmatch - An array with a name, then regular expression. True if the
 	 *   named variable matches. Uses POSIX RegExp. Case sensitive. Faster than
 	 *   "match". Must *not* be surrounded by any delimiters.
+	 * - ipmatch - An array with a name, then regular expression. True if the
+	 *   named variable matches. Uses POSIX RegExp. Case insensitive. Faster
+	 *   than "match". Must *not* be surrounded by any delimiters.
 	 * - like - An array with a name, then pattern. True if the named variable
 	 *   matches. Uses % for variable length wildcard and _ for single character
-	 *   wildcard.
+	 *   wildcard. Case sensitive.
+	 * - ilike - An array with a name, then pattern. True if the named variable
+	 *   matches. Uses % for variable length wildcard and _ for single character
+	 *   wildcard. Case insensitive.
 	 * - gt - An array with a name, then value. True if the named variable is
 	 *   greater than the value.
 	 * - gte - An array with a name, then value. True if the named variable is

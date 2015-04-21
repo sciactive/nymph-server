@@ -336,6 +336,8 @@ class REST {
 			if ($entity === null) {
 				return false;
 			}
+		} elseif (is_callable([$entityData['class'], 'factory'])) {
+			$entity = call_user_func([$entityData['class'], 'factory']);
 		} else {
 			$entity = new $entityData['class'];
 		}
