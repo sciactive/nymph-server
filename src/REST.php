@@ -110,6 +110,8 @@ class REST {
 					}
 				} catch (Exceptions\EntityInvalidDataException $e) {
 					$invalidData = true;
+				} catch (\Exception $e) {
+					return $this->httpError(500, 'Internal Server Error', $e);
 				}
 			}
 			if (empty($created)) {
@@ -142,7 +144,7 @@ class REST {
 					header('Content-Type: application/json');
 					echo json_encode(['return' => $return]);
 				} catch (\Exception $e) {
-					return $this->httpError(500, 'Internal Server Error');
+					return $this->httpError(500, 'Internal Server Error', $e);
 				}
 			} else {
 				$entity = $this->loadEntity($args['entity']);
@@ -157,12 +159,16 @@ class REST {
 					header('Content-Type: application/json');
 					echo json_encode(['entity' => $entity, 'return' => $return]);
 				} catch (\Exception $e) {
-					return $this->httpError(500, 'Internal Server Error');
+					return $this->httpError(500, 'Internal Server Error', $e);
 				}
 			}
 			header('HTTP/1.1 200 OK', true, 200);
 		} else {
-			$result = Nymph::newUID("$data");
+			try {
+				$result = Nymph::newUID("$data");
+			} catch (\Exception $e) {
+				return $this->httpError(500, 'Internal Server Error', $e);
+			}
 			if (!is_int($result)) {
 				return $this->httpError(500, 'Internal Server Error');
 			}
@@ -184,7 +190,11 @@ class REST {
 			if (!isset($args['name']) || !isset($args['value']) || !is_string($args['name']) || !is_numeric($args['value'])) {
 				return $this->httpError(400, 'Bad Request');
 			}
-			$result = Nymph::setUID($args['name'], (int) $args['value']);
+			try {
+				$result = Nymph::setUID($args['name'], (int) $args['value']);
+			} catch (\Exception $e) {
+				return $this->httpError(500, 'Internal Server Error', $e);
+			}
 			if (!$result) {
 				return $this->httpError(500, 'Internal Server Error');
 			}
@@ -198,6 +208,7 @@ class REST {
 			$saved = [];
 			$invalidData = false;
 			$notfound = false;
+			$lastException = null;
 			foreach ($ents as $newEnt) {
 				if (!is_numeric($newEnt['guid']) || (int) $newEnt['guid'] <= 0) {
 					$invalidData = true;
@@ -214,6 +225,8 @@ class REST {
 					}
 				} catch (Exceptions\EntityInvalidDataException $e) {
 					$invalidData = true;
+				} catch (\Exception $e) {
+					$lastException = $e;
 				}
 			}
 			if (empty($saved)) {
@@ -222,7 +235,7 @@ class REST {
 				} elseif ($notfound) {
 					return $this->httpError(404, 'Not Found');
 				} else {
-					return $this->httpError(500, 'Internal Server Error');
+					return $this->httpError(500, 'Internal Server Error', $lastException);
 				}
 			}
 			header('Content-Type: application/json');
@@ -250,7 +263,11 @@ class REST {
 		if (in_array($action, ['entity', 'entities'])) {
 			$args = json_decode($data, true);
 			if (is_int($args)) {
-				$result = Nymph::$method($args);
+				try {
+					$result = Nymph::$method($args);
+				} catch (\Exception $e) {
+					return $this->httpError(500, 'Internal Server Error', $e);
+				}
 			} else {
 				$count = count($args);
 				if ($count > 1) {
@@ -262,7 +279,11 @@ class REST {
 						$args[$i] = $newArg;
 					}
 				}
-				$result = call_user_func_array("\Nymph\Nymph::$method", $args);
+				try {
+					$result = call_user_func_array("\Nymph\Nymph::$method", $args);
+				} catch (\Exception $e) {
+					return $this->httpError(500, 'Internal Server Error', $e);
+				}
 			}
 			if (empty($result)) {
 				if ($action === 'entity' || RequirePHP::_('NymphConfig')['empty_list_error']) {
@@ -273,7 +294,11 @@ class REST {
 			echo json_encode($result);
 			return true;
 		} else {
-			$result = Nymph::$method("$data");
+			try {
+				$result = Nymph::$method("$data");
+			} catch (\Exception $e) {
+				return $this->httpError(500, 'Internal Server Error', $e);
+			}
 			if ($result === null) {
 				return $this->httpError(404, 'Not Found');
 			} elseif (!is_int($result)) {
@@ -357,12 +382,22 @@ class REST {
 	 *
 	 * @param int $errorCode The HTTP status code.
 	 * @param string $message The message to place on the HTTP status header line.
+	 * @param Exception $exception An optional exception object to report.
 	 * @return boolean Always returns false.
 	 * @access protected
 	 */
-	protected function httpError($errorCode, $message) {
+	protected function httpError($errorCode, $message, $exception = null) {
 		header("HTTP/1.1 $errorCode $message", true, $errorCode);
-		echo "$errorCode $message";
+		if ($exception) {
+			echo json_encode([
+				'textStatus' => "$errorCode $message",
+				'exception' => get_class($exception),
+				'code' => $exception->getCode(),
+				'message' => $exception->getMessage()
+			]);
+		} else {
+			echo json_encode(['textStatus' => "$errorCode $message"]);
+		}
 		return false;
 	}
 

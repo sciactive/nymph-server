@@ -25,7 +25,7 @@ RequirePHP::_('Nymph', ['NymphConfig'], function($NymphConfig) {
  * @link http://nymph.io/
  */
 class Nymph {
-	const VERSION = '1.4.2';
+	const VERSION = '1.4.3';
 
 	public static function __callStatic($name, $args) {
 		return call_user_func_array(array(RequirePHP::_('Nymph'), $name), $args);
