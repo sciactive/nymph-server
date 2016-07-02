@@ -17,31 +17,31 @@
  * @property TestModel $parent A parent entity.
  */
 class TestModel extends \Nymph\Entity {
-	const ETYPE = 'test_model';
-	protected $privateData = ['boolean'];
-	protected $whitelistData = ['string', 'array', 'mdate'];
-	protected $protectedTags = ['test', 'notag'];
-	protected $whitelistTags = ['newtag'];
+  const ETYPE = 'test_model';
+  protected $privateData = ['boolean'];
+  protected $whitelistData = ['string', 'array', 'mdate'];
+  protected $protectedTags = ['test', 'notag'];
+  protected $whitelistTags = ['newtag'];
 
-	public function __construct($id = 0) {
-		$this->addTag('test');
-		$this->boolean = true;
-		parent::__construct($id);
-	}
+  public function __construct($id = 0) {
+    $this->addTag('test');
+    $this->boolean = true;
+    parent::__construct($id);
+  }
 
-	public function info($type) {
-		if ($type == 'name' && isset($this->name)) {
-			return $this->name;
-		} elseif ($type == 'type') {
-			return 'test';
-		} elseif ($type == 'types') {
-			return 'tests';
-		}
-		return null;
-	}
+  public function info($type) {
+    if ($type == 'name' && isset($this->name)) {
+      return $this->name;
+    } elseif ($type == 'type') {
+      return 'test';
+    } elseif ($type == 'types') {
+      return 'tests';
+    }
+    return null;
+  }
 
-	public function useProtectedData() {
-		$this->whitelistData = false;
-		$this->protectedData = ['number'];
-	}
+  public function useProtectedData() {
+    $this->whitelistData = false;
+    $this->protectedData = ['number'];
+  }
 }
