@@ -1,4 +1,5 @@
 <?php namespace Nymph;
+
 /**
  * Data Object interface.
  *
@@ -19,7 +20,8 @@ interface DataObjectInterface {
    *
    * @param array $array The array to search.
    * @param bool $strict Whether to use stronger comparison.
-   * @return mixed The key if the object is in the array, false if it isn't or if $array is not an array.
+   * @return mixed The key if the object is in the array, false if it isn't or
+   *               if $array is not an array.
    */
   public function arraySearch($array, $strict = false);
   /**
@@ -43,7 +45,8 @@ interface DataObjectInterface {
    *
    * @param array $array The array to search.
    * @param bool $strict Whether to use stronger comparison.
-   * @return bool True if the object is in the array, false if it isn't or if $array is not an array.
+   * @return bool True if the object is in the array, false if it isn't or if
+   *              $array is not an array.
    */
   public function inArray($array, $strict = false);
   /**
@@ -68,7 +71,8 @@ interface DataObjectInterface {
    * - image - The URL to an image representing this object.
    *
    * @param string $type The type of information being requested.
-   * @return mixed The information, or null if the information doesn't exist or can't be returned.
+   * @return mixed The information, or null if the information doesn't exist or
+   *               can't be returned.
    */
   public function info($type);
   /**
@@ -84,7 +88,8 @@ interface DataObjectInterface {
    * If the object has been deleted from storage, the database cannot be
    * reached, or a database error occurs, refresh() will return 0.
    *
-   * @return bool|int False if the data has not been saved, 0 if it can't be refreshed, true on success.
+   * @return bool|int False if the data has not been saved, 0 if it can't be
+   *                  refreshed, true on success.
    */
   public function refresh();
   /**

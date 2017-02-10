@@ -2,7 +2,10 @@
 
 class EntityTest extends PHPUnit_Framework_TestCase {
   public function testHookPHP() {
-    $this->assertTrue(class_exists('\SciActive\Hook'), 'HookPHP must be installed to run these tests.');
+    $this->assertTrue(
+        class_exists('\SciActive\Hook'),
+        'HookPHP must be installed to run these tests.'
+    );
   }
 
   public function testInstantiate() {
@@ -44,7 +47,8 @@ class EntityTest extends PHPUnit_Framework_TestCase {
     $entity_reference_guid = $entity_reference_test->guid;
     $testEntity->reference = $entity_reference_test;
     $testEntity->ref_array = [0 => ['entity' => $entity_reference_test]];
-    $testEntity->ref_object = (object) ['thing' => (object) ['entity' => $entity_reference_test]];
+    $testEntity->ref_object =
+        (object) ['thing' => (object) ['entity' => $entity_reference_test]];
     $this->assertTrue($testEntity->save());
 
     $entity_reference_test->test = 'good';
@@ -95,7 +99,10 @@ class EntityTest extends PHPUnit_Framework_TestCase {
     $array[1]->refresh();
     $this->assertSame(1, $testEntity->arraySearch($array, true));
     $this->assertSame(false, $testEntity->arraySearch([0, 1, 2, 3, 4, 5]));
-    $this->assertSame(false, $testEntity->arraySearch([0, 1, 2, 3, 4, 5], true));
+    $this->assertSame(
+        false,
+        $testEntity->arraySearch([0, 1, 2, 3, 4, 5], true)
+    );
 
     $array[1]->string = 'different';
 
@@ -144,7 +151,10 @@ class EntityTest extends PHPUnit_Framework_TestCase {
 
     $reference = $testEntity->toReference();
 
-    $this->assertEquals(['nymph_entity_reference', $testEntity->guid, 'TestModel'], $reference);
+    $this->assertEquals(
+        ['nymph_entity_reference', $testEntity->guid, 'TestModel'],
+        $reference
+    );
   }
 
   /**
@@ -157,7 +167,9 @@ class EntityTest extends PHPUnit_Framework_TestCase {
     $testEntity->addTag('test', 'test2');
     $this->assertTrue($testEntity->hasTag('test', 'test2'));
     $testEntity->addTag(['test', 'test3', 'test4', 'test5', 'test6']);
-    $this->assertTrue($testEntity->hasTag(['test', 'test3', 'test4', 'test5', 'test6']));
+    $this->assertTrue(
+        $testEntity->hasTag(['test', 'test3', 'test4', 'test5', 'test6'])
+    );
     $testEntity->removeTag('test2');
     $this->assertFalse($testEntity->hasTag('test2'));
     $testEntity->removeTag('test3', 'test4');
@@ -176,14 +188,23 @@ class EntityTest extends PHPUnit_Framework_TestCase {
     $testEntity->refresh();
 
     $this->assertSame($arr['refGuid'], $testEntity->reference->guid);
-    $this->assertSame($arr['refGuid'], $testEntity->ref_array[0]['entity']->guid);
-    $this->assertSame($arr['refGuid'], $testEntity->ref_object->thing->entity->guid);
+    $this->assertSame(
+        $arr['refGuid'],
+        $testEntity->ref_array[0]['entity']->guid
+    );
+    $this->assertSame(
+        $arr['refGuid'],
+        $testEntity->ref_object->thing->entity->guid
+    );
 
     $entity = TestModel::factory($testEntity->guid);
 
     $this->assertSame($arr['refGuid'], $entity->reference->guid);
     $this->assertSame($arr['refGuid'], $entity->ref_array[0]['entity']->guid);
-    $this->assertSame($arr['refGuid'], $entity->ref_object->thing->entity->guid);
+    $this->assertSame(
+        $arr['refGuid'],
+        $entity->ref_object->thing->entity->guid
+    );
   }
 
   /**
@@ -192,7 +213,9 @@ class EntityTest extends PHPUnit_Framework_TestCase {
   public function testSleepingReferences($arr) {
     $testEntity = $arr['entity'];
 
-    $entity = TestModel::factoryReference(['nymph_entity_reference', $testEntity->guid, 'TestModel']);
+    $entity = TestModel::factoryReference(
+        ['nymph_entity_reference', $testEntity->guid, 'TestModel']
+    );
 
     $this->assertSame('Entity Test', $entity->name);
     $this->assertNull($entity->null);
@@ -201,7 +224,10 @@ class EntityTest extends PHPUnit_Framework_TestCase {
     $this->assertSame(30, $entity->number);
     $this->assertSame($arr['refGuid'], $entity->reference->guid);
     $this->assertSame($arr['refGuid'], $entity->ref_array[0]['entity']->guid);
-    $this->assertSame($arr['refGuid'], $entity->ref_object->thing->entity->guid);
+    $this->assertSame(
+        $arr['refGuid'],
+        $entity->ref_object->thing->entity->guid
+    );
   }
 
   /**
@@ -213,8 +239,19 @@ class EntityTest extends PHPUnit_Framework_TestCase {
     $json = json_encode($testEntity);
 
     $this->assertJsonStringEqualsJsonString(
-      '{"guid":'.$testEntity->guid.',"cdate":'.json_encode($testEntity->cdate).',"mdate":'.json_encode($testEntity->mdate).',"tags":["test"],"info":{"name":"Entity Test","type":"test","types":"tests"},"data":{"reference":["nymph_entity_reference",'.$arr['refGuid'].',"TestModel"],"ref_array":[{"entity":["nymph_entity_reference",'.$arr['refGuid'].',"TestModel"]}],"ref_object":{"thing":{"entity":["nymph_entity_reference",'.$arr['refGuid'].',"TestModel"]}},"name":"Entity Test","number":30,"array":["full","of","values",500],"string":"test","null":null},"class":"TestModel"}',
-      $json
+        '{"guid":' . $testEntity->guid.',"cdate":' .
+            json_encode($testEntity->cdate) . ',"mdate":' .
+            json_encode($testEntity->mdate) . ',"tags":["test"],"info":' .
+            '{"name":"Entity Test","type":"test","types":"tests"},"data":' .
+            '{"reference":["nymph_entity_reference",' .
+            $arr['refGuid'] . ',"TestModel"],"ref_array":[{"entity":' .
+            '["nymph_entity_reference",' .
+            $arr['refGuid'] . ',"TestModel"]}],"ref_object":{"thing":' .
+            '{"entity":["nymph_entity_reference",' . $arr['refGuid'] .
+            ',"TestModel"]}},"name":"Entity Test","number":30,"array":' .
+            '["full","of","values",500],"string":"test","null":null},' .
+            '"class":"TestModel"}',
+        $json
     );
   }
 
@@ -252,8 +289,14 @@ class EntityTest extends PHPUnit_Framework_TestCase {
     $this->assertSame(['imanarray'], $testEntity->array);
     $this->assertSame(30, $testEntity->number);
     $this->assertSame($arr['refGuid'], $testEntity->reference->guid);
-    $this->assertSame($arr['refGuid'], $testEntity->ref_array[0]['entity']->guid);
-    $this->assertSame($arr['refGuid'], $testEntity->ref_object->thing->entity->guid);
+    $this->assertSame(
+        $arr['refGuid'],
+        $testEntity->ref_array[0]['entity']->guid
+    );
+    $this->assertSame(
+        $arr['refGuid'],
+        $testEntity->ref_object->thing->entity->guid
+    );
 
     $this->assertTrue($testEntity->refresh());
     $testEntity->useProtectedData();

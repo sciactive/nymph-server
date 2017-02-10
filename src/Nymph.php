@@ -1,7 +1,8 @@
 <?php namespace Nymph;
+
 use SciActive\RequirePHP as RequirePHP;
 
-RequirePHP::_('Nymph', ['NymphConfig'], function($NymphConfig) {
+RequirePHP::_('Nymph', ['NymphConfig'], function ($NymphConfig) {
   $class = '\\Nymph\\Drivers\\'.$NymphConfig['driver'].'Driver';
 
   $Nymph = new $class($NymphConfig);
@@ -48,7 +49,7 @@ class Nymph {
    * @param array $config An associative array of Nymph's configuration.
    */
   public static function configure($config = []) {
-    \SciActive\RequirePHP::_('NymphConfig', [], function() use ($config){
+    \SciActive\RequirePHP::_('NymphConfig', [], function () use ($config) {
       $defaults = include dirname(__DIR__).'/conf/defaults.php';
       $nymphConfig = [];
       foreach ($defaults as $curName => $curOption) {
@@ -69,17 +70,43 @@ class Nymph {
   /**
    * Check entity data to see if it matches given selectors.
    *
-   * @param array $data An array of unserialized entity data. The data array should contain the cdate and mdate.
-   * @param array $sdata An array of serialized entity data. If a value here is checked, it will be unserialized and placed in the $data array.
+   * @param array $data An array of unserialized entity data. The data array
+   *                    should contain the cdate and mdate.
+   * @param array $sdata An array of serialized entity data. If a value here is
+   *                     checked, it will be unserialized and placed in the
+   *                     $data array.
    * @param array $selectors An array of formatted selectors.
-   * @param int|null $guid The guid. If left null, guid will not be checked, and automatically considered passing.
-   * @param array|null $tags The tags array. If left null, tags will not be checked, and automatically considered passing.
-   * @param array $typesAlreadyChecked An array of criteria types that have already been checked. They will be considered passing.
-   * @param array $dataValsAreadyChecked An array of data values that have already been checked. They will be considered passing if the value is identical.
+   * @param int|null $guid The guid. If left null, guid will not be checked, and
+   *                       automatically considered passing.
+   * @param array|null $tags The tags array. If left null, tags will not be
+   *                         checked, and automatically considered passing.
+   * @param array $typesAlreadyChecked An array of criteria types that have
+   *                                   already been checked. They will be
+   *                                   considered passing.
+   * @param array $dataValsAreadyChecked An array of data values that have
+   *                                     already been checked. They will be
+   *                                     considered passing if the value is
+   *                                     identical.
    * @return boolean Whether the entity data passes the given selectors.
    */
-  public static function checkData(&$data, &$sdata, $selectors, $guid = null, $tags = null, $typesAlreadyChecked = [], $dataValsAreadyChecked = []) {
-    return RequirePHP::_('Nymph')->checkData($data, $sdata, $selectors, $guid, $tags, $typesAlreadyChecked, $dataValsAreadyChecked);
+  public static function checkData(
+      &$data,
+      &$sdata,
+      $selectors,
+      $guid = null,
+      $tags = null,
+      $typesAlreadyChecked = [],
+      $dataValsAreadyChecked = []
+  ) {
+    return RequirePHP::_('Nymph')->checkData(
+        $data,
+        $sdata,
+        $selectors,
+        $guid,
+        $tags,
+        $typesAlreadyChecked,
+        $dataValsAreadyChecked
+    );
   }
 
   /**
@@ -116,12 +143,25 @@ class Nymph {
    *
    * @param array &$array The array of entities.
    * @param string|null $property The name of the property to sort entities by.
-   * @param string|null $parentProperty The name of the property which holds the parent of the entity.
+   * @param string|null $parentProperty The name of the property which holds the
+   *                                    parent of the entity.
    * @param bool $caseSensitive Sort case sensitively.
    * @param bool $reverse Reverse the sort order.
    */
-  public static function hsort(&$array, $property = null, $parentProperty = null, $caseSensitive = false, $reverse = false) {
-    return RequirePHP::_('Nymph')->hsort($array, $property, $parentProperty, $caseSensitive, $reverse);
+  public static function hsort(
+      &$array,
+      $property = null,
+      $parentProperty = null,
+      $caseSensitive = false,
+      $reverse = false
+  ) {
+    return RequirePHP::_('Nymph')->hsort(
+        $array,
+        $property,
+        $parentProperty,
+        $caseSensitive,
+        $reverse
+    );
   }
 
   /**
@@ -132,12 +172,25 @@ class Nymph {
    *
    * @param array &$array The array of entities.
    * @param string|null $property The name of the property to sort entities by.
-   * @param string|null $parentProperty The name of the property which holds the parent of the entity.
+   * @param string|null $parentProperty The name of the property which holds the
+   *                                    parent of the entity.
    * @param bool $caseSensitive Sort case sensitively.
    * @param bool $reverse Reverse the sort order.
    */
-  public static function psort(&$array, $property = null, $parentProperty = null, $caseSensitive = false, $reverse = false) {
-    return RequirePHP::_('Nymph')->psort($array, $property, $parentProperty, $caseSensitive, $reverse);
+  public static function psort(
+      &$array,
+      $property = null,
+      $parentProperty = null,
+      $caseSensitive = false,
+      $reverse = false
+  ) {
+    return RequirePHP::_('Nymph')->psort(
+        $array,
+        $property,
+        $parentProperty,
+        $caseSensitive,
+        $reverse
+    );
   }
 
   /**
@@ -148,8 +201,18 @@ class Nymph {
    * @param bool $caseSensitive Sort case sensitively.
    * @param bool $reverse Reverse the sort order.
    */
-  public static function sort(&$array, $property = null, $caseSensitive = false, $reverse = false) {
-    return RequirePHP::_('Nymph')->sort($array, $property, $caseSensitive, $reverse);
+  public static function sort(
+      &$array,
+      $property = null,
+      $caseSensitive = false,
+      $reverse = false
+  ) {
+    return RequirePHP::_('Nymph')->sort(
+        $array,
+        $property,
+        $caseSensitive,
+        $reverse
+    );
   }
 
   /**
@@ -224,8 +287,8 @@ class Nymph {
    * # This defines a UID.
    * &lt;name/of/uid&gt;[5]
    * &lt;another uid&gt;[8000]
-   * # For UIDs, the name is in angle brackets (&lt;&gt;) and the value follows in
-   * #  square brackets ([]).
+   * # For UIDs, the name is in angle brackets (&lt;&gt;) and the value follows
+   * # in square brackets ([]).
    * # This starts a new entity.
    * {1}[tag,list,with,commas]
    * # For entities, the GUID is in curly brackets ({}) and the comma
@@ -335,7 +398,8 @@ class Nymph {
    * - spouse exists and is not null.
    * - gender is male and lname is Smith.
    * - warnings is not an integer 0.
-   * - It has 'level1' and 'level2' tags, or it has 'access1' and 'access2' tags.
+   * - It has 'level1' and 'level2' tags, or it has 'access1' and 'access2'
+   *   tags.
    * - It has either 'employee' or 'manager' tag.
    * - name is either Clark, James, Chris, Christopher, Jake, or Jacob.
    * - If age is 22 or more, then pay is not greater than 8.
@@ -351,7 +415,7 @@ class Nymph {
    *       ['gender', 'male'],
    *       ['lname', 'Smith']
    *     ],
-   *	   '!strict' => ['warnings', 0]
+   *     '!strict' => ['warnings', 0]
    *   ],
    *   [
    *     '|', // at least one of the selectors in this must evaluate to true
@@ -388,7 +452,9 @@ class Nymph {
    * </pre>
    *
    * @param array $options The options.
-   * @param array $selector Unlimited optional selectors to search for. If none are given, all entities are retrieved for the given options.
+   * @param array $selector Unlimited optional selectors to search for. If none
+   *                        are given, all entities are retrieved for the given
+   *                        options.
    * @param array $selector,...
    * @return array|null An array of entities, or null on failure.
    * @todo An option to place a total count in a var.
@@ -407,7 +473,8 @@ class Nymph {
    * getEntities() would return an empty array.
    *
    * @param array $options The options to search for.
-   * @param array $selector Unlimited optional selectors to search for, or just a GUID.
+   * @param array $selector Unlimited optional selectors to search for, or just
+   *                        a GUID.
    * @param array $selector,...
    * @return Entity|null An entity, or null on failure and nothing found.
    */
@@ -418,7 +485,8 @@ class Nymph {
    * Get the current value of a unique ID.
    *
    * @param string $name The UID's name.
-   * @return int|null The UID's value, or null on failure and if it doesn't exist.
+   * @return int|null The UID's value, or null on failure and if it doesn't
+   *                  exist.
    */
   public static function getUID($name) {
     return self::__callStatic(__FUNCTION__, func_get_args());

@@ -1,4 +1,5 @@
 <?php namespace Nymph;
+
 use SciActive\RequirePHP as RequirePHP;
 
 /**
@@ -133,14 +134,18 @@ class REST {
       array_walk($args['params'], [$this, 'referenceToEntity']);
       if (isset($args['static']) && $args['static']) {
         $class = $args['class'];
-        if (!class_exists($class) || !isset($class::$clientEnabledStaticMethods)) {
+        if (!class_exists($class)
+            || !isset($class::$clientEnabledStaticMethods)) {
           return $this->httpError(400, 'Bad Request');
         }
         if (!in_array($args['method'], $class::$clientEnabledStaticMethods)) {
           return $this->httpError(403, 'Forbidden');
         }
         try {
-          $return = call_user_func_array([$class, $args['method']], $args['params']);
+          $return = call_user_func_array(
+              [$class, $args['method']],
+              $args['params']
+          );
           header('Content-Type: application/json');
           echo json_encode(['return' => $return]);
         } catch (\Exception $e) {
@@ -151,11 +156,16 @@ class REST {
         if (!in_array($args['method'], $entity->clientEnabledMethods())) {
           return $this->httpError(403, 'Forbidden');
         }
-        if (!$entity || ((int) $args['entity']['guid'] > 0 && !$entity->guid) || !is_callable([$entity, $args['method']])) {
+        if (!$entity
+            || ((int) $args['entity']['guid'] > 0 && !$entity->guid)
+            || !is_callable([$entity, $args['method']])) {
           return $this->httpError(400, 'Bad Request');
         }
         try {
-          $return = call_user_func_array([$entity, $args['method']], $args['params']);
+          $return = call_user_func_array(
+              [$entity, $args['method']],
+              $args['params']
+          );
           header('Content-Type: application/json');
           echo json_encode(['entity' => $entity, 'return' => $return]);
         } catch (\Exception $e) {
@@ -187,7 +197,10 @@ class REST {
     ob_start();
     if ($action === 'uid') {
       $args = json_decode($data, true);
-      if (!isset($args['name']) || !isset($args['value']) || !is_string($args['name']) || !is_numeric($args['value'])) {
+      if (!isset($args['name'])
+          || !isset($args['value'])
+          || !is_string($args['name'])
+          || !is_numeric($args['value'])) {
         return $this->httpError(400, 'Bad Request');
       }
       try {
@@ -286,7 +299,8 @@ class REST {
         }
       }
       if (empty($result)) {
-        if ($action === 'entity' || RequirePHP::_('NymphConfig')['empty_list_error']) {
+        if ($action === 'entity'
+            || RequirePHP::_('NymphConfig')['empty_list_error']) {
           return $this->httpError(404, 'Not Found');
         }
       }
@@ -323,7 +337,11 @@ class REST {
         $tmpArg = [$val];
         $newSel = array_merge($tmpArg, $newSel);
       } elseif (is_numeric($key)) {
-        if (isset($val['type']) || (isset($val[0]) && in_array($val[0], ['&', '!&', '|', '!|']))) {
+        if (isset($val['type'])
+            || (
+              isset($val[0])
+              && in_array($val[0], ['&', '!&', '|', '!|'])
+            )) {
           $tmpSel = self::translateSelector($val);
           if ($tmpSel === false) {
             return false;
@@ -357,7 +375,7 @@ class REST {
           ['&',
             'guid' => (int) $entityData['guid']
           ]
-        );
+      );
       if ($entity === null) {
         return false;
       }
@@ -417,7 +435,14 @@ class REST {
       } else {
         array_walk($item, [$this, 'referenceToEntity']);
       }
-    } elseif ((object) $item === $item && !(((is_a($item, '\Nymph\Entity') || is_a($item, '\SciActive\HookOverride'))) && is_callable([$item, 'toReference']))) {
+    } elseif ((object) $item === $item
+              && !(
+                (
+                  is_a($item, '\Nymph\Entity')
+                  || is_a($item, '\SciActive\HookOverride')
+                )
+                && is_callable([$item, 'toReference'])
+              )) {
       // Only do this for non-entity objects.
       foreach ($item as &$cur_property) {
         $this->referenceToEntity($cur_property, null);

@@ -19,9 +19,15 @@ class EntityInvalidDataException extends \Exception {
    * @param string $message
    * @param int $code
    * @param \Exception $previous
-   * @param array|string $fields A field, or an array of fields, which fail validation checking.
+   * @param array|string $fields A field, or an array of fields, which fail
+   *                             validation checking.
    */
-  public function __construct($message = '', $code = 0, $previous = null, $fields = []) {
+  public function __construct(
+      $message = '',
+      $code = 0,
+      $previous = null,
+      $fields = []
+  ) {
     parent::__construct($message, $code, $previous);
     if (!empty($fields)) {
       if ((array) $fields !== $fields) {

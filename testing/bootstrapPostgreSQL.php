@@ -2,7 +2,9 @@
 
 error_reporting(E_ALL);
 
-require file_exists(__DIR__.'/../vendor/autoload.php') ? __DIR__.'/../vendor/autoload.php' : __DIR__.'/../../autoload-dev.php';
+require file_exists(__DIR__.'/../vendor/autoload.php')
+    ? __DIR__.'/../vendor/autoload.php'
+    : __DIR__.'/../../autoload-dev.php';
 use SciActive\RequirePHP as RequirePHP;
 
 RequirePHP::undef('NymphConfig');
@@ -14,7 +16,7 @@ $nymph_config = [
 if (getenv('DATABASE_PGSQL')) {
   $dbopts = parse_url(getenv('DATABASE_PGSQL'));
   $nymph_config['PostgreSQL'] = [
-    'database' => ltrim($dbopts["path"],'/'),
+    'database' => ltrim($dbopts["path"], '/'),
     'host' => $dbopts["host"],
     'port' => $dbopts["port"],
     'user' => $dbopts["user"],

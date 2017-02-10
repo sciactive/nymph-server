@@ -1,5 +1,5 @@
 <?php
-use Nymph\Nymph as Nymph;
+use Nymph\Nymph;
 
 class UIDTest extends PHPUnit_Framework_TestCase {
   public function testDeleteOldTestData() {
