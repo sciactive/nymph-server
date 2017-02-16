@@ -336,7 +336,7 @@ class MySQLDriver implements DriverInterface {
       $subquery = false,
       &$data_aliases = []
   ) {
-    $sort = isset($options['sort']) ? $options['sort'] : 'cdate';
+    $sort = $options['sort'] ?? 'cdate';
     $etype = '_'.mysqli_real_escape_string($this->link, $etypeDirty);
     $query_parts = [];
     foreach ($selectors as $cur_selector) {
@@ -980,17 +980,9 @@ class MySQLDriver implements DriverInterface {
     return $query;
   }
 
-  public function getEntities() {
+  public function getEntities($options = [], ...$selectors) {
     if (!$this->connected) {
       throw new Exceptions\UnableToConnectException();
-    }
-    // Set up options and selectors.
-    $selectors = func_get_args();
-    if (!$selectors) {
-      $options = $selectors = [];
-    } else {
-      $options = $selectors[0];
-      unset($selectors[0]);
     }
     foreach ($selectors as $key => $selector) {
       if (!$selector
@@ -1011,14 +1003,14 @@ class MySQLDriver implements DriverInterface {
     }
 
     $entities = [];
-    $class = isset($options['class']) ? $options['class'] : '\\Nymph\\Entity';
+    $class = $options['class'] ?? '\\Nymph\\Entity';
     if (!class_exists($class)) {
       throw new Exceptions\EntityClassNotFoundException(
           "Query requested using a class that can't be found: $class."
       );
     }
-    $etypeDirty = isset($options['etype']) ? $options['etype'] : $class::ETYPE;
-    $return = isset($options['return']) ? $options['return'] : 'entity';
+    $etypeDirty = $options['etype'] ?? $class::ETYPE;
+    $return = $options['return'] ?? 'entity';
 
     $count = $ocount = 0;
 

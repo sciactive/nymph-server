@@ -369,18 +369,13 @@ trait DriverTrait {
     unset($cur_selector);
   }
 
-  public function getEntity() {
+  public function getEntity($options = [], ...$selectors) {
     // Set up options and selectors.
-    $args = func_get_args();
-    if (!$args) {
-      $args = [[]];
+    if ((int) $selectors[0] === $selectors[0] || is_numeric($selectors[0])) {
+      $selectors[0] = ['&', 'guid' => (int) $selectors[0]];
     }
-    if ((array) $args[0] === $args[0]
-        && ((int) $args[1] === $args[1] || is_numeric($args[1]))) {
-      $args = [$args[0], ['&', 'guid' => (int) $args[1]]];
-    }
-    $args[0]['limit'] = 1;
-    $entities = call_user_func_array([$this, 'getEntities'], $args);
+    $options['limit'] = 1;
+    $entities = $this->getEntities($options, ...$selectors);
     if (!$entities) {
       return null;
     }

@@ -452,15 +452,15 @@ class Nymph {
    * </pre>
    *
    * @param array $options The options.
-   * @param array $selector Unlimited optional selectors to search for. If none
-   *                        are given, all entities are retrieved for the given
-   *                        options.
-   * @param array $selector,...
+   * @param array $selectors Unlimited optional selectors to search for. If none
+   *                         are given, all entities are retrieved for the given
+   *                         options.
+   * @param array $selectors,...
    * @return array|null An array of entities, or null on failure.
    * @todo An option to place a total count in a var.
    * @todo Use an asterisk to specify any variable.
    */
-  public static function getEntities($options) {
+  public static function getEntities($options = [], ...$selectors) {
     return self::__callStatic(__FUNCTION__, func_get_args());
   }
   /**
@@ -473,12 +473,12 @@ class Nymph {
    * getEntities() would return an empty array.
    *
    * @param array $options The options to search for.
-   * @param array $selector Unlimited optional selectors to search for, or just
-   *                        a GUID.
-   * @param array $selector,...
+   * @param array|int $selectors Unlimited optional selectors to search for, or
+   *                             just a GUID.
+   * @param array $selectors,...
    * @return Entity|null An entity, or null on failure and nothing found.
    */
-  public static function getEntity($options) {
+  public static function getEntity($options = [], ...$selectors) {
     return self::__callStatic(__FUNCTION__, func_get_args());
   }
   /**

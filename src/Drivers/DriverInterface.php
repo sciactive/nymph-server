@@ -17,8 +17,8 @@ interface DriverInterface {
   public function disconnect();
   public function export($filename);
   public function exportPrint();
-  public function getEntities();
-  public function getEntity();
+  public function getEntities($options = [], ...$selectors);
+  public function getEntity($options = [], ...$selectors);
   public function getUID($name);
   public function hsort(
       &$array,
