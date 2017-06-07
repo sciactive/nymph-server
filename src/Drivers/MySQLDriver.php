@@ -1108,6 +1108,10 @@ class MySQLDriver implements DriverInterface {
             if (!isset($entity) || $data['mdate'] > $entity->mdate) {
               $entity = call_user_func([$class, 'factory']);
               $entity->guid = $guid;
+              $entity->cdate = $data['cdate'];
+              unset($data['cdate']);
+              $entity->mdate = $data['mdate'];
+              unset($data['mdate']);
               if ($tags !== '') {
                 $entity->tags = explode(' ', $tags);
               }
@@ -1330,8 +1334,7 @@ class MySQLDriver implements DriverInterface {
       }
       $entity->guid = $new_id;
       $this->query("INSERT INTO `{$this->prefix}guids` (`guid`) VALUES ({$entity->guid});");
-      $this->query("INSERT INTO `{$this->prefix}entities{$etype}` (`guid`, `tags`, `varlist`, `cdate`, `mdate`) VALUES ({$entity->guid}, '".mysqli_real_escape_string($this->link, implode(' ', array_diff($entity->tags, [''])))."', '".mysqli_real_escape_string($this->link, implode(' ', $varlist))."', ".((float) $data['cdate']).", ".((float) $data['mdate']).");", $etypeDirty);
-      unset($data['cdate'], $data['mdate']);
+      $this->query("INSERT INTO `{$this->prefix}entities{$etype}` (`guid`, `tags`, `varlist`, `cdate`, `mdate`) VALUES ({$entity->guid}, '".mysqli_real_escape_string($this->link, implode(' ', array_diff($entity->tags, [''])))."', '".mysqli_real_escape_string($this->link, implode(' ', $varlist))."', ".((float) $entity->cdate).", ".((float) $entity->mdate).");", $etypeDirty);
       $values = [];
       foreach ($data as $name => $value) {
         $svalue = serialize($value);
@@ -1395,9 +1398,8 @@ class MySQLDriver implements DriverInterface {
       if ($this->config['cache']) {
         $this->cleanCache($entity->guid);
       }
-      $this->query("UPDATE `{$this->prefix}entities{$etype}` SET `tags`='".mysqli_real_escape_string($this->link, implode(' ', array_diff($entity->tags, [''])))."', `varlist`='".mysqli_real_escape_string($this->link, implode(' ', $varlist))."', `mdate`=".((float) $data['mdate'])." WHERE `guid`='".((int) $entity->guid)."';", $etypeDirty);
+      $this->query("UPDATE `{$this->prefix}entities{$etype}` SET `tags`='".mysqli_real_escape_string($this->link, implode(' ', array_diff($entity->tags, [''])))."', `varlist`='".mysqli_real_escape_string($this->link, implode(' ', $varlist))."', `mdate`=".((float) $entity->mdate)." WHERE `guid`='".((int) $entity->guid)."';", $etypeDirty);
       $this->query("DELETE FROM `{$this->prefix}data{$etype}` WHERE `guid`='".((int) $entity->guid)."';");
-      unset($data['cdate'], $data['mdate']);
       $values = [];
       foreach ($data as $name => $value) {
         $svalue = serialize($value);

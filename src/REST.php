@@ -386,10 +386,10 @@ class REST {
     }
     $entity->jsonAcceptTags($entityData['tags']);
     if (isset($entityData['cdate'])) {
-      $entityData['data']['cdate'] = $entityData['cdate'];
+      $entity->cdate = (float) $entityData['cdate'];
     }
     if (isset($entityData['mdate'])) {
-      $entityData['data']['mdate'] = $entityData['mdate'];
+      $entity->mdate = (float) $entityData['mdate'];
     }
     $entity->jsonAcceptData($entityData['data']);
     return $entity;

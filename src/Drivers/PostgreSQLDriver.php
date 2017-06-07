@@ -1091,6 +1091,10 @@ class PostgreSQLDriver implements DriverInterface {
             if (!isset($entity) || $data['mdate'] > $entity->mdate) {
               $entity = call_user_func([$class, 'factory']);
               $entity->guid = $guid;
+              $entity->cdate = $data['cdate'];
+              unset($data['cdate']);
+              $entity->mdate = $data['mdate'];
+              unset($data['mdate']);
               if (strlen($tags) > 2) {
                 $entity->tags = explode(',', substr($tags, 1, -1));
               }
@@ -1329,8 +1333,7 @@ class PostgreSQLDriver implements DriverInterface {
       }
       $entity->guid = $new_id;
       $this->query("INSERT INTO \"{$this->prefix}guids\" (\"guid\") VALUES ({$new_id});");
-      $this->query("INSERT INTO \"{$this->prefix}entities{$etype}\" (\"guid\", \"tags\", \"varlist\", \"cdate\", \"mdate\") VALUES ({$entity->guid}, '".pg_escape_string($this->link, '{'.implode(',', array_diff($entity->tags, [''])).'}')."', '".pg_escape_string($this->link, '{'.implode(',', $varlist).'}')."', ".((float) $data['cdate']).", ".((float) $data['mdate']).");", $etypeDirty);
-      unset($data['cdate'], $data['mdate']);
+      $this->query("INSERT INTO \"{$this->prefix}entities{$etype}\" (\"guid\", \"tags\", \"varlist\", \"cdate\", \"mdate\") VALUES ({$entity->guid}, '".pg_escape_string($this->link, '{'.implode(',', array_diff($entity->tags, [''])).'}')."', '".pg_escape_string($this->link, '{'.implode(',', $varlist).'}')."', ".((float) $entity->cdate).", ".((float) $entity->mdate).");", $etypeDirty);
       $values = [];
       foreach ($data as $name => $value) {
         $svalue = serialize($value);
@@ -1404,9 +1407,8 @@ class PostgreSQLDriver implements DriverInterface {
       if ($this->config['cache']) {
         $this->cleanCache($entity->guid);
       }
-      $this->query("UPDATE \"{$this->prefix}entities{$etype}\" SET \"tags\"='".pg_escape_string($this->link, '{'.implode(',', array_diff($entity->tags, [''])).'}')."', \"varlist\"='".pg_escape_string($this->link, '{'.implode(',', $varlist).'}')."', \"cdate\"=".((float) $data['cdate']).", \"mdate\"=".((float) $data['mdate'])." WHERE \"guid\"={$entity->guid};", $etypeDirty);
+      $this->query("UPDATE \"{$this->prefix}entities{$etype}\" SET \"tags\"='".pg_escape_string($this->link, '{'.implode(',', array_diff($entity->tags, [''])).'}')."', \"varlist\"='".pg_escape_string($this->link, '{'.implode(',', $varlist).'}')."', \"cdate\"=".((float) $entity->cdate).", \"mdate\"=".((float) $entity->mdate)." WHERE \"guid\"={$entity->guid};", $etypeDirty);
       $this->query("DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$entity->guid};");
-      unset($data['cdate'], $data['mdate']);
       $values = [];
       foreach ($data as $name => $value) {
         $svalue = serialize($value);

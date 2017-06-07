@@ -86,6 +86,20 @@ class Entity implements EntityInterface {
    */
   private $guid = null;
   /**
+   * The creation date of the entity as a high precision Unix timestamp.
+   *
+   * @var float|null
+   * @access private
+   */
+  private $cdate = null;
+  /**
+   * The modified date of the entity as a high precision Unix timestamp.
+   *
+   * @var float|null
+   * @access private
+   */
+  private $mdate = null;
+  /**
    * Array of the entity's tags.
    *
    * @var array
@@ -293,7 +307,7 @@ class Entity implements EntityInterface {
     if ($this->isASleepingReference) {
       $this->referenceWake();
     }
-    if ($name === 'guid' || $name === 'tags') {
+    if ($name === 'guid' || $name === 'cdate' || $name === 'mdate' || $name === 'tags') {
       return $this->$name;
     }
     // Unserialize.
@@ -380,7 +394,7 @@ class Entity implements EntityInterface {
     if ($this->isASleepingReference) {
       $this->referenceWake();
     }
-    if ($name === 'guid' || $name === 'tags') {
+    if ($name === 'guid' || $name === 'cdate' || $name === 'mdate' || $name === 'tags') {
       return isset($this->$name);
     }
     // Unserialize.
@@ -407,6 +421,12 @@ class Entity implements EntityInterface {
     }
     if ($name === 'guid') {
       return ($this->$name = isset($value) ? (int) $value : null);
+    }
+    if ($name === 'cdate') {
+      return ($this->$name = (float) $value);
+    }
+    if ($name === 'mdate') {
+      return ($this->$name = (float) $value);
     }
     if ($name === 'tags') {
       return ($this->$name = (array) $value);
@@ -464,6 +484,14 @@ class Entity implements EntityInterface {
     }
     if ($name === 'guid') {
       unset($this->$name);
+      return;
+    }
+    if ($name === 'cdate') {
+      $this->$name = null;
+      return;
+    }
+    if ($name === 'mdate') {
+      $this->$name = null;
       return;
     }
     if ($name === 'tags') {
@@ -588,6 +616,12 @@ class Entity implements EntityInterface {
       }
     }
     if (get_class($testObject) != get_class($this)) {
+      return false;
+    }
+    if ($testObject->cdate != $this->cdate) {
+      return false;
+    }
+    if ($testObject->mdate != $this->mdate) {
       return false;
     }
     $obData = $testObject->getData(true);
@@ -739,9 +773,7 @@ class Entity implements EntityInterface {
     }
     $object->data = [];
     foreach ($this->getData(true) as $key => $val) {
-      if ($key !== 'cdate'
-          && $key !== 'mdate'
-          && !in_array($key, $this->privateData)) {
+      if (!in_array($key, $this->privateData)) {
         $object->data[$key] = $val;
       }
     }
@@ -810,13 +842,6 @@ class Entity implements EntityInterface {
     }
 
     $data = array_merge($nonWhitelistData, $data, $protectedData, $privateData);
-
-    if (!isset($data['cdate'])) {
-      $data['cdate'] = $this->cdate;
-    }
-    if (!isset($data['mdate'])) {
-      $data['mdate'] = $this->mdate;
-    }
 
     $this->putData($data);
   }
