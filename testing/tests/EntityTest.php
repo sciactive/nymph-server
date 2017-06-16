@@ -265,10 +265,10 @@ class EntityTest extends PHPUnit_Framework_TestCase {
 
     $entityData = json_decode($json, true);
 
+    $testEntity->cdate = "13";
+    $testEntity->mdate = "14";
     $entityData['tags'] = ['test', 'notag', 'newtag'];
     $testEntity->jsonAcceptTags($entityData['tags']);
-    $entityData['data']['cdate'] = 13;
-    $entityData['data']['mdate'] = 14;
     $entityData['data']['name'] = 'bad';
     $entityData['data']['string'] = 'good';
     $entityData['data']['null'] = true;
@@ -281,8 +281,8 @@ class EntityTest extends PHPUnit_Framework_TestCase {
 
     $this->assertFalse($testEntity->hasTag('notag'));
     $this->assertTrue($testEntity->hasTag('newtag'));
-    $this->assertGreaterThan(13, $testEntity->cdate);
-    $this->assertSame(14, $testEntity->mdate);
+    $this->assertSame(13.0, $testEntity->cdate);
+    $this->assertSame(14.0, $testEntity->mdate);
     $this->assertSame('Entity Test', $testEntity->name);
     $this->assertNull($testEntity->null);
     $this->assertSame('good', $testEntity->string);
@@ -301,13 +301,15 @@ class EntityTest extends PHPUnit_Framework_TestCase {
     $this->assertTrue($testEntity->refresh());
     $testEntity->useProtectedData();
 
+    $testEntity->cdate = "13";
+    $testEntity->mdate = "14";
     $testEntity->jsonAcceptTags($entityData['tags']);
     $testEntity->jsonAcceptData($entityData['data']);
 
     $this->assertFalse($testEntity->hasTag('notag'));
     $this->assertTrue($testEntity->hasTag('newtag'));
-    $this->assertSame(13, $testEntity->cdate);
-    $this->assertSame(14, $testEntity->mdate);
+    $this->assertSame(13.0, $testEntity->cdate);
+    $this->assertSame(14.0, $testEntity->mdate);
     $this->assertSame('bad', $testEntity->name);
     $this->assertTrue($testEntity->null);
     $this->assertSame('good', $testEntity->string);

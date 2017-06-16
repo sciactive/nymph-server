@@ -995,6 +995,8 @@ class Entity implements EntityInterface {
     }
     $this->clearCache();
     $this->tags = $refresh->tags;
+    $this->cdate = $refresh->cdate;
+    $this->mdate = $refresh->mdate;
     $this->putData($refresh->getData(), $refresh->getSData());
     return true;
   }
