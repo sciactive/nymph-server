@@ -5,7 +5,7 @@ dist: trusty
 php:
   - 7.0
   - 7.1
-  - hhvm
+  # - hhvm
 
 env:
   - DB=mysql DATABASE_MYSQL=mysql://travis@127.0.0.1:3306/nymph_testing
