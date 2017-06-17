@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "e533635081776b67c235e5abbdebbcb8",
-    "content-hash": "5adf8308c3a985f78affec3652a812f2",
+    "hash": "da950809974fc08c1d7a9802ac5d67ba",
+    "content-hash": "4e9c858af8c0eeaf7db6b7ff91a85219",
     "packages": [
         {
             "name": "sciactive/requirephp",
