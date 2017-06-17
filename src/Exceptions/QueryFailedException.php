@@ -6,7 +6,7 @@
  * This exception is thrown when a query to the database returns an error.
  *
  * @package Nymph
- * @license http://www.gnu.org/licenses/lgpl.html
+ * @license https://www.apache.org/licenses/LICENSE-2.0
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
  * @link http://nymph.io/

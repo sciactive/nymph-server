@@ -9,7 +9,7 @@ use SciActive\RequirePHP as RequirePHP;
  * to design their own API, or just use the reference implementation.
  *
  * @package Nymph
- * @license http://www.gnu.org/licenses/lgpl.html
+ * @license https://www.apache.org/licenses/LICENSE-2.0
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
  * @link http://nymph.io/
