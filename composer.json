@@ -49,6 +49,7 @@
 		"sciactive/requirephp": "~1.3"
 	},
 	"require-dev": {
-		"sciactive/hookphp": "~1.2"
+		"sciactive/hookphp": "~1.2",
+		"phpunit/phpunit": "^6.1"
 	}
 }
