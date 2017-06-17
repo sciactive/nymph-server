@@ -16,20 +16,16 @@ matrix:
     - php: hhvm
       env: DB=pgsql DATABASE_PGSQL=postgres://postgres@localhost:5432/nymph_testing
 
-mysql:
-  database: nymph_testing
-  user: nymph_testing
-  encoding: utf8
-
 services:
   - mysql
   - postgresql
 
-install: composer install --no-interaction
-
 before_install:
+  - alias mysql='mysql --socket=/run/mysql-5.6/mysqld.sock'
   - if [[ "$DB" == "pgsql" || "$DB" == "" ]]; then psql -c "CREATE DATABASE nymph_testing;" -U postgres; fi
   - if [[ "$DB" == "mysql" || "$DB" == "" ]]; then mysql -e "CREATE DATABASE IF NOT EXISTS nymph_testing;" -uroot; fi
   - if [[ "$DB" == "mysql" || "$DB" == "" ]]; then mysql -e "GRANT ALL PRIVILEGES ON nymph_testing.* TO 'travis'@'127.0.0.1' WITH GRANT OPTION;" -uroot; fi
+
+install: composer install --no-interaction
 
 script: ./testing/run
