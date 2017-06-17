@@ -8,7 +8,7 @@ php:
   - hhvm
 
 env:
-  - DB=mysql DATABASE_MYSQL=mysql://root@localhost:3306/nymph_testing
+  - DB=mysql DATABASE_MYSQL=mysql://root@127.0.0.1:3306/nymph_testing
   - DB=pgsql DATABASE_PGSQL=postgres://postgres@localhost:5432/nymph_testing
 
 matrix:
