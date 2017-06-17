@@ -21,6 +21,10 @@ mysql:
   user: nymph_testing
   encoding: utf8
 
+services:
+  - mysql
+  - postgresql
+
 install: composer install --no-interaction
 
 before_script:
