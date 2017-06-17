@@ -1,6 +1,6 @@
 <?php
 
-class EntityTest extends PHPUnit_Framework_TestCase {
+class EntityTest extends \PHPUnit\Framework\TestCase {
   public function testHookPHP() {
     $this->assertTrue(
         class_exists('\SciActive\Hook'),

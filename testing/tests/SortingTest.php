@@ -1,7 +1,7 @@
 <?php
 use Nymph\Nymph;
 
-class SortingTest extends PHPUnit_Framework_TestCase {
+class SortingTest extends \PHPUnit\Framework\TestCase {
   public function testSort() {
     $first = new TestModel();
     $first->name = 'Thing A';

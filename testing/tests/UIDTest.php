@@ -1,7 +1,7 @@
 <?php
 use Nymph\Nymph;
 
-class UIDTest extends PHPUnit_Framework_TestCase {
+class UIDTest extends \PHPUnit\Framework\TestCase {
   public function testDeleteOldTestData() {
     $this->assertTrue(Nymph::deleteUID('TestUID'));
   }
