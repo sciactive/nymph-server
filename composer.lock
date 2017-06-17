@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "da950809974fc08c1d7a9802ac5d67ba",
-    "content-hash": "4e9c858af8c0eeaf7db6b7ff91a85219",
+    "hash": "f620119d143c58b18412ada2e51030ad",
+    "content-hash": "becbc422dd6392f470b6e47e4add4f0c",
     "packages": [
         {
             "name": "sciactive/requirephp",
@@ -857,17 +857,23 @@
         },
         {
             "name": "sciactive/hookphp",
-            "version": "1.2.2",
+            "version": "2.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sciactive/hookphp.git",
-                "reference": "ef78d5af0943c1fd0b627426ec9905aeb6ac1c6c"
+                "reference": "f0605a702ee42eeb1d58220c1ad900e47a0b37cb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sciactive/hookphp/zipball/ef78d5af0943c1fd0b627426ec9905aeb6ac1c6c",
-                "reference": "ef78d5af0943c1fd0b627426ec9905aeb6ac1c6c",
+                "url": "https://api.github.com/repos/sciactive/hookphp/zipball/f0605a702ee42eeb1d58220c1ad900e47a0b37cb",
+                "reference": "f0605a702ee42eeb1d58220c1ad900e47a0b37cb",
                 "shasum": ""
+            },
+            "require": {
+                "php": "~7.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^6.1"
             },
             "type": "library",
             "autoload": {
@@ -880,7 +886,7 @@
             },
             "notification-url": "https://packagist.org/downloads/",
             "license": [
-                "LGPL"
+                "Apache-2.0"
             ],
             "authors": [
                 {
@@ -897,7 +903,7 @@
                 "interception",
                 "method hooking"
             ],
-            "time": "2015-04-10 00:00:00"
+            "time": "2017-06-17 00:00:00"
         },
         {
             "name": "sebastian/code-unit-reverse-lookup",
