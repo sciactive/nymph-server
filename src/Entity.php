@@ -70,8 +70,8 @@
  * @copyright SciActive.com
  * @link http://nymph.io/
  * @property int $guid The entity's Globally Unique ID.
- * @property int $cdate The entity's creation date, as a Unix timestamp.
- * @property int $mdate The entity's modification date, as a Unix timestamp.
+ * @property int $cdate The entity's creation date, as a high precision Unix timestamp. The value is rounded to the ten thousandths digit.
+ * @property int $mdate The entity's modification date, as a high precision Unix timestamp. The value is rounded to the ten thousandths digit.
  * @property string $name An optional name of the entity. This will be provided
  *                        in the "info" property of the JS object.
  */
@@ -88,12 +88,16 @@ class Entity implements EntityInterface {
   /**
    * The creation date of the entity as a high precision Unix timestamp.
    *
+   * The value is rounded to the ten thousandths digit.
+   *
    * @var float|null
    * @access private
    */
   private $cdate = null;
   /**
    * The modified date of the entity as a high precision Unix timestamp.
+   *
+   * The value is rounded to the ten thousandths digit.
    *
    * @var float|null
    * @access private
@@ -422,11 +426,8 @@ class Entity implements EntityInterface {
     if ($name === 'guid') {
       return ($this->$name = isset($value) ? (int) $value : null);
     }
-    if ($name === 'cdate') {
-      return ($this->$name = (float) $value);
-    }
-    if ($name === 'mdate') {
-      return ($this->$name = (float) $value);
+    if ($name === 'cdate' || $name === 'mdate') {
+      return ($this->$name = floor(((float) $value) * 10000) / 10000);
     }
     if ($name === 'tags') {
       return ($this->$name = (array) $value);

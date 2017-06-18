@@ -32,12 +32,14 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $testEntity->string = 'test';
     $testEntity->array = ['full', 'of', 'values', 500];
     $testEntity->number = 30;
+    $testEntity->mdate = 30.00001;
 
     $this->assertSame('Entity Test', $testEntity->name);
     $this->assertNull($testEntity->null);
     $this->assertSame('test', $testEntity->string);
     $this->assertSame(['full', 'of', 'values', 500], $testEntity->array);
     $this->assertSame(30, $testEntity->number);
+    $this->assertSame(30.0, $testEntity->mdate);
 
     $this->assertTrue($testEntity->save());
 
@@ -266,7 +268,7 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $entityData = json_decode($json, true);
 
     $testEntity->cdate = "13";
-    $testEntity->mdate = "14";
+    $testEntity->mdate = "14.00009";
     $entityData['tags'] = ['test', 'notag', 'newtag'];
     $testEntity->jsonAcceptTags($entityData['tags']);
     $entityData['data']['name'] = 'bad';
