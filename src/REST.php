@@ -366,7 +366,8 @@ class REST {
   }
 
   protected function loadEntity($entityData) {
-    if (!class_exists($entityData['class'])) {
+    if (!class_exists($entityData['class']) || $entityData['class'] === 'Entity') {
+      // Don't let clients use the `Entity` class, since it has no validity/AC checks.
       return false;
     }
     if ((int) $entityData['guid'] > 0) {
