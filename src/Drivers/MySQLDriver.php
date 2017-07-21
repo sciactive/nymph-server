@@ -113,9 +113,9 @@ class MySQLDriver implements DriverInterface {
     if (isset($etype)) {
       $etype = '_'.mysqli_real_escape_string($this->link, $etype);
       // Create the entity table.
-      $this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}entities{$etype}` (`guid` bigint(20) unsigned NOT NULL, `tags` text, `varlist` text, `cdate` decimal(18,6) NOT NULL, `mdate` decimal(18,6) NOT NULL, PRIMARY KEY (`guid`), FULLTEXT `id_tags` (`tags`), FULLTEXT `id_varlist` (`varlist`)) ENGINE ".$this->config['MySQL']['engine']." CHARACTER SET utf8 COLLATE utf8_bin;");
+      $this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}entities{$etype}` (`guid` bigint(20) unsigned NOT NULL, `tags` text, `varlist` text, `cdate` decimal(18,6) NOT NULL, `mdate` decimal(18,6) NOT NULL, PRIMARY KEY (`guid`), FULLTEXT `id_tags` (`tags`), FULLTEXT `id_varlist` (`varlist`)) ENGINE {$this->config['MySQL']['engine']} CHARACTER SET utf8 COLLATE utf8_bin;");
       // Create the data table.
-      $this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}data{$etype}` (`guid` bigint(20) unsigned NOT NULL, `name` text NOT NULL, `value` longtext NOT NULL, `references` longtext, `compare_true` boolean, `compare_one` boolean, `compare_zero` boolean, `compare_negone` boolean, `compare_emptyarray` boolean, `compare_string` longtext, PRIMARY KEY (`guid`,`name`(255)), FULLTEXT `id_references` (`references`)) ENGINE ".$this->config['MySQL']['engine']." CHARACTER SET utf8 COLLATE utf8_bin;");
+      $this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}data{$etype}` (`guid` bigint(20) unsigned NOT NULL, `name` text NOT NULL, `value` longtext NOT NULL, `references` longtext, `compare_true` boolean, `compare_one` boolean, `compare_zero` boolean, `compare_negone` boolean, `compare_emptyarray` boolean, `compare_string` longtext, PRIMARY KEY (`guid`,`name`(255)), FULLTEXT `id_references` (`references`)) ENGINE {$this->config['MySQL']['engine']} CHARACTER SET utf8 COLLATE utf8_bin;");
     } else {
       // Create the GUID table.
       $this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}guids` (`guid` bigint(20) unsigned NOT NULL, PRIMARY KEY (`guid`)) ENGINE ".$this->config['MySQL']['engine']." CHARACTER SET utf8 COLLATE utf8_bin;");
