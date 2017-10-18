@@ -970,7 +970,7 @@ class MySQLDriver implements DriverInterface {
         if ($data_aliases) {
           $data_part = '';
           foreach ($data_aliases as $cur_alias) {
-            $data_part += " LEFT JOIN (SELECT `guid` FROM `{$this->prefix}data{$etype}` WHERE {$cur_alias['where_clause']}) {$cur_alias['alias']} ON e.`guid`={$cur_alias['alias']}.`guid`";
+            $data_part .= " LEFT JOIN (SELECT `guid` FROM `{$this->prefix}data{$etype}` WHERE {$cur_alias['where_clause']}) {$cur_alias['alias']} ON e.`guid`={$cur_alias['alias']}.`guid`";
           }
         } else {
           $data_part = '';
