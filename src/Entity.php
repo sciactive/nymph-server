@@ -448,7 +448,7 @@ class Entity implements EntityInterface {
       // If toReference returns an array, the GUID of the entity is set
       // or it's a sleeping reference, so this is an entity and we don't
       // store it in the data array.
-      if ((array) $saveValue === $saveValue) {
+      if (is_array($saveValue)) {
         $this->entityCache[$name] = $value;
       } elseif (isset($this->entityCache[$name])) {
         unset($this->entityCache[$name]);
@@ -464,7 +464,7 @@ class Entity implements EntityInterface {
       $saveValue = $value;
       // If the variable is an array, look through it and change entities to
       // references.
-      if ((array) $saveValue === $saveValue) {
+      if (is_array($saveValue)) {
         array_walk_recursive($saveValue, [$this, 'entityToReference']);
       }
       return ($this->data[$name] = $saveValue);
@@ -511,7 +511,7 @@ class Entity implements EntityInterface {
       $this->referenceWake();
     }
     $tagArray = func_get_args();
-    if ((array) $tagArray[0] === $tagArray[0]) {
+    if (is_array($tagArray[0])) {
       $tagArray = $tagArray[0];
     }
     if (empty($tagArray)) {
@@ -544,7 +544,7 @@ class Entity implements EntityInterface {
     }
     // Convert entities in arrays.
     foreach ($this->data as &$value) {
-      if ((array) $value === $value) {
+      if (is_array($value)) {
         array_walk_recursive($value, [$this, 'entityToReference']);
       }
     }
@@ -658,7 +658,7 @@ class Entity implements EntityInterface {
         && is_callable([$item, 'toReference'])) {
       // Convert entities to references.
       return $item->toReference();
-    } elseif ((array) $item === $item) {
+    } elseif (is_array($item)) {
       // Recurse into lower arrays.
       return array_map([$this, 'getDataReference'], $item);
     } elseif ((object) $item === $item) {
@@ -693,7 +693,7 @@ class Entity implements EntityInterface {
     if (!$tagArray) {
       return false;
     }
-    if ((array) $tagArray[0] === $tagArray[0]) {
+    if (is_array($tagArray[0])) {
       $tagArray = $tagArray[0];
     }
     foreach ($tagArray as $tag) {
@@ -857,7 +857,7 @@ class Entity implements EntityInterface {
     // Erase the entity cache.
     $this->entityCache = [];
     foreach ($data as $name => $value) {
-      if ((array) $value === $value && isset($value[0])
+      if (is_array($value) && isset($value[0])
           && $value[0] === 'nymph_entity_reference') {
         // Don't load the entity yet, but make the entry in the array,
         // so we know it is an entity reference. This will speed up
@@ -918,7 +918,7 @@ class Entity implements EntityInterface {
     if ($this->isASleepingReference) {
       $this->referenceWake();
     }
-    if ((array) $item === $item) {
+    if (is_array($item)) {
       if (isset($item[0]) && $item[0] === 'nymph_entity_reference') {
         if (!isset($this->entityCache["reference_guid: {$item[1]}"])) {
           if (!class_exists($item[2])) {
@@ -1007,7 +1007,7 @@ class Entity implements EntityInterface {
       $this->referenceWake();
     }
     $tagArray = func_get_args();
-    if ((array) $tagArray[0] === $tagArray[0]) {
+    if (is_array($tagArray[0])) {
       $tagArray = $tagArray[0];
     }
     foreach ($tagArray as $tag) {

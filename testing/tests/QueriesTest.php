@@ -58,6 +58,9 @@ This one's email address is nice_hat-wednesday+newyork@im-a-hat.hat.
 This one's phone number is (555) 555-1818.
 This one's zip code is 92064.";
     $testEntity->number = 30;
+    $testEntity->number_string = "30";
+    $testEntity->number_float = 30.5;
+    $testEntity->number_float_string = "30.5";
     $this->assertTrue($testEntity->save());
     $entity_guid = $testEntity->guid;
 
@@ -860,7 +863,77 @@ This one's zip code is 92064.";
   /**
    * @depends testCreateEntity
    */
-  public function testInequality($arr) {
+  public function testGreaterThanInequality($arr) {
+    $testEntity = $arr['entity'];
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'gt' => [['number', 30], ['pickles', 100]]]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'gt' => [['number_float', 30.5], ['pickles', 100]]]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'gt' => [['number', 31], ['pickles', 100]]]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'gt' => [['number_float', 31], ['pickles', 100]]]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'gt' => [['number', 29], ['pickles', 100]]]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'gt' => [['number_string', 30], ['pickles', 100]]]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'gt' => [['number_string', 31], ['pickles', 100]]]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'gt' => [['number_string', 29], ['pickles', 100]]]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'gt' => [['number_float_string', 29], ['pickles', 100]]]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+  }
+
+  /**
+   * @depends testCreateEntity
+   */
+  public function testGreaterThanOrEqualToInequality($arr) {
     $testEntity = $arr['entity'];
 
     // Retrieving entity by inequality...
@@ -869,6 +942,202 @@ This one's zip code is 92064.";
         ['|', 'gte' => [['number', 30], ['pickles', 100]]]
     );
     $this->assertTrue($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'gte' => [['number_float', 30.5], ['pickles', 100]]]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'gte' => [['number', 31], ['pickles', 100]]]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'gte' => [['number_float', 31], ['pickles', 100]]]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'gte' => [['number', 29], ['pickles', 100]]]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'gte' => [['number_string', 30], ['pickles', 100]]]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'gte' => [['number_string', 31], ['pickles', 100]]]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'gte' => [['number_string', 29], ['pickles', 100]]]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'gte' => [['number_float_string', 29], ['pickles', 100]]]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+  }
+
+  /**
+   * @depends testCreateEntity
+   */
+  public function testLessThanInequality($arr) {
+    $testEntity = $arr['entity'];
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'lt' => [['number', 30], ['pickles', 100]]]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'lt' => [['number_float', 30.5], ['pickles', 100]]]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'lt' => [['number', 31], ['pickles', 100]]]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'lt' => [['number_float', 31], ['pickles', 100]]]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'lt' => [['number', 29], ['pickles', 100]]]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'lt' => [['number_string', 30], ['pickles', 100]]]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'lt' => [['number_string', 31], ['pickles', 100]]]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'lt' => [['number_string', 29], ['pickles', 100]]]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'lt' => [['number_float_string', 29], ['pickles', 100]]]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+  }
+
+  /**
+   * @depends testCreateEntity
+   */
+  public function testLessThanOrEqualToInequality($arr) {
+    $testEntity = $arr['entity'];
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'lte' => [['number', 30], ['pickles', 100]]]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'lte' => [['number_float', 30.5], ['pickles', 100]]]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'lte' => [['number', 31], ['pickles', 100]]]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'lte' => [['number_float', 31], ['pickles', 100]]]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'lte' => [['number', 29], ['pickles', 100]]]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'lte' => [['number_string', 30], ['pickles', 100]]]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'lte' => [['number_string', 31], ['pickles', 100]]]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'lte' => [['number_string', 29], ['pickles', 100]]]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+
+    // Retrieving entity by inequality...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['|', 'lte' => [['number_float_string', 29], ['pickles', 100]]]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
   }
 
   /**
