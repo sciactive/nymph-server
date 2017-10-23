@@ -108,9 +108,12 @@ trait DriverTrait {
                   unset($sdata[$cur_value[0]]);
                 }
                 if ($key !== 'guid'
-                    && $key !== '!guid'
+                    // && $key !== '!guid'
                     && $key !== 'tag'
-                    && $key !== '!tag'
+                    // && $key !== '!tag'
+                    && substr($key, 0, 1) !== '!'
+                    && !($key === 'data' && $cur_value[1] == false)
+                    // && !($key === '!data' && $cur_value[1] == true)
                     && !key_exists($cur_value[0], $data)) {
                   $pass = false;
                 } else {
@@ -136,22 +139,37 @@ trait DriverTrait {
                     case 'ref':
                     case '!ref':
                       $pass = (
-                          $this->entityReferenceSearch(
-                              $data[$cur_value[0]],
-                              $cur_value[1]
+                          (
+                            isset($data[$cur_value[0]])
+                            && $this->entityReferenceSearch(
+                                $data[$cur_value[0]],
+                                $cur_value[1]
+                            )
                           )
                           xor ($type_is_not xor $clause_not));
                       break;
                     case 'strict':
                     case '!strict':
                       $pass = (
-                          ($data[$cur_value[0]] === $cur_value[1])
+                          (
+                            isset($data[$cur_value[0]])
+                            && $data[$cur_value[0]] === $cur_value[1]
+                          )
                           xor ($type_is_not xor $clause_not));
                       break;
                     case 'data':
                     case '!data':
                       $pass = (
-                          ($data[$cur_value[0]] == $cur_value[1])
+                          (
+                            (
+                              !isset($data[$cur_value[0]])
+                              && !$cur_value[1]
+                            )
+                            || (
+                              isset($data[$cur_value[0]])
+                              && $data[$cur_value[0]] == $cur_value[1]
+                            )
+                          )
                           xor ($type_is_not xor $clause_not));
                       break;
                     case 'like':
@@ -234,32 +252,45 @@ trait DriverTrait {
                     case 'gt':
                     case '!gt':
                       $pass = (
-                          ($data[$cur_value[0]] > $cur_value[1])
+                          (
+                            isset($data[$cur_value[0]])
+                            && $data[$cur_value[0]] > $cur_value[1]
+                          )
                           xor ($type_is_not xor $clause_not));
                       break;
                     case 'gte':
                     case '!gte':
                       $pass = (
-                          ($data[$cur_value[0]] >= $cur_value[1])
+                          (
+                            isset($data[$cur_value[0]])
+                            && $data[$cur_value[0]] >= $cur_value[1]
+                          )
                           xor ($type_is_not xor $clause_not));
                       break;
                     case 'lt':
                     case '!lt':
                       $pass = (
-                          ($data[$cur_value[0]] < $cur_value[1])
+                          (
+                            isset($data[$cur_value[0]])
+                            && $data[$cur_value[0]] < $cur_value[1]
+                          )
                           xor ($type_is_not xor $clause_not));
                       break;
                     case 'lte':
                     case '!lte':
                       $pass = (
-                          ($data[$cur_value[0]] <= $cur_value[1])
+                          (
+                            isset($data[$cur_value[0]])
+                            && $data[$cur_value[0]] <= $cur_value[1]
+                          )
                           xor ($type_is_not xor $clause_not));
                       break;
                     case 'array':
                     case '!array':
                       $pass = (
                           (
-                            (array) $data[$cur_value[0]] ===
+                            isset($data[$cur_value[0]])
+                            && (array) $data[$cur_value[0]] ===
                                 $data[$cur_value[0]]
                             && in_array($cur_value[1], $data[$cur_value[0]])
                           )
