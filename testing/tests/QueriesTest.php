@@ -61,11 +61,13 @@ This one's zip code is 92064.";
     $testEntity->number_string = "30";
     $testEntity->number_float = 30.5;
     $testEntity->number_float_string = "30.5";
+    $testEntity->timestamp = time();
     $this->assertTrue($testEntity->save());
     $entity_guid = $testEntity->guid;
 
     $entity_reference_test = new TestModel();
     $entity_reference_test->string = 'wrong';
+    $entity_reference_test->timestamp = strtotime('-2 days');
     $this->assertTrue($entity_reference_test->save());
     $entity_reference_guid = $entity_reference_test->guid;
     $testEntity->reference = $entity_reference_test;
@@ -1195,6 +1197,70 @@ This one's zip code is 92064.";
         ['&', 'tag' => 'test', 'gte' => ['cdate', $testEntity->cdate + 1]]
     );
     $this->assertFalse($testEntity->inArray($resultEntity));
+  }
+
+  /**
+   * @depends testCreateEntity
+   */
+  public function testTimeSelector($arr) {
+    $testEntity = $arr['entity'];
+    $referenceEntity = TestModel::factory($arr['refGuid']);
+
+    // Retrieving entity by relative time...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['&', 'tag' => 'test', 'gt' => ['timestamp', null, '-1 day']]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+    $this->assertFalse($referenceEntity->inArray($resultEntity));
+
+    // Retrieving entity by relative time...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['&', 'tag' => 'test', 'gt' => ['timestamp', null, '-3 days']]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+    $this->assertTrue($referenceEntity->inArray($resultEntity));
+
+    // Retrieving entity by relative time...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['&', 'tag' => 'test', 'gt' => ['cdate', null, '-1 day']]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+    $this->assertTrue($referenceEntity->inArray($resultEntity));
+  }
+
+  /**
+   * @depends testCreateEntity
+   */
+  public function testWrongTimeSelector($arr) {
+    $testEntity = $arr['entity'];
+    $referenceEntity = TestModel::factory($arr['refGuid']);
+
+    // Retrieving entity by relative time...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['&', 'tag' => 'test', 'gt' => ['timestamp', null, '+1 day']]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+    $this->assertFalse($referenceEntity->inArray($resultEntity));
+
+    // Retrieving entity by relative time...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['&', 'tag' => 'test', 'lt' => ['timestamp', null, '-3 days']]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+    $this->assertFalse($referenceEntity->inArray($resultEntity));
+
+    // Retrieving entity by relative time...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'TestModel'],
+        ['&', 'tag' => 'test', 'gt' => ['cdate', null, '+1 day']]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+    $this->assertFalse($referenceEntity->inArray($resultEntity));
   }
 
   /**

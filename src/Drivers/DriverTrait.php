@@ -362,6 +362,20 @@ trait DriverTrait {
           } elseif ((array) $value[0] !== $value[0]) {
             $value = [$value];
           }
+          foreach ($value as &$cur_value) {
+            if (
+                (array) $cur_value === $cur_value
+                && isset($cur_value[2])
+                && $cur_value[1] === null
+                && is_string($cur_value[2])
+              ) {
+              $timestamp = @strtotime($cur_value[2]);
+              if ($timestamp !== false) {
+                $cur_value[1] = $timestamp;
+              }
+            }
+          }
+          unset($cur_value);
         }
       }
       unset($value);

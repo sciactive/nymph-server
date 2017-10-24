@@ -392,6 +392,19 @@ class Nymph {
    * These clauses can all be negated, by prefixing them with an exclamation
    * point, such as "!isset".
    *
+   * Any clause that accepts an array of name and value can also accept a third
+   * element. If value is null and the third element is a string, the third
+   * element will be used with PHP's strtotime function to set value to a
+   * relative timestamp. For example, the following selector will look for all
+   * entities that were created in the last day:
+   *
+   * <pre>
+   * [
+   *   '&',
+   *   'gte' => ['cdate', null, '-1 day']
+   * ]
+   * </pre>
+   *
    * This example will retrieve the last two entities where:
    *
    * - It has 'person' tag.
