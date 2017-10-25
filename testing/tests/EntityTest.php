@@ -243,8 +243,7 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $this->assertJsonStringEqualsJsonString(
         '{"guid":' . $testEntity->guid.',"cdate":' .
             json_encode($testEntity->cdate) . ',"mdate":' .
-            json_encode($testEntity->mdate) . ',"tags":["test"],"info":' .
-            '{"name":"Entity Test","type":"test","types":"tests"},"data":' .
+            json_encode($testEntity->mdate) . ',"tags":["test"],"data":' .
             '{"reference":["nymph_entity_reference",' .
             $arr['refGuid'] . ',"TestModel"],"ref_array":[{"entity":' .
             '["nymph_entity_reference",' .

@@ -163,7 +163,7 @@ trait DriverTrait {
                           (
                             (
                               !isset($data[$cur_value[0]])
-                              && !$cur_value[1]
+                              && $cur_value[1] == null
                             )
                             || (
                               isset($data[$cur_value[0]])
@@ -203,17 +203,19 @@ trait DriverTrait {
                                       '~',
                                       '[[:<:]]',
                                       '[[:>:]]',
-                                      '[:alnum:]]',
-                                      '[:alpha:]]',
-                                      '[:blank:]]',
-                                      '[:cntrl:]]',
-                                      '[:digit:]]',
-                                      '[:graph:]]',
-                                      '[:lower:]]',
-                                      '[:print:]]',
-                                      '[:punct:]]',
-                                      '[:space:]]',
-                                      '[:upper:]]',
+                                      '[:alnum:]',
+                                      '[:alpha:]',
+                                      '[:ascii:]',
+                                      '[:blank:]',
+                                      '[:cntrl:]',
+                                      '[:digit:]',
+                                      '[:graph:]',
+                                      '[:lower:]',
+                                      '[:print:]',
+                                      '[:punct:]',
+                                      '[:space:]',
+                                      '[:upper:]',
+                                      '[:word:]',
                                       '[:xdigit:]',
                                     ],
                                     [
@@ -222,6 +224,7 @@ trait DriverTrait {
                                       '(?<=\w)\b',
                                       '[A-Za-z0-9]',
                                       '[A-Za-z]',
+                                      '[\x00-\x7F]',
                                       '\s',
                                       '[\000\001\002\003\004\005\006\007\008\009\010\011\012\013\014\015\016\017\018\019\020\021\022\023\024\025\026\027\028\029\030\031\032\033\034\035\036\037\177]',
                                       '\d',
@@ -231,6 +234,7 @@ trait DriverTrait {
                                       '[!"#$%&\'()*+,\-./:;<=>?@[\\\]^_`{|}\~]',
                                       '[\t\n\x0B\f\r ]',
                                       '[A-Z]',
+                                      '[A-Za-z0-9_]',
                                       '[0-9A-Fa-f]',
                                     ],
                                     $cur_value[1]

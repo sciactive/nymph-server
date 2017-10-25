@@ -72,8 +72,6 @@
  * @property int $guid The entity's Globally Unique ID.
  * @property int $cdate The entity's creation date, as a high precision Unix timestamp. The value is rounded to the ten thousandths digit.
  * @property int $mdate The entity's modification date, as a high precision Unix timestamp. The value is rounded to the ten thousandths digit.
- * @property string $name An optional name of the entity. This will be provided
- *                        in the "info" property of the JS object.
  */
 class Entity implements EntityInterface {
   const ETYPE = 'entity';
@@ -708,17 +706,6 @@ class Entity implements EntityInterface {
     return $this->arraySearch($array, $strict) !== false;
   }
 
-  public function info($type) {
-    if ($type == 'name' && isset($this->name)) {
-      return $this->name;
-    } elseif ($type == 'type') {
-      return 'entity';
-    } elseif ($type == 'types') {
-      return 'entities';
-    }
-    return null;
-  }
-
   public function is(&$object) {
     if ($this->isASleepingReference) {
       $this->referenceWake();
@@ -752,26 +739,6 @@ class Entity implements EntityInterface {
     $object->cdate = $this->cdate;
     $object->mdate = $this->mdate;
     $object->tags = $this->tags;
-    $object->info = [
-      'name' => $this->info('name'),
-      'type' => $this->info('type'),
-      'types' => $this->info('types')
-    ];
-    if ($this->info('url_view')) {
-      $object->info['url_view'] = $this->info('url_view');
-    }
-    if ($this->info('url_edit')) {
-      $object->info['url_edit'] = $this->info('url_edit');
-    }
-    if ($this->info('url_list')) {
-      $object->info['url_list'] = $this->info('url_list');
-    }
-    if ($this->info('icon')) {
-      $object->info['icon'] = $this->info('icon');
-    }
-    if ($this->info('image')) {
-      $object->info['image'] = $this->info('image');
-    }
     $object->data = [];
     foreach ($this->getData(true) as $key => $val) {
       if (!in_array($key, $this->privateData)) {

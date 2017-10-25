@@ -50,32 +50,6 @@ interface DataObjectInterface {
    */
   public function inArray($array, $strict = false);
   /**
-   * Get info about an object.
-   *
-   * This function is meant to provide a way to represent an object even when
-   * nothing is known about it.
-   *
-   * There are a few common types that most entities/objects should provide.
-   * - name - The name of the object.
-   * - type - The type of data this object represents. (E.g., "user",
-   *   "customer", "page".) This can be localized.
-   * - types - The same as above, but pluralized. (E.g., "users".)
-   * - url_view - The URL where this object can be viewed. If the currently
-   *   logged in user doesn't have the ability to view it, or there is no URL
-   *   to view it, this should return null.
-   * - url_edit - The same as above, but for editing.
-   * - url_list - The URL where this object, and others like it, can be found.
-   *   (E.g., to a list of users.)
-   * - icon - The class to apply for an icon representing this object.
-   *   (Generally a Font Awesome or Bootstrap class.)
-   * - image - The URL to an image representing this object.
-   *
-   * @param string $type The type of information being requested.
-   * @return mixed The information, or null if the information doesn't exist or
-   *               can't be returned.
-   */
-  public function info($type);
-  /**
    * Perform a less strict comparison of this object to another.
    *
    * @param mixed &$object The object to compare.

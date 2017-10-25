@@ -29,17 +29,6 @@ class TestModel extends \Nymph\Entity {
     parent::__construct($id);
   }
 
-  public function info($type) {
-    if ($type == 'name' && isset($this->name)) {
-      return $this->name;
-    } elseif ($type == 'type') {
-      return 'test';
-    } elseif ($type == 'types') {
-      return 'tests';
-    }
-    return null;
-  }
-
   public function useProtectedData() {
     $this->whitelistData = false;
     $this->protectedData = ['number'];
