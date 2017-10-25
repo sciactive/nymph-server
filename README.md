@@ -25,12 +25,12 @@ composer require sciactive/nymph
 require 'vendor/autoload.php';
 use Nymph\Nymph;
 Nymph::configure([
-	'MySQL' => [
-		'host' => 'your_db_host',
-		'database' => 'your_database',
-		'user' => 'your_user',
-		'password' => 'your_password'
-	]
+  'MySQL' => [
+    'host' => 'your_db_host',
+    'database' => 'your_database',
+    'user' => 'your_user',
+    'password' => 'your_password'
+  ]
 ]);
 
 // You are set up. Now make a class like `MyEntity` and use it.
