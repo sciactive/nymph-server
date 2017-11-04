@@ -19,7 +19,7 @@ This repository is the PHP ORM and REST server. For more information, you can se
 <div dir="rtl">Quick Setup with Composer</div>
 
 ```sh
-composer require sciactive/nymph
+composer require sciactive/nymph-server
 ```
 ```php
 require 'vendor/autoload.php';
