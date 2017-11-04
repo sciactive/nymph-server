@@ -6,6 +6,14 @@ Nymph is an object data store that is easy to use in JavaScript and PHP.
 
 ## Installation
 
+### Automatic Setup
+
+The fastest way to start building a Nymph app is with the Nymph App Template.
+
+[Nymph App Template](https://github.com/hperrin/nymph-template)
+
+### Manual Installation
+
 You can install Nymph Server with Composer.
 
 ```sh
@@ -44,6 +52,6 @@ $allMyEntities = Nymph::getEntities(['class' => 'MyEntity']);
 
 For a thorough step by step guide to setting up Nymph on your own server, visit the [Setup Guide](https://github.com/sciactive/nymph/wiki/Setup-Guide).
 
-## Documentation
+## API Docs
 
-Check out the documentation in the wiki, [Technical Documentation Index](https://github.com/sciactive/nymph/wiki/Technical-Documentation).
+Check out the [API Docs in the wiki](https://github.com/sciactive/nymph/wiki/API-Docs).
