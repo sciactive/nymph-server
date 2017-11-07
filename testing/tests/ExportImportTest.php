@@ -117,20 +117,24 @@ class ExportImportTest extends \PHPUnit\Framework\TestCase {
     $this->assertTrue(Nymph::import(__DIR__.'/testentityexport.nex'));
 
     $this->testEntityAndDataCount();
-  }
-
-  /**
-   * @depends testImportEntities
-   */
-  public function testExportEntitiesEquality() {
-    $this->assertTrue(Nymph::export(__DIR__.'/testentityexport2.nex'));
-
-    $this->assertFileEquals(
-        __DIR__.'/testentityexport.nex',
-        __DIR__.'/testentityexport2.nex'
-    );
 
     unlink(__DIR__.'/testentityexport.nex');
-    unlink(__DIR__.'/testentityexport2.nex');
   }
+
+  // This will fail if entities are exported in a different order. Also, the
+  // timestamp.
+  // /**
+  //  * @depends testImportEntities
+  //  */
+  // public function testExportEntitiesEquality() {
+  //   $this->assertTrue(Nymph::export(__DIR__.'/testentityexport2.nex'));
+  //
+  //   $this->assertFileEquals(
+  //       __DIR__.'/testentityexport.nex',
+  //       __DIR__.'/testentityexport2.nex'
+  //   );
+  //
+  //   unlink(__DIR__.'/testentityexport.nex');
+  //   unlink(__DIR__.'/testentityexport2.nex');
+  // }
 }
