@@ -1,4 +1,6 @@
 <?php
+namespace NymphTesting;
+
 use Nymph\Nymph;
 
 class UIDTest extends \PHPUnit\Framework\TestCase {

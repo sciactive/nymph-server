@@ -288,7 +288,7 @@ class PostgreSQLDriver implements DriverInterface {
     fwrite($fhandle, "#\n\n");
 
     // Export UIDs.
-    $result = $this->query("SELECT * FROM \"{$this->prefix}uids\";");
+    $result = $this->query("SELECT * FROM \"{$this->prefix}uids\" ORDER BY \"name\";");
     $row = pg_fetch_assoc($result);
     while ($row) {
       $row['name'];
@@ -363,7 +363,7 @@ class PostgreSQLDriver implements DriverInterface {
     echo "#\n\n";
 
     // Export UIDs.
-    $result = $this->query("SELECT * FROM \"{$this->prefix}uids\";");
+    $result = $this->query("SELECT * FROM \"{$this->prefix}uids\" ORDER BY \"name\";");
     $row = pg_fetch_assoc($result);
     while ($row) {
       $row['name'];

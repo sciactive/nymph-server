@@ -1,4 +1,6 @@
 <?php
+namespace NymphTesting;
+
 use Nymph\Nymph;
 
 class SortingTest extends \PHPUnit\Framework\TestCase {

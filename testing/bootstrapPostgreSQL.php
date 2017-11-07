@@ -35,3 +35,4 @@ $nymph_config['pubsub'] = false;
 \Nymph\Nymph::configure($nymph_config);
 
 require_once 'TestModel.php';
+require_once 'TestBModel.php';

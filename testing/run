@@ -16,6 +16,8 @@ else
 	CVG=""
 fi
 
+TESTARGS=$*
+
 cd $(dirname $0)
 
 if [[ "$DB" == "mysql" ]]; then
@@ -23,19 +25,19 @@ if [[ "$DB" == "mysql" ]]; then
 	echo "#                           Running tests for MySQL                            #"
 	echo -e "################################################################################\n"
 
-	../vendor/phpunit/phpunit/phpunit --testsuite default --bootstrap bootstrapMySQL.php $CVGMYSQL
+	../vendor/phpunit/phpunit/phpunit --testsuite default --bootstrap bootstrapMySQL.php $CVGMYSQL $TESTARGS
 fi
 if [[ "$DB" == "pgsql" ]]; then
 	echo "################################################################################"
 	echo "#                         Running tests for PostgreSQL                         #"
 	echo -e "################################################################################\n"
 
-	../vendor/phpunit/phpunit/phpunit --testsuite default --bootstrap bootstrapPostgreSQL.php $CVGPGSQL
+	../vendor/phpunit/phpunit/phpunit --testsuite default --bootstrap bootstrapPostgreSQL.php $CVGPGSQL $TESTARGS
 fi
 if [[ "$DB" == "" ]]; then
 	echo "################################################################################"
 	echo "#                          Running tests for All DBs                           #"
 	echo -e "################################################################################\n"
 
-	../vendor/phpunit/phpunit/phpunit --testsuite all-dbs --bootstrap bootstrapMySQL.php $CVG
+	../vendor/phpunit/phpunit/phpunit --testsuite all-dbs --bootstrap bootstrapMySQL.php $CVG $TESTARGS
 fi

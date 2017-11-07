@@ -17,21 +17,6 @@ namespace NymphTesting;
  * @property stdClass $ref_object An object.
  * @property TestModel $parent A parent entity.
  */
-class TestModel extends \Nymph\Entity {
-  const ETYPE = 'test_model';
-  protected $privateData = ['boolean'];
-  protected $whitelistData = ['string', 'array', 'mdate'];
-  protected $protectedTags = ['test', 'notag'];
-  protected $whitelistTags = ['newtag'];
-
-  public function __construct($id = 0) {
-    $this->addTag('test');
-    $this->boolean = true;
-    parent::__construct($id);
-  }
-
-  public function useProtectedData() {
-    $this->whitelistData = false;
-    $this->protectedData = ['number'];
-  }
+class TestBModel extends TestModel {
+  const ETYPE = 'test_b_model';
 }

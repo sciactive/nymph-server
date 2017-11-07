@@ -1,4 +1,5 @@
 <?php
+namespace NymphTesting;
 
 class EntityTest extends \PHPUnit\Framework\TestCase {
   public function testHookPHP() {
@@ -11,9 +12,9 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
   public function testInstantiate() {
     $testEntity = TestModel::factory();
 
-    $this->assertInstanceOf('\SciActive\HookOverride_TestModel', $testEntity);
+    $this->assertInstanceOf('SciActive\HookOverride_NymphTesting_TestModel', $testEntity);
 
-    $this->assertInstanceOf('TestModel', $testEntity->_hookObject());
+    $this->assertInstanceOf('NymphTesting\TestModel', $testEntity->_hookObject());
 
     $this->assertTrue($testEntity->hasTag('test'));
 
@@ -154,7 +155,7 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $reference = $testEntity->toReference();
 
     $this->assertEquals(
-        ['nymph_entity_reference', $testEntity->guid, 'TestModel'],
+        ['nymph_entity_reference', $testEntity->guid, 'NymphTesting\TestModel'],
         $reference
     );
   }
@@ -216,7 +217,7 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $testEntity = $arr['entity'];
 
     $entity = TestModel::factoryReference(
-        ['nymph_entity_reference', $testEntity->guid, 'TestModel']
+        ['nymph_entity_reference', $testEntity->guid, 'NymphTesting\TestModel']
     );
 
     $this->assertSame('Entity Test', $entity->name);
@@ -245,13 +246,13 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
             json_encode($testEntity->cdate) . ',"mdate":' .
             json_encode($testEntity->mdate) . ',"tags":["test"],"data":' .
             '{"reference":["nymph_entity_reference",' .
-            $arr['refGuid'] . ',"TestModel"],"ref_array":[{"entity":' .
+            $arr['refGuid'] . ',"NymphTesting\\\\TestModel"],"ref_array":[{"entity":' .
             '["nymph_entity_reference",' .
-            $arr['refGuid'] . ',"TestModel"]}],"ref_object":{"thing":' .
+            $arr['refGuid'] . ',"NymphTesting\\\\TestModel"]}],"ref_object":{"thing":' .
             '{"entity":["nymph_entity_reference",' . $arr['refGuid'] .
-            ',"TestModel"]}},"name":"Entity Test","number":30,"array":' .
+            ',"NymphTesting\\\\TestModel"]}},"name":"Entity Test","number":30,"array":' .
             '["full","of","values",500],"string":"test","null":null},' .
-            '"class":"TestModel"}',
+            '"class":"NymphTesting\\\\TestModel"}',
         $json
     );
   }

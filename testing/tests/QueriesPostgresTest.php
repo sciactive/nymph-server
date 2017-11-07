@@ -1,4 +1,5 @@
 <?php
+namespace NymphTesting;
 
 class QueriesPostgresTest extends QueriesTest {
   public function setUp() {

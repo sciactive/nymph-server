@@ -193,7 +193,7 @@ class MySQLDriver implements DriverInterface {
     fwrite($fhandle, "#\n\n");
 
     // Export UIDs.
-    $result = $this->query("SELECT * FROM `{$this->prefix}uids`;");
+    $result = $this->query("SELECT * FROM `{$this->prefix}uids` ORDER BY `name`;");
     $row = mysqli_fetch_assoc($result);
     while ($row) {
       $row['name'];
@@ -268,7 +268,7 @@ class MySQLDriver implements DriverInterface {
     echo "#\n\n";
 
     // Export UIDs.
-    $result = $this->query("SELECT * FROM `{$this->prefix}uids`;");
+    $result = $this->query("SELECT * FROM `{$this->prefix}uids` ORDER BY `name`;");
     $row = mysqli_fetch_assoc($result);
     while ($row) {
       $row['name'];
