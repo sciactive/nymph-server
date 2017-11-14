@@ -8,6 +8,9 @@ class QueriesPostgresTest extends QueriesTest {
       $class = '\Nymph\Drivers\\'.$NymphConfig['driver'].'Driver';
 
       $Nymph = new $class($NymphConfig);
+      if (class_exists('\\SciActive\\Hook')) {
+        \SciActive\Hook::hookObject($Nymph, 'Nymph->');
+      }
       return $Nymph;
     });
   }

@@ -6,7 +6,15 @@ use Nymph\Nymph;
 class QueriesTest extends \PHPUnit\Framework\TestCase {
   public function testInstantiate() {
     $nymph = \SciActive\RequirePHP::_('Nymph');
-    $this->assertInstanceOf('\\Nymph\\Drivers\\DriverInterface', $nymph);
+    if (class_exists('\SciActive\Hook')) {
+      if (is_a($nymph, '\SciActive\HookOverride_Nymph_Drivers_PostgreSQLDriver')) {
+        $this->assertInstanceOf('\SciActive\HookOverride_Nymph_Drivers_PostgreSQLDriver', $nymph);
+      } else {
+        $this->assertInstanceOf('\SciActive\HookOverride_Nymph_Drivers_MySQLDriver', $nymph);
+      }
+    } else {
+      $this->assertInstanceOf('\Nymph\Drivers\DriverInterface', $nymph);
+    }
   }
 
   /**
