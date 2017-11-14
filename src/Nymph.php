@@ -1,13 +1,15 @@
 <?php namespace Nymph;
 
-use SciActive\RequirePHP as RequirePHP;
+use SciActive\RequirePHP;
 
 RequirePHP::_('Nymph', ['NymphConfig'], function ($NymphConfig) {
   $class = '\\Nymph\\Drivers\\'.$NymphConfig['driver'].'Driver';
 
   $Nymph = new $class($NymphConfig);
-  if ($NymphConfig['pubsub']) {
+  if (class_exists('\\SciActive\\Hook')) {
     \SciActive\Hook::hookObject($Nymph, 'Nymph->');
+  }
+  if ($NymphConfig['pubsub']) {
     \Nymph\PubSub\HookMethods::setup();
   }
   return $Nymph;

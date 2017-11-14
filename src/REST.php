@@ -153,13 +153,13 @@ class REST {
         }
       } else {
         $entity = $this->loadEntity($args['entity']);
-        if (!in_array($args['method'], $entity->clientEnabledMethods())) {
-          return $this->httpError(403, 'Forbidden');
-        }
         if (!$entity
             || ((int) $args['entity']['guid'] > 0 && !$entity->guid)
             || !is_callable([$entity, $args['method']])) {
           return $this->httpError(400, 'Bad Request');
+        }
+        if (!in_array($args['method'], $entity->clientEnabledMethods())) {
+          return $this->httpError(403, 'Forbidden');
         }
         try {
           $return = call_user_func_array(

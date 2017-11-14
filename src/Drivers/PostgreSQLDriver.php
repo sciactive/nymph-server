@@ -1386,7 +1386,7 @@ class PostgreSQLDriver implements DriverInterface {
     $data = $entity->getData();
     $sdata = $entity->getSData();
     $varlist = array_merge(array_keys($data), array_keys($sdata));
-    $class = get_class($entity);
+    $class = is_callable([$entity, '_hookObject']) ? get_class($entity->_hookObject()) : get_class($entity);
     $etypeDirty = $class::ETYPE;
     $etype = '_'.pg_escape_string($this->link, $etypeDirty);
     $this->query('BEGIN;');
@@ -1565,11 +1565,6 @@ class PostgreSQLDriver implements DriverInterface {
     $this->query('COMMIT;');
     // Cache the entity.
     if ($this->config['cache']) {
-      $class = get_class($entity);
-      // Replace hook override in the class name.
-      if (strpos($class, '\\SciActive\\HookOverride_') === 0) {
-        $class = substr($class, 14);
-      }
       $this->pushCache($entity, $class);
     }
     return true;

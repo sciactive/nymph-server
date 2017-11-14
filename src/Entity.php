@@ -268,7 +268,7 @@ class Entity implements EntityInterface {
     $args = func_get_args();
     $reflector = new \ReflectionClass($class);
     $entity = $reflector->newInstanceArgs($args);
-    // Use hook functionality when in 2be.
+    // Use hook functionality when available.
     if (class_exists('\SciActive\Hook')) {
       \SciActive\Hook::hookObject($entity, $class.'->', false);
     }
