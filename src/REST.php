@@ -1,7 +1,5 @@
 <?php namespace Nymph;
 
-use SciActive\RequirePHP as RequirePHP;
-
 /**
  * Simple Nymph REST server implementation.
  *
@@ -275,32 +273,32 @@ class REST {
     $method = $actionMap[$action];
     if (in_array($action, ['entity', 'entities'])) {
       $args = json_decode($data, true);
-      if (is_int($args)) {
-        try {
-          $result = Nymph::$method($args);
-        } catch (\Exception $e) {
-          return $this->httpError(500, 'Internal Server Error', $e);
-        }
-      } else {
-        $count = count($args);
-        if ($count > 1) {
-          for ($i = 1; $i < $count; $i++) {
-            $newArg = self::translateSelector($args[$i]);
-            if ($newArg === false) {
-              return $this->httpError(400, 'Bad Request');
-            }
-            $args[$i] = $newArg;
+      if (!is_array($args)) {
+        return $this->httpError(400, 'Bad Request');
+      }
+      $count = count($args);
+      if ($count < 1 || !is_array($args[0])) {
+        return $this->httpError(400, 'Bad Request');
+      }
+      $args[0]['source'] = 'client';
+      $args[0]['skip_ac'] = false;
+      if ($count > 1) {
+        for ($i = 1; $i < $count; $i++) {
+          $newArg = self::translateSelector($args[$i]);
+          if ($newArg === false) {
+            return $this->httpError(400, 'Bad Request');
           }
+          $args[$i] = $newArg;
         }
-        try {
-          $result = call_user_func_array("\Nymph\Nymph::$method", $args);
-        } catch (\Exception $e) {
-          return $this->httpError(500, 'Internal Server Error', $e);
-        }
+      }
+      try {
+        $result = call_user_func_array("\Nymph\Nymph::$method", $args);
+      } catch (\Exception $e) {
+        return $this->httpError(500, 'Internal Server Error', $e);
       }
       if (empty($result)) {
         if ($action === 'entity'
-            || RequirePHP::_('NymphConfig')['empty_list_error']) {
+            || Nymph::$config['empty_list_error']) {
           return $this->httpError(404, 'Not Found');
         }
       }

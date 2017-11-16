@@ -5,10 +5,6 @@ error_reporting(E_ALL);
 require file_exists(__DIR__.'/../vendor/autoload.php')
     ? __DIR__.'/../vendor/autoload.php'
     : __DIR__.'/../../autoload-dev.php';
-use SciActive\RequirePHP as RequirePHP;
-
-RequirePHP::undef('NymphConfig');
-RequirePHP::undef('Nymph');
 
 $nymph_config = [
   'driver' => 'PostgreSQL'

@@ -1,5 +1,4 @@
-<?php
-namespace NymphTesting;
+<?php namespace NymphTesting;
 
 class EntityTest extends \PHPUnit\Framework\TestCase {
   public function testHookPHP() {

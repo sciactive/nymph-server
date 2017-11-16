@@ -1,55 +1,52 @@
 {
-	"name": "sciactive/nymph-server",
-	"description": "Powerful object data storage and querying for collaborative web apps.",
-	"version": "2.2.0",
-	"time": "2017-10-25",
-	"homepage": "http://nymph.io/",
-	"type": "library",
-	"authors": [
-		{
-			"name": "Hunter Perrin",
-			"email": "hunter@sciactive.com",
-			"homepage": "https://github.com/hperrin",
-			"role": "Developer"
-		}
-	],
-	"keywords": [
-		"orm",
-		"mysql",
-		"postgres",
-		"postgresql",
-		"object database",
-		"object data store",
-		"object relational mapper",
-		"object relational mapping"
-	],
-	"license": "Apache-2.0",
-	"support": {
-		"issues": "https://github.com/sciactive/nymph/issues",
-		"wiki": "https://github.com/sciactive/nymph/wiki",
-		"source": "https://github.com/sciactive/nymph-server"
-	},
-	"archive": {
-		"exclude": [
-			"**/.*",
-			".travis.yml",
-			"testing",
-			"vendor"
-		]
-	},
-	"autoload": {
-		"psr-0": {
-			"Nymph\\": "src/"
-		},
-		"psr-4": {
-			"Nymph\\": "src/"
-		}
-	},
-	"require": {
-		"sciactive/requirephp": "~1.3"
-	},
-	"require-dev": {
-		"sciactive/hookphp": "~2.0.1",
-		"phpunit/phpunit": "^6.1"
-	}
+  "name": "sciactive/nymph-server",
+  "description": "Powerful object data storage and querying for collaborative web apps.",
+  "version": "2.2.0",
+  "time": "2017-10-25",
+  "homepage": "http://nymph.io/",
+  "type": "library",
+  "authors": [
+    {
+      "name": "Hunter Perrin",
+      "email": "hunter@sciactive.com",
+      "homepage": "https://github.com/hperrin",
+      "role": "Developer"
+    }
+  ],
+  "keywords": [
+    "orm",
+    "mysql",
+    "postgres",
+    "postgresql",
+    "object database",
+    "object data store",
+    "object relational mapper",
+    "object relational mapping"
+  ],
+  "license": "Apache-2.0",
+  "support": {
+    "issues": "https://github.com/sciactive/nymph/issues",
+    "wiki": "https://github.com/sciactive/nymph/wiki",
+    "source": "https://github.com/sciactive/nymph-server"
+  },
+  "archive": {
+    "exclude": [
+      "**/.*",
+      ".travis.yml",
+      "testing",
+      "vendor"
+    ]
+  },
+  "autoload": {
+    "psr-0": {
+      "Nymph\\": "src/"
+    },
+    "psr-4": {
+      "Nymph\\": "src/"
+    }
+  },
+  "require-dev": {
+    "sciactive/hookphp": "~2.0.2",
+    "phpunit/phpunit": "^6.1"
+  }
 }

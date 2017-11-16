@@ -1,19 +1,7 @@
 <?php namespace Nymph;
 
-use SciActive\RequirePHP;
-
-RequirePHP::_('Nymph', ['NymphConfig'], function ($NymphConfig) {
-  $class = '\\Nymph\\Drivers\\'.$NymphConfig['driver'].'Driver';
-
-  $Nymph = new $class($NymphConfig);
-  if (class_exists('\\SciActive\\Hook')) {
-    \SciActive\Hook::hookObject($Nymph, 'Nymph->');
-  }
-  if ($NymphConfig['pubsub']) {
-    \Nymph\PubSub\HookMethods::setup();
-  }
-  return $Nymph;
-});
+use Nymph\Drivers\MySQLDriver;
+use Nymph\Drivers\DriverInterface;
 
 /**
  * Nymph
@@ -30,8 +18,24 @@ RequirePHP::_('Nymph', ['NymphConfig'], function ($NymphConfig) {
 class Nymph {
   const VERSION = '2.2.0';
 
+  /**
+   * The Nymph config array.
+   *
+   * @var array
+   * @access public
+   */
+  public static $config;
+
+  /**
+   * The Nymph driver.
+   *
+   * @var Nymph\Drivers\DriverInterface
+   * @access public
+   */
+  public static $driver;
+
   public static function __callStatic($name, $args) {
-    return call_user_func_array(array(RequirePHP::_('Nymph'), $name), $args);
+    return call_user_func_array(array(self::$driver, $name), $args);
   }
 
   /**
@@ -41,31 +45,36 @@ class Nymph {
    * following form:
    *
    * [
-   *     'driver' => 'MySQL',
-   *     'pubsub' => true,
-   *     'MySql' => [
-   *         'host' => '127.0.0.1'
-   *     ]
+   *   'driver' => 'MySQL',
+   *   'pubsub' => true,
+   *   'MySql' => [
+   *     'host' => '127.0.0.1'
+   *   ]
    * ]
    *
    * @param array $config An associative array of Nymph's configuration.
    */
   public static function configure($config = []) {
-    \SciActive\RequirePHP::_('NymphConfig', [], function () use ($config) {
-      $defaults = include dirname(__DIR__).'/conf/defaults.php';
-      $nymphConfig = [];
-      foreach ($defaults as $curName => $curOption) {
-        if ((array) $curOption === $curOption && isset($curOption['value'])) {
-          $nymphConfig[$curName] = $curOption['value'];
-        } else {
-          $nymphConfig[$curName] = [];
-          foreach ($curOption as $curSubName => $curSubOption) {
-            $nymphConfig[$curName][$curSubName] = $curSubOption['value'];
-          }
-        }
+    $defaults = include dirname(__DIR__).'/conf/defaults.php';
+    self::$config = array_replace_recursive($defaults, $config);
+
+    if (isset(self::$driver)) {
+      if (self::$driver->connected) {
+        self::$driver->disconnect();
       }
-      return array_replace_recursive($nymphConfig, $config);
-    });
+      self::$driver = null;
+    }
+
+    $class = '\\Nymph\\Drivers\\'.self::$config['driver'].'Driver';
+
+    $Nymph = new $class(self::$config);
+    if (class_exists('\\SciActive\\Hook')) {
+      \SciActive\Hook::hookObject($Nymph, 'Nymph->');
+    }
+    if (self::$config['pubsub']) {
+      \Nymph\PubSub\HookMethods::setup();
+    }
+    self::$driver = $Nymph;
   }
 
   // Any method with an argument passed by reference must be passed directly.
@@ -100,7 +109,7 @@ class Nymph {
       $typesAlreadyChecked = [],
       $dataValsAreadyChecked = []
   ) {
-    return RequirePHP::_('Nymph')->checkData(
+    return self::$driver->checkData(
         $data,
         $sdata,
         $selectors,
@@ -118,7 +127,7 @@ class Nymph {
    * @return bool True on success, false on failure.
    */
   public static function deleteEntity(&$entity) {
-    return RequirePHP::_('Nymph')->deleteEntity($entity);
+    return self::$driver->deleteEntity($entity);
   }
 
   /**
@@ -134,7 +143,7 @@ class Nymph {
    * @return bool True on success, false on failure.
    */
   public static function saveEntity(&$entity) {
-    return RequirePHP::_('Nymph')->saveEntity($entity);
+    return self::$driver->saveEntity($entity);
   }
 
   /**
@@ -157,7 +166,7 @@ class Nymph {
       $caseSensitive = false,
       $reverse = false
   ) {
-    return RequirePHP::_('Nymph')->hsort(
+    return self::$driver->hsort(
         $array,
         $property,
         $parentProperty,
@@ -186,7 +195,7 @@ class Nymph {
       $caseSensitive = false,
       $reverse = false
   ) {
-    return RequirePHP::_('Nymph')->psort(
+    return self::$driver->psort(
         $array,
         $property,
         $parentProperty,
@@ -209,7 +218,7 @@ class Nymph {
       $caseSensitive = false,
       $reverse = false
   ) {
-    return RequirePHP::_('Nymph')->sort(
+    return self::$driver->sort(
         $array,
         $property,
         $caseSensitive,
@@ -239,7 +248,7 @@ class Nymph {
    * @param array $selectors
    */
   public static function formatSelectors(&$selectors) {
-    return RequirePHP::_('Nymph')->formatSelectors($selectors);
+    return self::$driver->formatSelectors($selectors);
   }
 
   // The rest of the methods are handled by __callStatic. Simple versions go
@@ -336,8 +345,10 @@ class Nymph {
    *   oldest. Therefore, offset will be from the newest entity.
    * - sort - (string) How to sort the entities. Accepts "guid", "cdate", and
    *   "mdate". Defaults to "cdate".
-   * - skip_ac - (bool) If true, the user manager will not filter returned
-   *   entities according to access controls.
+   * - source - (string) Will be 'client' if the query came from a REST call.
+   * - skip_ac - (bool) If true, Tilmeld will not filter returned entities
+   *   according to access controls. (If Tilmeld is installed.) (This is Always
+   *   set to false by the REST endpoint.)
    *
    * If a class is specified, it must have a factory() static method that
    * returns a new instance.

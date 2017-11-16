@@ -7,13 +7,13 @@ echo "Use \`run coverage\` to build coverage clover."
 echo
 
 if [[ "$1" == "coverage" ]]; then
-	CVGMYSQL="--coverage-clover logs/clover-mysql.xml"
-	CVGPGSQL="--coverage-clover logs/clover-pgsql.xml"
-	CVG="--coverage-clover logs/clover.xml"
+  CVGMYSQL="--coverage-clover logs/clover-mysql.xml"
+  CVGPGSQL="--coverage-clover logs/clover-pgsql.xml"
+  CVG="--coverage-clover logs/clover.xml"
 else
-	CVGMYSQL=""
-	CVGPGSQL=""
-	CVG=""
+  CVGMYSQL=""
+  CVGPGSQL=""
+  CVG=""
 fi
 
 TESTARGS=$*
@@ -21,23 +21,23 @@ TESTARGS=$*
 cd $(dirname $0)
 
 if [[ "$DB" == "mysql" ]]; then
-	echo "################################################################################"
-	echo "#                           Running tests for MySQL                            #"
-	echo -e "################################################################################\n"
+  echo "################################################################################"
+  echo "#                           Running tests for MySQL                            #"
+  echo -e "################################################################################\n"
 
-	../vendor/phpunit/phpunit/phpunit --testsuite default --bootstrap bootstrapMySQL.php $CVGMYSQL $TESTARGS
+  ../vendor/phpunit/phpunit/phpunit --testsuite default --bootstrap bootstrapMySQL.php $CVGMYSQL $TESTARGS
 fi
 if [[ "$DB" == "pgsql" ]]; then
-	echo "################################################################################"
-	echo "#                         Running tests for PostgreSQL                         #"
-	echo -e "################################################################################\n"
+  echo "################################################################################"
+  echo "#                         Running tests for PostgreSQL                         #"
+  echo -e "################################################################################\n"
 
-	../vendor/phpunit/phpunit/phpunit --testsuite default --bootstrap bootstrapPostgreSQL.php $CVGPGSQL $TESTARGS
+  ../vendor/phpunit/phpunit/phpunit --testsuite default --bootstrap bootstrapPostgreSQL.php $CVGPGSQL $TESTARGS
 fi
 if [[ "$DB" == "" ]]; then
-	echo "################################################################################"
-	echo "#                          Running tests for All DBs                           #"
-	echo -e "################################################################################\n"
+  echo "################################################################################"
+  echo "#                          Running tests for All DBs                           #"
+  echo -e "################################################################################\n"
 
-	../vendor/phpunit/phpunit/phpunit --testsuite all-dbs --bootstrap bootstrapMySQL.php $CVG $TESTARGS
+  DB=mysql ../vendor/phpunit/phpunit/phpunit --testsuite all-dbs --bootstrap bootstrapMySQL.php $CVG $TESTARGS
 fi

@@ -9,127 +9,140 @@
  * @link http://nymph.io/
  */
 
-return (object) [
-  'driver' => [
-    'cname' => 'Nymph Database Driver',
-    'description' => 'The database driver for Nymph to use.',
-    'value' => 'MySQL',
+return [
+  /*
+   * Nymph Database Driver
+   * The database driver for Nymph to use.
+   */
+  'driver' => 'MySQL',
+  /*
+   * PubSub Enabled
+   * Whether Nymph should use the PubSub functionality. This requires the
+   * Nymph-PubSub package.
+   */
+  'pubsub' => class_exists('\\Nymph\\PubSub\\HookMethods'),
+  /*
+   * Use PL/Perl Functions
+   * (Postgres only) This speeds up PCRE regular expression matching ("match"
+   * criteria type) a lot, but requires the Perl Procedural Language to be
+   * installed on your Postgres server.
+   */
+  'use_plperl' => false,
+  /*
+   * Cache Entities
+   * Cache recently retrieved entities to speed up database queries. Uses more
+   * memory.
+   */
+  'cache' => false,
+  /*
+   * Cache Threshold
+   * Cache entities after they're accessed this many times.
+   */
+  'cache_threshold' => 4,
+  /*
+   * Cache Limit
+   * The number of recently retrieved entities to cache. If you're running out
+   * of memory, try lowering this value. 0 means unlimited.
+   */
+  'cache_limit' => 50,
+  /*
+   * Empty List Returns an Error
+   * When querying for multiple entities with NymphREST, if the list is empty,
+   * return a 404 error.
+   */
+  'empty_list_error' => false,
+  /*
+   * MySQL specific settings
+   */
+  'MySQL' => [
+    /*
+     * Host
+     * The host on which to connect to MySQL. Can include a port, like
+     * hostname:port.
+     */
+    'host' => 'localhost',
+    /*
+     * Port
+     * The port on which to connect to MySQL.
+     */
+    'port' => 3306,
+    /*
+     * User
+     * The MySQL user.
+     */
+    'user' => 'nymph',
+    /*
+     * Password
+     * The MySQL password.
+     */
+    'password' => 'password',
+    /*
+     * Database
+     * The MySQL database.
+     */
+    'database' => 'nymph',
+    /*
+     * Table Prefix
+     * The MySQL table name prefix.
+     */
+    'prefix' => 'nymph_',
+    /*
+     * Table Engine
+     * The MySQL table engine. You can use InnoDB if you are using MySQL >= 5.6.
+     *
+     * Options are: "MYISAM", "InnoDB"
+     */
+    'engine' => 'MYISAM',
   ],
-  'pubsub' => [
-    'cname' => 'PubSub Enabled',
-    'description' => 'Whether Nymph should use the PubSub functionality. This requires the Nymph-PubSub package.',
-    'value' => class_exists('\\Nymph\\PubSub\\HookMethods'),
-  ],
-  'use_plperl' => [
-    'cname' => 'Use PL/Perl Functions',
-    'description' => '(Postgres only) This speeds up PCRE regular expression matching ("match" criteria type) a lot, but requires the Perl Procedural Language to be installed on your Postgres server.',
-    'value' => false,
-  ],
-  'cache' => [
-    'cname' => 'Cache Entities',
-    'description' => 'Cache recently retrieved entities to speed up database queries. Uses more memory.',
-    'value' => false,
-  ],
-  'cache_threshold' => [
-    'cname' => 'Cache Threshold',
-    'description' => 'Cache entities after they\'re accessed this many times.',
-    'value' => 4,
-  ],
-  'cache_limit' => [
-    'cname' => 'Cache Limit',
-    'description' => 'The number of recently retrieved entities to cache. If you\'re running out of memory, try lowering this value. 0 means unlimited.',
-    'value' => 50,
-  ],
-  'empty_list_error' => [
-    'cname' => 'Empty List Returns an Error',
-    'description' => 'When querying for multiple entities with NymphREST, if the list is empty, return a 404 error.',
-    'value' => false,
-  ],
-  'MySQL' => (object) [
-    'host' => [
-      'cname' => 'Host',
-      'description' => 'The host on which to connect to MySQL. Can include a port, like hostname:port.',
-      'value' => 'localhost',
-    ],
-    'port' => [
-      'cname' => 'Port',
-      'description' => 'The port on which to connect to MySQL.',
-      'value' => 3306,
-    ],
-    'user' => [
-      'cname' => 'User',
-      'description' => 'The MySQL user.',
-      'value' => 'nymph',
-    ],
-    'password' => [
-      'cname' => 'Password',
-      'description' => 'The MySQL password.',
-      'value' => 'password',
-    ],
-    'database' => [
-      'cname' => 'Database',
-      'description' => 'The MySQL database.',
-      'value' => 'nymph',
-    ],
-    'prefix' => [
-      'cname' => 'Table Prefix',
-      'description' => 'The MySQL table name prefix.',
-      'value' => 'nymph_',
-    ],
-    'engine' => [
-      'cname' => 'Table Engine',
-      'description' => 'The MySQL table engine. You can use InnoDB if you are using MySQL >= 5.6.',
-      'value' => 'MYISAM',
-      'options' => [
-        'MyISAM' => 'MYISAM',
-        'InnoDB' => 'InnoDB',
-      ],
-    ],
-  ],
-  'PostgreSQL' => (object) [
-    'connection_type' => [
-      'cname' => 'Connection Type',
-      'description' => 'The type of connection to establish with PostreSQL. Choosing socket will attempt to use the default socket path. You can also choose host and provide the socket path as the host. If you get errors that it can\'t connect, check that your pg_hba.conf file allows the specified user to access the database through a socket.',
-      'value' => 'host',
-      'options' => [
-        'Host' => 'host',
-        'Unix Socket' => 'socket',
-      ],
-    ],
-    'host' => [
-      'cname' => 'Host',
-      'description' => 'The host on which to connect to PostgreSQL.',
-      'value' => 'localhost',
-    ],
-    'port' => [
-      'cname' => 'Port',
-      'description' => 'The port on which to connect to PostgreSQL.',
-      'value' => 5432,
-    ],
-    'user' => [
-      'cname' => 'User',
-      'description' => 'The PostgreSQL user.',
-      'value' => 'nymph',
-    ],
-    'password' => [
-      'cname' => 'Password',
-      'description' => 'The PostgreSQL password.',
-      'value' => 'password',
-    ],
-    'database' => [
-      'cname' => 'Database',
-      'description' => 'The PostgreSQL database.',
-      'value' => 'nymph',
-    ],
-    'prefix' => [
-      'cname' => 'Table Prefix',
-      'description' => 'The PostgreSQL table name prefix.',
-      'value' => 'nymph_',
-    ],
-    'allow_persistent' => [
-      'cname' => 'Allow Persistent Connections',
-      'description' => 'Allow connections to persist, if that is how PHP is configured.',
-      'value' => true,
-    ],
+  /*
+   * PostgreSQL specific settings
+   */
+  'PostgreSQL' => [
+    /*
+     * Connection Type
+     * The type of connection to establish with PostreSQL. Choosing socket will
+     * attempt to use the default socket path. You can also choose host and
+     * provide the socket path as the host. If you get errors that it can't
+     * connect, check that your pg_hba.conf file allows the specified user to
+     * access the database through a socket.
+     *
+     * Options are: "host", "socket"
+     */
+    'connection_type' => 'host',
+    /*
+     * Host
+     * The host on which to connect to PostgreSQL.
+     */
+    'host' => 'localhost',
+    /*
+     * Port
+     * The port on which to connect to PostgreSQL.
+     */
+    'port' => 5432,
+    /*
+     * User
+     * The PostgreSQL user.
+     */
+    'user' => 'nymph',
+    /*
+     * Password
+     * The PostgreSQL password.
+     */
+    'password' => 'password',
+    /*
+     * Database
+     * The PostgreSQL database.
+     */
+    'database' => 'nymph',
+    /*
+     * Table Prefix
+     * The PostgreSQL table name prefix.
+     */
+    'prefix' => 'nymph_',
+    /*
+     * Allow Persistent Connections
+     * Allow connections to persist, if that is how PHP is configured.
+     */
+    'allow_persistent' => true,
   ],
 ];

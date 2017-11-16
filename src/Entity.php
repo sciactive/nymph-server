@@ -225,7 +225,7 @@ class Entity implements EntityInterface {
   public static $clientEnabledStaticMethods = [];
   /**
    * The name of the corresponding class on the client side. Leave null to use
-   * the same name.
+   * the same name, or if your client class knows the server class name.
    *
    * @var string|null
    * @access protected

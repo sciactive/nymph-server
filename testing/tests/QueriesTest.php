@@ -1,19 +1,18 @@
-<?php
-namespace NymphTesting;
+<?php namespace NymphTesting;
 
 use Nymph\Nymph;
 
 class QueriesTest extends \PHPUnit\Framework\TestCase {
   public function testInstantiate() {
-    $nymph = \SciActive\RequirePHP::_('Nymph');
+    $driver = Nymph::$driver;
     if (class_exists('\SciActive\Hook')) {
-      if (is_a($nymph, '\SciActive\HookOverride_Nymph_Drivers_PostgreSQLDriver')) {
-        $this->assertInstanceOf('\SciActive\HookOverride_Nymph_Drivers_PostgreSQLDriver', $nymph);
+      if (getenv('DB') === 'pgsql') {
+        $this->assertInstanceOf('\SciActive\HookOverride_Nymph_Drivers_PostgreSQLDriver', $driver);
       } else {
-        $this->assertInstanceOf('\SciActive\HookOverride_Nymph_Drivers_MySQLDriver', $nymph);
+        $this->assertInstanceOf('\SciActive\HookOverride_Nymph_Drivers_MySQLDriver', $driver);
       }
     } else {
-      $this->assertInstanceOf('\Nymph\Drivers\DriverInterface', $nymph);
+      $this->assertInstanceOf('\Nymph\Drivers\DriverInterface', $driver);
     }
   }
 

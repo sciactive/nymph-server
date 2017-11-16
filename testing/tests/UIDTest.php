@@ -1,5 +1,4 @@
-<?php
-namespace NymphTesting;
+<?php namespace NymphTesting;
 
 use Nymph\Nymph;
 

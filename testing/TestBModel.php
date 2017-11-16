@@ -1,5 +1,4 @@
-<?php
-namespace NymphTesting;
+<?php namespace NymphTesting;
 
 /**
  * This class is a test class that extends the Entity class.
