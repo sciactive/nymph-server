@@ -147,28 +147,39 @@ class Entity implements EntityInterface {
    */
   private $sleepingReference = null;
   /**
-   * The entries listed here correspond to variables that should be converted
-   * to standard objects instead of arrays when unserializing from JSON.
+   * Properties that should be converted to standard objects instead of arrays
+   * when unserializing from JSON.
    *
    * @var array
    * @access public
    */
-  public $objectData = ['ac'];
+  public $objectData = [];
   /**
-   * The entries listed here correspond to properties that will not be
-   * serialized into JSON with json_encode(). This can also be considered a
-   * blacklist, because these properties will not be set with incoming JSON.
+   * Properties that will not be serialized into JSON with json_encode(). This
+   * can also be considered a blacklist, because these properties will not be
+   * set with incoming JSON.
+   *
+   * You should be aware that the user can still conceivably determine what is
+   * in these properties, unless they are listed in searchRestrictedData.
    *
    * @var array
    * @access protected
-   * @todo Filter these vars from requests from the frontend with Tilmeld.
    */
   protected $privateData = [];
   /**
-   * The entries listed here correspond to properties that can only be
-   * modified by server side code. They will still be visible on the frontend,
-   * unlike privateData, but any changes to them that come from the frontend
-   * will be ignored. This can also be considered a blacklist.
+   * Properties that will not be searchable from the frontend. In other words,
+   * if the frontend includes any of these properties in any of their clauses,
+   * they will be filtered out before the search is executed.
+   *
+   * @var array
+   * @access protected
+   */
+  public static $searchRestrictedData = [];
+  /**
+   * Properties that can only be modified by server side code. They will still
+   * be visible on the frontend, unlike privateData, but any changes to them
+   * that come from the frontend will be ignored. This can also be considered a
+   * blacklist.
    *
    * @var array
    * @access protected
@@ -187,10 +198,9 @@ class Entity implements EntityInterface {
    */
   protected $whitelistData = false;
   /**
-   * The entries listed here correspond to tags that can only be added/removed
-   * by server side code. They will still be visible on the frontend, but any
-   * changes to them that come from the frontend will be ignored. This can
-   * also be considered a blacklist.
+   * Tags that can only be added/removed by server side code. They will still be
+   * visible on the frontend, but any changes to them that come from the
+   * frontend will be ignored. This can also be considered a blacklist.
    *
    * @var array
    * @access protected

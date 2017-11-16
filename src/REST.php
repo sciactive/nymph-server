@@ -280,11 +280,14 @@ class REST {
       if ($count < 1 || !is_array($args[0])) {
         return $this->httpError(400, 'Bad Request');
       }
+      if (!isset($args[0]['class']) || !class_exists($args[0]['class'])) {
+        return $this->httpError(400, 'Bad Request');
+      }
       $args[0]['source'] = 'client';
       $args[0]['skip_ac'] = false;
       if ($count > 1) {
         for ($i = 1; $i < $count; $i++) {
-          $newArg = self::translateSelector($args[$i]);
+          $newArg = self::translateSelector($args[0]['class'], $args[$i]);
           if ($newArg === false) {
             return $this->httpError(400, 'Bad Request');
           }
@@ -327,8 +330,39 @@ class REST {
    * - JS {"type": "&", "crit": "val", "1": {"type": "&", ...}, ...}
    * - JS ["&", {"crit": "val"}, ["&", ...], ...]
    * to PHP ["&", "crit" => "val", ["&", ...], ...]
+   *
+   * Also filter out clauses that use restricted properties.
    */
-  public static function translateSelector($selector) {
+  public static function translateSelector($class, $selector) {
+    $restricted = [];
+    if (isset($class::$searchRestrictedData)) {
+      $restricted = $class::$searchRestrictedData;
+    }
+    // Filter clauses that are restricted for frontend searches.
+    $filterClauses = function ($clause, $value) use ($restricted) {
+      $unrestrictedClauses = ['guid', 'tag'];
+      $scalarClauses = ['isset'];
+      if (empty($restricted) || in_array($clause, $unrestrictedClauses)) {
+        return $value;
+      }
+      if (in_array($clause, $scalarClauses)) {
+        // Each entry is a property name.
+        if (is_array($value)) {
+          return array_values(array_diff($value, $restricted));
+        } else {
+          return in_array($value, $restricted) ? null : $value;
+        }
+      } else {
+        // Each entry is an array of property name, value.
+        if (is_array($value[0])) {
+          return array_values(array_filter($value, function ($arr) use ($restricted) {
+            return !in_array($arr[0], $restricted);
+          }));
+        } else {
+          return in_array($value[0], $restricted) ? null : $value;
+        }
+      }
+    };
     $newSel = [];
     foreach ($selector as $key => $val) {
       if ($key === 'type' || $key === 0) {
@@ -340,7 +374,7 @@ class REST {
               isset($val[0])
               && in_array($val[0], ['&', '!&', '|', '!|'])
             )) {
-          $tmpSel = self::translateSelector($val);
+          $tmpSel = self::translateSelector($class, $val);
           if ($tmpSel === false) {
             return false;
           }
@@ -350,11 +384,17 @@ class REST {
             if (key_exists($k2, $newSel)) {
               return false;
             }
-            $newSel[$k2] = $v2;
+            $value = $filterClauses($k2, $v2);
+            if (!empty($value)) {
+              $newSel[$k2] = $value;
+            }
           }
         }
       } else {
-        $newSel[$key] = $val;
+        $value = $filterClauses($key, $val);
+        if (!empty($value)) {
+          $newSel[$key] = $value;
+        }
       }
     }
     if (!isset($newSel[0]) || !in_array($newSel[0], ['&', '!&', '|', '!|'])) {

@@ -16,6 +16,59 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
     }
   }
 
+  public function testTranslateSelectorsAndRestrictSearch() {
+    $actual = \Nymph\REST::translateSelector('NymphTesting\TestModel', [
+      'type' => '&',
+      'strict' => ['fish', 'crab'],
+      'isset' => 'fish',
+      'gte' => [
+        ['boats', 49],
+        ['fish', 50]
+      ],
+      1 => [
+        'type' => '&',
+        'isset' => ['fish'],
+        'data' => ['fish', 'junk'],
+        'array' => [
+          ['spoot', 'smoot'],
+          ['fish', 'barbecue']
+        ]
+      ],
+      2 => [
+        '&',
+        [
+          'isset' => ['fish', 'spoot'],
+          'data' => ['fish', 'junk'],
+          'array' => [
+            ['spoot', 'smoot'],
+            ['fish', 'barbecue'],
+            ['kirk', 'land']
+          ]
+        ]
+      ]
+    ]);
+
+    $expected = ['&',
+      ['&',
+        'array' => [
+          ['spoot', 'smoot']
+        ]
+      ],
+      ['&',
+        'isset' => ['spoot'],
+        'array' => [
+          ['spoot','smoot'],
+          ['kirk', 'land']
+        ]
+      ],
+      'gte' => [
+        ['boats', 49]
+      ]
+    ];
+
+    $this->assertEquals($expected, $actual);
+  }
+
   /**
    * @expectedException \Nymph\Exceptions\InvalidParametersException
    */

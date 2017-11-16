@@ -19,6 +19,7 @@
 class TestModel extends \Nymph\Entity {
   const ETYPE = 'test_model';
   protected $privateData = ['boolean'];
+  public static $searchRestrictedData = ['fish'];
   protected $whitelistData = ['string', 'array', 'mdate'];
   protected $protectedTags = ['test', 'notag'];
   protected $whitelistTags = ['newtag'];
