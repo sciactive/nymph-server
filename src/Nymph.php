@@ -16,7 +16,7 @@ use Nymph\Drivers\DriverInterface;
  * @link http://nymph.io/
  */
 class Nymph {
-  const VERSION = '2.2.0';
+  const VERSION = '3.0.0-beta.1';
 
   /**
    * The Nymph config array.
@@ -91,7 +91,7 @@ class Nymph {
    *                       automatically considered passing.
    * @param array|null $tags The tags array. If left null, tags will not be
    *                         checked, and automatically considered passing.
-   * @param array $typesAlreadyChecked An array of criteria types that have
+   * @param array $typesAlreadyChecked An array of clause types that have
    *                                   already been checked. They will be
    *                                   considered passing.
    * @param array $dataValsAreadyChecked An array of data values that have
@@ -231,15 +231,15 @@ class Nymph {
    *
    * [
    *   0 => '&',
-   *   'crit' => [
+   *   'clause' => [
    *     ['value']
    *   ],
-   *   'crit2' => [
+   *   'clause2' => [
    *     ['var', 'value']
    *   ],
    *   [
    *     0 => '|',
-   *     'crit' => [
+   *     'clause' => [
    *       ['value2']
    *     ]
    *   ]
@@ -296,14 +296,15 @@ class Nymph {
    * # Comments begin with #
    *    # And can have white space before them.
    * # This defines a UID.
-   * &lt;name/of/uid&gt;[5]
-   * &lt;another uid&gt;[8000]
-   * # For UIDs, the name is in angle brackets (&lt;&gt;) and the value follows
+   * <name/of/uid>[5]
+   * <another uid>[8000]
+   * # For UIDs, the name is in angle brackets (<>) and the value follows
    * # in square brackets ([]).
    * # This starts a new entity.
-   * {1}[tag,list,with,commas]
-   * # For entities, the GUID is in curly brackets ({}) and the comma
-   * #  separated tag list follows in square brackets ([]).
+   * {1}<entity_etype>[tag,list,with,commas]
+   * # For entities, the GUID is in curly brackets ({}), then the etype in
+   * #  angle brackets, then the comma separated tag list follows in square
+   * #  brackets ([]).
    * # Variables are stored like this:
    * # varname=json_encode(serialize(value))
    *     abilities="a:1:{i:0;s:10:\"system\/all\";}"
@@ -312,7 +313,7 @@ class Nymph {
    *     name="s:5:\"admin\";"
    * # White space before/after "=" and at beginning/end of line is ignored.
    *         username  =     "s:5:\"admin\";"
-   * {2}[tag,list]
+   * {2}<entity_etype>[tag,list]
    *     another="s:23:\"This is another entity.\";"
    *     newline="s:1:\"\n\";"
    * </pre>
@@ -399,7 +400,7 @@ class Nymph {
    *   less than the value.
    * - lte - An array with a name, then value. True if the named variable is
    *   less than or equal to the value.
-   * - ref - An array with a name, then either a entity, or a GUID. True if
+   * - ref - An array with a name, then either an entity, or a GUID. True if
    *   the named variable is the entity or an array containing the entity.
    *
    * These clauses can all be negated, by prefixing them with an exclamation
