@@ -741,10 +741,10 @@ class Entity implements EntityInterface {
   }
 
   public function jsonSerialize($clientClassName = true) {
-    $object = (object) [];
     if ($this->isASleepingReference) {
       return $this->sleepingReference;
     }
+    $object = (object) [];
     $object->guid = $this->guid;
     $object->cdate = $this->cdate;
     $object->mdate = $this->mdate;
@@ -878,6 +878,7 @@ class Entity implements EntityInterface {
       );
     }
     $this->isASleepingReference = true;
+    $this->guid = $reference[1];
     $this->sleepingReference = $reference;
   }
 
