@@ -20,6 +20,9 @@
       <exclude>tests/QueriesPostgresTest.php</exclude>
       <exclude>tests/UIDPostgresTest.php</exclude>
       <exclude>tests/ExportImportPostgresTest.php</exclude>
+      <exclude>tests/QueriesSQLite3Test.php</exclude>
+      <exclude>tests/UIDSQLite3Test.php</exclude>
+      <exclude>tests/ExportImportSQLite3Test.php</exclude>
     </testsuite>
     <testsuite name="all-dbs">
       <file>tests/EntityTest.php</file>
@@ -30,6 +33,9 @@
       <file>tests/QueriesPostgresTest.php</file>
       <file>tests/UIDPostgresTest.php</file>
       <file>tests/ExportImportPostgresTest.php</file>
+      <file>tests/QueriesSQLite3Test.php</file>
+      <file>tests/UIDSQLite3Test.php</file>
+      <file>tests/ExportImportSQLite3Test.php</file>
     </testsuite>
   </testsuites>
   <filter>

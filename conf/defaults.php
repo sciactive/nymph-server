@@ -145,4 +145,37 @@ return [
      */
     'allow_persistent' => true,
   ],
+  /*
+   * SQLite3 specific settings
+   */
+  'SQLite3' => [
+    /*
+     * Host
+     * The host on which to connect to SQLite3. Can include a port, like
+     * hostname:port.
+     */
+    'filename' => ':memory:',
+    /*
+     * Table Prefix
+     * The SQLite3 table name prefix.
+     */
+    'prefix' => 'nymph_',
+    /*
+     * Busy Timeout
+     * The timeout to use for waiting for the DB to become available.
+     * See SQLite3::busyTimeout
+     */
+    'busy_timeout' => 10000,
+    /*
+     * Open Flags
+     * The flags used to open the SQLite3 db. (Can be used to programmatically
+     * open for readonly).
+     */
+    'open_flags' => SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE,
+    /*
+     * Encryption Key
+     * The encryption key to use to open the database.
+     */
+    'encryption_key' => null,
+  ],
 ];

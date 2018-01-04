@@ -1,9 +1,10 @@
 <?php namespace Nymph\Drivers;
 
 use Nymph\Exceptions;
+use SQLite3;
 
 /**
- * PostgreSQL based Nymph driver.
+ * SQLite3 based Nymph driver.
  *
  * @package Nymph
  * @license https://www.apache.org/licenses/LICENSE-2.0
@@ -11,30 +12,22 @@ use Nymph\Exceptions;
  * @copyright SciActive.com
  * @link http://nymph.io/
  */
-class PostgreSQLDriver implements DriverInterface {
+class SQLite3Driver implements DriverInterface {
   use DriverTrait {
     DriverTrait::__construct as private __traitConstruct;
   }
   /**
-   * The PostgreSQL link identifier for this instance.
+   * The SQLite3 database connection for this instance.
    *
    * @access private
-   * @var mixed
+   * @var SQLite3
    */
   private $link = null;
-  /**
-   * Whether to use PL/Perl.
-   *
-   * @access private
-   * @var string
-   */
-  private $usePLPerl;
   private $prefix;
 
   public function __construct($NymphConfig) {
     $this->__traitConstruct($NymphConfig);
-    $this->usePLPerl = $this->config['use_plperl'];
-    $this->prefix = $this->config['PostgreSQL']['prefix'];
+    $this->prefix = $this->config['SQLite3']['prefix'];
   }
 
   /**
@@ -45,70 +38,89 @@ class PostgreSQLDriver implements DriverInterface {
   }
 
   /**
-   * Connect to the PostgreSQL database.
+   * Connect to the SQLite3 database.
    *
-   * @return bool Whether this instance is connected to a PostgreSQL database
+   * @return bool Whether this instance is connected to a SQLite3 database
    *              after the method has run.
    */
   public function connect() {
-    // Check that the PostgreSQL extension is installed.
-    if (!is_callable('pg_connect')) {
+    // Check that the SQLite3 extension is installed.
+    if (!class_exists('SQLite3')) {
       throw new Exceptions\UnableToConnectException(
-          'PostgreSQL PHP extension is not available. It probably has not ' .
+          'SQLite3 PHP extension is not available. It probably has not ' .
           'been installed. Please install and configure it in order to use ' .
-          'PostgreSQL.'
+          'SQLite3.'
       );
     }
-    $connection_type = $this->config['PostgreSQL']['connection_type'];
-    $host = $this->config['PostgreSQL']['host'];
-    $port = $this->config['PostgreSQL']['port'];
-    $user = $this->config['PostgreSQL']['user'];
-    $password = $this->config['PostgreSQL']['password'];
-    $database = $this->config['PostgreSQL']['database'];
-    // Connecting, selecting database
+    $filename = $this->config['SQLite3']['filename'];
+    $busy_timeout = $this->config['SQLite3']['busy_timeout'];
+    $open_flags = $this->config['SQLite3']['open_flags'];
+    $encryption_key = $this->config['SQLite3']['encryption_key'];
+    // Connecting
     if (!$this->connected) {
-      if ($connection_type == 'host') {
-        $connect_string = 'host=\'' . addslashes($host) .
-            '\' port=\'' . addslashes($port) .
-            '\' dbname=\'' . addslashes($database) .
-            '\' user=\'' . addslashes($user) .
-            '\' password=\'' . addslashes($password) .
-            '\' connect_timeout=5';
-      } else {
-        $connect_string = 'dbname=\'' . addslashes($database) .
-            '\' user=\'' . addslashes($user) .
-            '\' password=\'' . addslashes($password) .
-            '\' connect_timeout=5';
-      }
-      if ($this->config['PostgreSQL']['allow_persistent']) {
-        $this->link = pg_connect(
-            $connect_string .
-                ' options=\'-c enable_hashjoin=off -c enable_mergejoin=off\''
-        );
-      } else {
-        $this->link = pg_connect(
-            $connect_string .
-                ' options=\'-c enable_hashjoin=off -c enable_mergejoin=off\'',
-            PGSQL_CONNECT_FORCE_NEW
-        );
-        // Don't think this is necessary, but if put in options, will guarantee
-        // connection is new. " -c timezone='.round(rand(10001000, 10009999)).'"
-      }
+      $this->link = new SQLite3($filename, $open_flags, $encryption_key);
       if ($this->link) {
         $this->connected = true;
+        $this->link->busyTimeout($busy_timeout);
+        // Set database and connection options.
+        $this->link->exec("PRAGMA encoding = \"UTF-8\";");
+        $this->link->exec("PRAGMA foreign_keys = 1;");
+        $this->link->exec("PRAGMA case_sensitive_like = 1;");
+        // Create the preg_match and regexp functions.
+        // TODO(hperrin): Add more of these functions to get rid of post-query checks.
+        $this->link->createFunction('preg_match', 'preg_match', 2, SQLITE3_DETERMINISTIC);
+        $this->link->createFunction('regexp', function($pattern, $subject) {
+          return !!preg_match(
+              '~' . str_replace(
+                  [
+                    '~',
+                    '[[:<:]]',
+                    '[[:>:]]',
+                    '[:alnum:]',
+                    '[:alpha:]',
+                    '[:ascii:]',
+                    '[:blank:]',
+                    '[:cntrl:]',
+                    '[:digit:]',
+                    '[:graph:]',
+                    '[:lower:]',
+                    '[:print:]',
+                    '[:punct:]',
+                    '[:space:]',
+                    '[:upper:]',
+                    '[:word:]',
+                    '[:xdigit:]',
+                  ],
+                  [
+                    '\~',
+                    '\b(?=\w)',
+                    '(?<=\w)\b',
+                    '[A-Za-z0-9]',
+                    '[A-Za-z]',
+                    '[\x00-\x7F]',
+                    '\s',
+                    '[\000\001\002\003\004\005\006\007\008\009\010\011\012\013\014\015\016\017\018\019\020\021\022\023\024\025\026\027\028\029\030\031\032\033\034\035\036\037\177]',
+                    '\d',
+                    '[A-Za-z0-9!"#$%&\'()*+,\-./:;<=>?@[\\\]^_`{|}\~]',
+                    '[a-z]',
+                    '[A-Za-z0-9!"#$%&\'()*+,\-./:;<=>?@[\\\]^_`{|}\~]',
+                    '[!"#$%&\'()*+,\-./:;<=>?@[\\\]^_`{|}\~]',
+                    '[\t\n\x0B\f\r ]',
+                    '[A-Z]',
+                    '[A-Za-z0-9_]',
+                    '[0-9A-Fa-f]',
+                  ],
+                  $pattern
+              ) . '~',
+              $subject
+          );
+        }, 2, SQLITE3_DETERMINISTIC);
       } else {
         $this->connected = false;
-        if ($host == 'localhost'
-            && $user == 'nymph'
-            && $password == 'password'
-            && $database == 'nymph'
-            && $connection_type == 'host') {
+        if ($filename == ':memory:') {
           throw new Exceptions\NotConfiguredException();
         } else {
-          throw new Exceptions\UnableToConnectException(
-              'Could not connect: ' .
-                  pg_last_error()
-          );
+          throw new Exceptions\UnableToConnectException('Could not connect.');
         }
       }
     }
@@ -116,15 +128,16 @@ class PostgreSQLDriver implements DriverInterface {
   }
 
   /**
-   * Disconnect from the PostgreSQL database.
+   * Disconnect from the SQLite3 database.
    *
-   * @return bool Whether this instance is connected to a PostgreSQL database
+   * @return bool Whether this instance is connected to a SQLite3 database
    *              after the method has run.
    */
   public function disconnect() {
     if ($this->connected) {
-      if (is_resource($this->link)) {
-        pg_close($this->link);
+      if (is_a($this->link, 'SQLite3')) {
+        $this->link->exec("PRAGMA optimize;");
+        $this->link->close();
       }
       $this->connected = false;
     }
@@ -138,114 +151,73 @@ class PostgreSQLDriver implements DriverInterface {
    *                      blank, the default tables are created.
    */
   private function createTables($etype = null) {
-    $this->query('ROLLBACK; BEGIN;');
-    if (isset($etype)) {
-      $etype = '_'.pg_escape_string($this->link, $etype);
-      // Create the entity table.
-      $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}entities{$etype}\" ( guid bigint NOT NULL, tags text[], varlist text[], cdate numeric(18,6) NOT NULL, mdate numeric(18,6) NOT NULL, PRIMARY KEY (guid) ) WITH ( OIDS=FALSE ); "
-        . "ALTER TABLE \"{$this->prefix}entities{$etype}\" OWNER TO \"".pg_escape_string($this->link, $this->config['PostgreSQL']['user'])."\"; "
-        . "DROP INDEX IF EXISTS \"{$this->prefix}entities{$etype}_id_cdate\"; "
-        . "CREATE INDEX \"{$this->prefix}entities{$etype}_id_cdate\" ON \"{$this->prefix}entities{$etype}\" USING btree (cdate); "
-        . "DROP INDEX IF EXISTS \"{$this->prefix}entities{$etype}_id_mdate\"; "
-        . "CREATE INDEX \"{$this->prefix}entities{$etype}_id_mdate\" ON \"{$this->prefix}entities{$etype}\" USING btree (mdate); "
-        . "DROP INDEX IF EXISTS \"{$this->prefix}entities{$etype}_id_tags\"; "
-        . "CREATE INDEX \"{$this->prefix}entities{$etype}_id_tags\" ON \"{$this->prefix}entities{$etype}\" USING gin (tags); "
-        . "DROP INDEX IF EXISTS \"{$this->prefix}entities{$etype}_id_varlist\"; "
-        . "CREATE INDEX \"{$this->prefix}entities{$etype}_id_varlist\" ON \"{$this->prefix}entities{$etype}\" USING gin (varlist);");
-      // Create the data table.
-      $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}data{$etype}\" ( guid bigint NOT NULL, \"name\" text NOT NULL, \"value\" text NOT NULL, \"references\" bigint[], compare_true boolean, compare_one boolean, compare_zero boolean, compare_negone boolean, compare_emptyarray boolean, compare_string text, compare_int bigint, compare_float double precision, PRIMARY KEY (guid, \"name\"), FOREIGN KEY (guid) REFERENCES \"{$this->prefix}entities{$etype}\" (guid) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE CASCADE ) WITH ( OIDS=FALSE ); "
-        . "ALTER TABLE \"{$this->prefix}data{$etype}\" OWNER TO \"".pg_escape_string($this->link, $this->config['PostgreSQL']['user'])."\"; "
-        . "DROP INDEX IF EXISTS \"{$this->prefix}data{$etype}_id_guid\"; "
-        . "CREATE INDEX \"{$this->prefix}data{$etype}_id_guid\" ON \"{$this->prefix}data{$etype}\" USING btree (\"guid\"); "
-        . "DROP INDEX IF EXISTS \"{$this->prefix}data{$etype}_id_name\"; "
-        . "CREATE INDEX \"{$this->prefix}data{$etype}_id_name\" ON \"{$this->prefix}data{$etype}\" USING btree (\"name\"); "
-        . "DROP INDEX IF EXISTS \"{$this->prefix}data{$etype}_id_references\"; "
-        . "CREATE INDEX \"{$this->prefix}data{$etype}_id_references\" ON \"{$this->prefix}data{$etype}\" USING gin (\"references\"); "
-        . "DROP INDEX IF EXISTS \"{$this->prefix}data{$etype}_id_guid_name_compare_true\"; "
-        . "CREATE INDEX \"{$this->prefix}data{$etype}_id_guid_name_compare_true\" ON \"{$this->prefix}data{$etype}\" USING btree (\"guid\", \"name\") WHERE \"compare_true\" = TRUE; "
-        . "DROP INDEX IF EXISTS \"{$this->prefix}data{$etype}_id_guid_name_not_compare_true\"; "
-        . "CREATE INDEX \"{$this->prefix}data{$etype}_id_guid_name_not_compare_true\" ON \"{$this->prefix}data{$etype}\" USING btree (\"guid\", \"name\") WHERE \"compare_true\" <> TRUE; "
-        . "DROP INDEX IF EXISTS \"{$this->prefix}data{$etype}_id_guid_name__user\"; "
-        . "CREATE INDEX \"{$this->prefix}data{$etype}_id_guid_name__user\" ON \"{$this->prefix}data{$etype}\" USING btree (\"guid\") WHERE \"name\" = 'user'::text; "
-        . "DROP INDEX IF EXISTS \"{$this->prefix}data{$etype}_id_guid_name__group\"; "
-        . "CREATE INDEX \"{$this->prefix}data{$etype}_id_guid_name__group\" ON \"{$this->prefix}data{$etype}\" USING btree (\"guid\") WHERE \"name\" = 'group'::text;");
-    } else {
-      // Create the GUID table.
-      $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}guids\" ( \"guid\" bigint NOT NULL, PRIMARY KEY (\"guid\")); "
-        . "ALTER TABLE \"{$this->prefix}guids\" OWNER TO \"".pg_escape_string($this->link, $this->config['PostgreSQL']['user'])."\";");
-      // Create the UID table.
-      $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}uids\" ( \"name\" text NOT NULL, cur_uid bigint NOT NULL, PRIMARY KEY (\"name\") ) WITH ( OIDS = FALSE ); "
-        . "ALTER TABLE \"{$this->prefix}uids\" OWNER TO \"".pg_escape_string($this->link, $this->config['PostgreSQL']['user'])."\";");
-      if ($this->usePLPerl) {
-        // Create the perl_match function. It's separated into two calls so
-        // Postgres will ignore the error if plperl already exists.
-        $this->query("CREATE OR REPLACE PROCEDURAL LANGUAGE plperl;");
-        $this->query("CREATE OR REPLACE FUNCTION {$this->prefix}match_perl( TEXT, TEXT, TEXT ) RETURNS BOOL AS \$code$ "
-          . "my (\$str, \$pattern, \$mods) = @_; "
-          . "if (\$pattern eq \'\') { "
-            . "return true; "
-          . "} "
-          . "if (\$mods eq \'\') { "
-            . "if (\$str =~ /(\$pattern)/) { "
-              . "return true; "
-            . "} else { "
-              . "return false; "
-            . "} "
-          . "} else { "
-            . "if (\$str =~ /(?\$mods)(\$pattern)/) { "
-              . "return true; "
-            . "} else { "
-              . "return false; "
-            . "} "
-          . "} \$code$ LANGUAGE plperl IMMUTABLE STRICT COST 10000;");
+    $this->query("SAVEPOINT 'tablecreation';");
+    try {
+      if (isset($etype)) {
+        $etype = '_'.SQLite3::escapeString($etype);
+
+        // Create the entity table.
+        $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}entities{$etype}\" (\"guid\" INTEGER PRIMARY KEY ASC NOT NULL REFERENCES \"{$this->prefix}guids\"(\"guid\") ON DELETE CASCADE, \"tags\" TEXT, \"varlist\" TEXT, \"cdate\" REAL NOT NULL, \"mdate\" REAL NOT NULL);");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}entities{$etype}_id_cdate\" ON \"{$this->prefix}entities{$etype}\" (\"cdate\");");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}entities{$etype}_id_mdate\" ON \"{$this->prefix}entities{$etype}\" (\"mdate\");");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}entities{$etype}_id_tags\" ON \"{$this->prefix}entities{$etype}\" (\"tags\");");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}entities{$etype}_id_varlist\" ON \"{$this->prefix}entities{$etype}\" (\"varlist\");");
+        // Create the data table.
+        $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}data{$etype}\" (\"guid\" INTEGER NOT NULL REFERENCES \"{$this->prefix}entities{$etype}\"(\"guid\") ON DELETE CASCADE, \"name\" TEXT NOT NULL, \"value\" TEXT NOT NULL, \"references\" TEXT, \"compare_true\" INTEGER, \"compare_one\" INTEGER, \"compare_zero\" INTEGER, \"compare_negone\" INTEGER, \"compare_emptyarray\" INTEGER, \"compare_string\" TEXT, \"compare_int\" INTEGER, \"compare_float\" REAL, PRIMARY KEY(\"guid\", \"name\"));");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_guid\" ON \"{$this->prefix}data{$etype}\" (\"guid\");");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_name\" ON \"{$this->prefix}data{$etype}\" (\"name\");");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_references\" ON \"{$this->prefix}data{$etype}\" (\"references\");");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_name__compare_true\" ON \"{$this->prefix}data{$etype}\" (\"name\") WHERE \"compare_true\" = 1;");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_name__not_compare_true\" ON \"{$this->prefix}data{$etype}\" (\"name\") WHERE \"compare_true\" = 0;");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_value\" ON \"{$this->prefix}data{$etype}\" (\"value\");");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_compare_int\" ON \"{$this->prefix}data{$etype}\" (\"compare_int\");");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_compare_float\" ON \"{$this->prefix}data{$etype}\" (\"compare_float\");");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_guid__name_user\" ON \"{$this->prefix}data{$etype}\" (\"guid\") WHERE \"name\" = 'user';");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_guid__name_group\" ON \"{$this->prefix}data{$etype}\" (\"guid\") WHERE \"name\" = 'group';");
+      } else {
+        // Create the GUID table.
+        $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}guids\" (\"guid\" INTEGER NOT NULL PRIMARY KEY ASC);");
+        // Create the UID table.
+        $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}uids\" (\"name\" TEXT PRIMARY KEY NOT NULL, \"cur_uid\" INTEGER NOT NULL);");
       }
+    } catch (\Exception $e) {
+      $this->query("ROLLBACK TO 'tablecreation';");
+
+      throw $e;
     }
-    $this->query('COMMIT;');
+    $this->query("RELEASE 'tablecreation';");
     return true;
   }
 
   private function query($query, $etypeDirty = null) {
-    while (pg_get_result($this->link)) {
-      // Clear the connection of all results.
-      continue;
-    }
-    if (!(pg_send_query($this->link, $query))) {
-      throw new Exceptions\QueryFailedException(
-          'Query failed: ' . pg_last_error(),
-          0,
-          null,
-          $query
-      );
-    }
-    if (!($result = pg_get_result($this->link))) {
-      throw new Exceptions\QueryFailedException(
-          'Query failed: ' . pg_last_error(),
-          0,
-          null,
-          $query
-      );
-    }
-    if ($error = pg_result_error_field($result, PGSQL_DIAG_SQLSTATE)) {
-      // If the tables don't exist yet, create them.
-      if ($error == '42P01' && $this->createTables()) {
+    try {
+      if (!($result = $this->link->query($query))) {
+        throw new Exceptions\QueryFailedException(
+            'Query failed: ' . $this->link->lastErrorCode() . ' - '
+              . $this->link->lastErrorMsg(),
+            0,
+            null,
+            $query
+        );
+      }
+    } catch (\Exception $e) {
+      $errorCode = $this->link->lastErrorCode();
+      $errorMsg = $this->link->lastErrorMsg();
+      if ($errorCode === 1 && preg_match('/^no such table: /', $errorMsg) && $this->createTables()) {
         if (isset($etypeDirty)) {
           $this->createTables($etypeDirty);
         }
-        if (!($result = pg_query($this->link, $query))) {
+        if (!($result = $this->link->query($query))) {
           throw new Exceptions\QueryFailedException(
-              'Query failed: ' . pg_last_error(),
+              'Query failed: ' . $this->link->lastErrorCode() . ' - '
+                . $this->link->lastErrorMsg(),
               0,
               null,
               $query
           );
         }
       } else {
-        throw new Exceptions\QueryFailedException(
-            'Query failed: ' . pg_last_error(),
-            0,
-            null,
-            $query
-        );
+        throw $e;
       }
     }
     return $result;
@@ -253,9 +225,12 @@ class PostgreSQLDriver implements DriverInterface {
 
   public function deleteEntityByID($guid, $etype = null) {
     $guid = (int) $guid;
-    $etype = isset($etype) ? '_'.pg_escape_string($this->link, $etype) : '';
-    $this->query("DELETE FROM \"{$this->prefix}entities{$etype}\" WHERE \"guid\"={$guid}; DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$guid};");
+    $etype = isset($etype) ? '_'.SQLite3::escapeString($etype) : '';
+    $this->query("SAVEPOINT 'deleteentity';");
     $this->query("DELETE FROM \"{$this->prefix}guids\" WHERE \"guid\"={$guid};");
+    $this->query("DELETE FROM \"{$this->prefix}entities{$etype}\" WHERE \"guid\"={$guid};");
+    $this->query("DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$guid};");
+    $this->query("RELEASE 'deleteentity';");
     // Removed any cached versions of this entity.
     if ($this->config['cache']) {
       $this->cleanCache($guid);
@@ -267,7 +242,7 @@ class PostgreSQLDriver implements DriverInterface {
     if (!$name) {
       throw new Exceptions\InvalidParametersException('Name not given for UID');
     }
-    $this->query("DELETE FROM \"{$this->prefix}uids\" WHERE \"name\"='".pg_escape_string($this->link, $name)."';");
+    $this->query("DELETE FROM \"{$this->prefix}uids\" WHERE \"name\"='".SQLite3::escapeString($name)."';");
     return true;
   }
 
@@ -289,34 +264,36 @@ class PostgreSQLDriver implements DriverInterface {
 
     // Export UIDs.
     $result = $this->query("SELECT * FROM \"{$this->prefix}uids\" ORDER BY \"name\";");
-    $row = pg_fetch_assoc($result);
+    $row = $result->fetchArray(SQLITE3_ASSOC);
     while ($row) {
       $row['name'];
       $row['cur_uid'];
       fwrite($fhandle, "<{$row['name']}>[{$row['cur_uid']}]\n");
       // Make sure that $row is incremented :)
-      $row = pg_fetch_assoc($result);
+      $row = $result->fetchArray(SQLITE3_ASSOC);
     }
+    $result->finalize();
 
     fwrite($fhandle, "\n#\n");
     fwrite($fhandle, "# Entities\n");
     fwrite($fhandle, "#\n\n");
 
     // Get the etypes.
-    $result = $this->query("SELECT relname FROM pg_stat_user_tables ORDER BY relname;");
+    $result = $this->query("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name;");
     $etypes = [];
-    $row = pg_fetch_array($result);
+    $row = $result->fetchArray(SQLITE3_NUM);
     while ($row) {
       if (strpos($row[0], $this->prefix.'entities_') === 0) {
         $etypes[] = substr($row[0], strlen($this->prefix.'entities_'));
       }
-      $row = pg_fetch_array($result);
+      $row = $result->fetchArray(SQLITE3_NUM);
     }
+    $result->finalize();
 
     foreach ($etypes as $etype) {
       // Export entities.
       $result = $this->query("SELECT e.*, d.\"name\" AS \"dname\", d.\"value\" AS \"dvalue\" FROM \"{$this->prefix}entities_{$etype}\" e LEFT JOIN \"{$this->prefix}data_{$etype}\" d ON e.\"guid\"=d.\"guid\" ORDER BY e.\"guid\";");
-      $row = pg_fetch_assoc($result);
+      $row = $result->fetchArray(SQLITE3_ASSOC);
       while ($row) {
         $guid = (int) $row['guid'];
         $tags = explode(',', substr($row['tags'], 1, -1));
@@ -333,13 +310,14 @@ class PostgreSQLDriver implements DriverInterface {
                 $fhandle,
                 "\t{$row['dname']}=".json_encode($row['dvalue'])."\n"
             );
-            $row = pg_fetch_assoc($result);
+            $row = $result->fetchArray(SQLITE3_ASSOC);
           } while ((int) $row['guid'] === $guid);
         } else {
           // Make sure that $row is incremented :)
-          $row = pg_fetch_assoc($result);
+          $row = $result->fetchArray(SQLITE3_ASSOC);
         }
       }
+      $result->finalize();
     }
     return fclose($fhandle);
   }
@@ -364,34 +342,36 @@ class PostgreSQLDriver implements DriverInterface {
 
     // Export UIDs.
     $result = $this->query("SELECT * FROM \"{$this->prefix}uids\" ORDER BY \"name\";");
-    $row = pg_fetch_assoc($result);
+    $row = $result->fetchArray(SQLITE3_ASSOC);
     while ($row) {
       $row['name'];
       $row['cur_uid'];
       echo "<{$row['name']}>[{$row['cur_uid']}]\n";
       // Make sure that $row is incremented :)
-      $row = pg_fetch_assoc($result);
+      $row = $result->fetchArray(SQLITE3_ASSOC);
     }
+    $result->finalize();
 
     echo "\n#\n";
     echo "# Entities\n";
     echo "#\n\n";
 
     // Get the etypes.
-    $result = $this->query("SELECT relname FROM pg_stat_user_tables ORDER BY relname;");
+    $result = $this->query("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name;");
     $etypes = [];
-    $row = pg_fetch_array($result);
+    $row = $result->fetchArray(SQLITE3_NUM);
     while ($row) {
       if (strpos($row[0], $this->prefix.'entities_') === 0) {
         $etypes[] = substr($row[0], strlen($this->prefix.'entities_'));
       }
-      $row = pg_fetch_array($result);
+      $row = $result->fetchArray(SQLITE3_NUM);
     }
+    $result->finalize();
 
     foreach ($etypes as $etype) {
       // Export entities.
       $result = $this->query("SELECT e.*, d.\"name\" AS \"dname\", d.\"value\" AS \"dvalue\" FROM \"{$this->prefix}entities_{$etype}\" e LEFT JOIN \"{$this->prefix}data_{$etype}\" d ON e.\"guid\"=d.\"guid\" ORDER BY e.\"guid\";");
-      $row = pg_fetch_assoc($result);
+      $row = $result->fetchArray(SQLITE3_ASSOC);
       while ($row) {
         $guid = (int) $row['guid'];
         $tags = explode(',', substr($row['tags'], 1, -1));
@@ -407,19 +387,20 @@ class PostgreSQLDriver implements DriverInterface {
             echo "\t{$row['dname']}=".json_encode(($row['dvalue'][0] === '~'
                 ? stripcslashes(substr($row['dvalue'], 1))
                 : $row['dvalue']))."\n";
-            $row = pg_fetch_assoc($result);
+            $row = $result->fetchArray(SQLITE3_ASSOC);
           } while ((int) $row['guid'] === $guid);
         } else {
           // Make sure that $row is incremented :)
-          $row = pg_fetch_assoc($result);
+          $row = $result->fetchArray(SQLITE3_ASSOC);
         }
       }
+      $result->finalize();
     }
     return true;
   }
 
   /**
-   * Generate the PostgreSQL query.
+   * Generate the SQLite3 query.
    * @param array $options The options array.
    * @param array $selectors The formatted selector array.
    * @param string $etypeDirty
@@ -433,7 +414,7 @@ class PostgreSQLDriver implements DriverInterface {
       $subquery = false
   ) {
     $sort = $options['sort'] ?? 'cdate';
-    $etype = '_'.pg_escape_string($this->link, $etypeDirty);
+    $etype = '_'.SQLite3::escapeString($etypeDirty);
     $query_parts = [];
     foreach ($selectors as $cur_selector) {
       $cur_selector_query = '';
@@ -479,8 +460,12 @@ class PostgreSQLDriver implements DriverInterface {
                     $cur_query .= $type_is_or ? ' OR ' : ' AND ';
                   }
                   $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                      '\'{'.pg_escape_string($this->link, $cur_tag) .
-                      '}\' <@ e."tags"';
+                      'e."tags" LIKE \'%,' .
+                      str_replace(
+                          ['%', '_', ':'],
+                          [':%', ':_', '::'],
+                          SQLite3::escapeString($cur_tag)
+                      ) . ',%\' ESCAPE \':\'';
                 }
                 break;
               case 'isset':
@@ -491,12 +476,16 @@ class PostgreSQLDriver implements DriverInterface {
                   }
                   $cur_query .= '(' .
                       (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                      '\'{'.pg_escape_string($this->link, $cur_var) .
-                      '}\' <@ e."varlist"';
+                      'e."varlist" LIKE \'%,' .
+                      str_replace(
+                          ['%', '_', ':'],
+                          [':%', ':_', '::'],
+                          SQLite3::escapeString($cur_var)
+                      ) . ',%\' ESCAPE \':\'';
                   if ($type_is_not xor $clause_not) {
                     $cur_query .= ' OR e."guid" IN (SELECT "guid" FROM "' .
                         $this->prefix.'data'.$etype.'" WHERE "name"=\'' .
-                        pg_escape_string($this->link, $cur_var) .
+                        SQLite3::escapeString($cur_var) .
                         '\' AND "value"=\'N;\')';
                   }
                   $cur_query .= ')';
@@ -529,18 +518,15 @@ class PostgreSQLDriver implements DriverInterface {
                   $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
                       'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
                       $etype.'" WHERE "name"=\'' .
-                      pg_escape_string($this->link, $cur_value[0]).'\' AND (';
-                  //$cur_query .= '(POSITION(\'a:3:{i:0;s:22:"nymph_entity_reference";i:1;i:';
-                  //$cur_query .= implode(';\' IN "value") != 0) '.($type_is_or ? 'OR' : 'AND').' (POSITION(\'a:3:{i:0;s:22:"nymph_entity_reference";i:1;i:', $guids);
-                  //$cur_query .= ';\' IN "value") != 0)';
-                  $cur_query .= '\'{';
+                      SQLite3::escapeString($cur_value[0]).'\' AND (';
+                  $cur_query .= '"references" LIKE \'%,';
                   $cur_query .=
                       implode(
-                          '}\' <@ "references"' .
-                              ($type_is_or ? ' OR ' : ' AND ') . '\'{',
+                          ',%\' ESCAPE \':\'' .
+                              ($type_is_or ? ' OR ' : ' AND ') . '"references" LIKE \'%,',
                           $guids
                       );
-                  $cur_query .= '}\' <@ "references"';
+                  $cur_query .= ',%\' ESCAPE \':\'';
                   $cur_query .= '))';
                 }
                 break;
@@ -572,10 +558,9 @@ class PostgreSQLDriver implements DriverInterface {
                   $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
                       'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
                       $etype.'" WHERE "name"=\'' .
-                      pg_escape_string($this->link, $cur_value[0]) .
+                      SQLite3::escapeString($cur_value[0]) .
                       '\' AND "value"=\'' .
-                      pg_escape_string(
-                          $this->link,
+                      SQLite3::escapeString(
                           (
                             strpos($svalue, "\0") !== false
                             ? '~'.addcslashes($svalue, chr(0).'\\')
@@ -592,7 +577,8 @@ class PostgreSQLDriver implements DriverInterface {
                   }
                   $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
                       '(e."cdate" LIKE \'' .
-                      pg_escape_string($this->link, $cur_value[1]).'\')';
+                      SQLite3::escapeString($cur_value[1]) .
+                      '\' ESCAPE \'\\\')';
                   break;
                 } elseif ($cur_value[0] == 'mdate') {
                   if ($cur_query) {
@@ -600,7 +586,8 @@ class PostgreSQLDriver implements DriverInterface {
                   }
                   $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
                       '(e."mdate" LIKE \'' .
-                      pg_escape_string($this->link, $cur_value[1]).'\')';
+                      SQLite3::escapeString($cur_value[1]) .
+                      '\' ESCAPE \'\\\')';
                   break;
                 } else {
                   if ($cur_query) {
@@ -609,9 +596,10 @@ class PostgreSQLDriver implements DriverInterface {
                   $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
                       'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
                       $etype.'" WHERE "name"=\'' .
-                      pg_escape_string($this->link, $cur_value[0]) .
+                      SQLite3::escapeString($cur_value[0]) .
                       '\' AND "compare_string" LIKE \'' .
-                      pg_escape_string($this->link, $cur_value[1]).'\')';
+                      SQLite3::escapeString($cur_value[1]) .
+                      '\' ESCAPE \'\\\')';
                 }
                 break;
               case 'ilike':
@@ -621,16 +609,18 @@ class PostgreSQLDriver implements DriverInterface {
                     $cur_query .= $type_is_or ? ' OR ' : ' AND ';
                   }
                   $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                      '(e."cdate" ILIKE \'' .
-                      pg_escape_string($this->link, $cur_value[1]).'\')';
+                      '(e."cdate" LIKE \'' .
+                      SQLite3::escapeString($cur_value[1]) .
+                      '\' ESCAPE \'\\\')';
                   break;
                 } elseif ($cur_value[0] == 'mdate') {
                   if ($cur_query) {
                     $cur_query .= $type_is_or ? ' OR ' : ' AND ';
                   }
                   $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                      '(e."mdate" ILIKE \'' .
-                      pg_escape_string($this->link, $cur_value[1]).'\')';
+                      '(e."mdate" LIKE \'' .
+                      SQLite3::escapeString($cur_value[1]) .
+                      '\' ESCAPE \'\\\')';
                   break;
                 } else {
                   if ($cur_query) {
@@ -639,9 +629,10 @@ class PostgreSQLDriver implements DriverInterface {
                   $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
                       'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
                       $etype.'" WHERE "name"=\'' .
-                      pg_escape_string($this->link, $cur_value[0]) .
-                      '\' AND "compare_string" ILIKE \'' .
-                      pg_escape_string($this->link, $cur_value[1]).'\')';
+                      SQLite3::escapeString($cur_value[0]) .
+                      '\' AND lower("compare_string") LIKE lower(\'' .
+                      SQLite3::escapeString($cur_value[1]) .
+                      '\') ESCAPE \'\\\')';
                 }
                 break;
               case 'pmatch':
@@ -651,16 +642,16 @@ class PostgreSQLDriver implements DriverInterface {
                     $cur_query .= $type_is_or ? ' OR ' : ' AND ';
                   }
                   $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                      '(e."cdate" ~ \'' .
-                      pg_escape_string($this->link, $cur_value[1]).'\')';
+                      '(e."cdate" REGEXP \'' .
+                      SQLite3::escapeString($cur_value[1]).'\')';
                   break;
                 } elseif ($cur_value[0] == 'mdate') {
                   if ($cur_query) {
                     $cur_query .= $type_is_or ? ' OR ' : ' AND ';
                   }
                   $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                      '(e."mdate" ~ \'' .
-                      pg_escape_string($this->link, $cur_value[1]).'\')';
+                      '(e."mdate" REGEXP \'' .
+                      SQLite3::escapeString($cur_value[1]).'\')';
                   break;
                 } else {
                   if ($cur_query) {
@@ -669,9 +660,9 @@ class PostgreSQLDriver implements DriverInterface {
                   $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
                       'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
                       $etype.'" WHERE "name"=\'' .
-                      pg_escape_string($this->link, $cur_value[0]) .
-                      '\' AND "compare_string" ~ \'' .
-                      pg_escape_string($this->link, $cur_value[1]).'\')';
+                      SQLite3::escapeString($cur_value[0]) .
+                      '\' AND "compare_string" REGEXP \'' .
+                      SQLite3::escapeString($cur_value[1]).'\')';
                 }
                 break;
               case 'ipmatch':
@@ -681,16 +672,16 @@ class PostgreSQLDriver implements DriverInterface {
                     $cur_query .= $type_is_or ? ' OR ' : ' AND ';
                   }
                   $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                      '(e."cdate" ~* \'' .
-                      pg_escape_string($this->link, $cur_value[1]).'\')';
+                      '(e."cdate" REGEXP \'' .
+                      SQLite3::escapeString($cur_value[1]).'\')';
                   break;
                 } elseif ($cur_value[0] == 'mdate') {
                   if ($cur_query) {
                     $cur_query .= $type_is_or ? ' OR ' : ' AND ';
                   }
                   $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                      '(e."mdate" ~* \'' .
-                      pg_escape_string($this->link, $cur_value[1]).'\')';
+                      '(e."mdate" REGEXP \'' .
+                      SQLite3::escapeString($cur_value[1]).'\')';
                   break;
                 } else {
                   if ($cur_query) {
@@ -699,62 +690,44 @@ class PostgreSQLDriver implements DriverInterface {
                   $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
                       'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
                       $etype.'" WHERE "name"=\'' .
-                      pg_escape_string($this->link, $cur_value[0]) .
-                      '\' AND "compare_string" ~* \'' .
-                      pg_escape_string($this->link, $cur_value[1]).'\')';
+                      SQLite3::escapeString($cur_value[0]) .
+                      '\' AND lower("compare_string") REGEXP lower(\'' .
+                      SQLite3::escapeString($cur_value[1]).'\'))';
                 }
                 break;
               case 'match':
               case '!match':
-                if ($this->usePLPerl) {
-                  $lastslashpos = strrpos($cur_value[1], '/');
-                  $regex = substr($cur_value[1], 1, $lastslashpos - 1);
-                  $mods = substr($cur_value[1], $lastslashpos + 1) ?: '';
-                  if ($cur_value[0] == 'cdate') {
-                    if ($cur_query) {
-                      $cur_query .= $type_is_or ? ' OR ' : ' AND ';
-                    }
-                    $cur_query .=
-                        (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                        $this->prefix.'match_perl(e."cdate", \'' .
-                        pg_escape_string($this->link, $regex) .
-                        '\', \''.pg_escape_string($this->link, $mods).'\')';
-                    break;
-                  } elseif ($cur_value[0] == 'mdate') {
-                    if ($cur_query) {
-                      $cur_query .= $type_is_or ? ' OR ' : ' AND ';
-                    }
-                    $cur_query .=
-                        (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                        $this->prefix.'match_perl(e."mdate", \'' .
-                        pg_escape_string($this->link, $regex) .
-                        '\', \''.pg_escape_string($this->link, $mods).'\')';
-                    break;
-                  } else {
-                    if ($cur_query) {
-                      $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
-                    }
-                    $cur_query .=
-                        (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                        'e."guid" IN (SELECT "guid" FROM "' .
-                        $this->prefix.'data'.$etype .
-                        '" WHERE "name"=\'' .
-                        pg_escape_string($this->link, $cur_value[0]) .
-                        '\' AND "compare_string" IS NOT NULL AND ' .
-                        $this->prefix.'match_perl("compare_string", \'' .
-                        pg_escape_string($this->link, $regex) .
-                        '\', \''.pg_escape_string($this->link, $mods).'\'))';
+                if ($cur_value[0] == 'cdate') {
+                  if ($cur_query) {
+                    $cur_query .= $type_is_or ? ' OR ' : ' AND ';
                   }
-                } else {
-                  if (!($type_is_not xor $clause_not)) {
-                    if ($cur_query) {
-                      $cur_query .= $type_is_or ? ' OR ' : ' AND ';
-                    }
-                    $cur_query .= '\'{' .
-                        pg_escape_string($this->link, $cur_value[0]) .
-                        '}\' <@ e."varlist"';
-                  }
+                  $cur_query .=
+                      (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+                      'preg_match(\'' . SQLite3::escapeString($cur_value[1]) .
+                      '\', e."cdate")';
                   break;
+                } elseif ($cur_value[0] == 'mdate') {
+                  if ($cur_query) {
+                    $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+                  }
+                  $cur_query .=
+                      (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+                      'preg_match(\'' . SQLite3::escapeString($cur_value[1]) .
+                      '\', e."mdate")';
+                  break;
+                } else {
+                  if ($cur_query) {
+                    $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+                  }
+                  $cur_query .=
+                      (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+                      'e."guid" IN (SELECT "guid" FROM "' .
+                      $this->prefix.'data'.$etype .
+                      '" WHERE "name"=\'' .
+                      SQLite3::escapeString($cur_value[0]) .
+                      '\' AND "compare_string" IS NOT NULL AND ' .
+                      'preg_match(\'' . SQLite3::escapeString($cur_value[1]) .
+                      '\', "compare_string"))';
                 }
                 break;
               case 'gt':
@@ -782,13 +755,13 @@ class PostgreSQLDriver implements DriverInterface {
                       'e."guid" IN (SELECT "guid" FROM "' .
                       $this->prefix.'data'.$etype .
                       '" WHERE "name"=\'' .
-                      pg_escape_string($this->link, $cur_value[0]) . '\' AND ' .
+                      SQLite3::escapeString($cur_value[0]) . '\' AND ' .
                       '(("compare_int" IS NOT NULL AND "compare_int" > ' .
                       ((int) $cur_value[1]) .
-                      ' AND substring("value", 0, 1)=\'i\') OR ' .
+                      ' AND substr("value", 0, 1)=\'i\') OR ' .
                       '("compare_float" IS NOT NULL AND "compare_float" > ' .
                       ((float) $cur_value[1]) .
-                      ' AND NOT substring("value", 0, 1)=\'i\')))';
+                      ' AND NOT substr("value", 0, 1)=\'i\')))';
                 }
                 break;
               case 'gte':
@@ -816,13 +789,13 @@ class PostgreSQLDriver implements DriverInterface {
                       'e."guid" IN (SELECT "guid" FROM "' .
                       $this->prefix.'data'.$etype .
                       '" WHERE "name"=\'' .
-                      pg_escape_string($this->link, $cur_value[0]) . '\' AND ' .
+                      SQLite3::escapeString($cur_value[0]) . '\' AND ' .
                       '(("compare_int" IS NOT NULL AND "compare_int" >= ' .
                       ((int) $cur_value[1]) .
-                      ' AND substring("value", 0, 1)=\'i\') OR ' .
+                      ' AND substr("value", 0, 1)=\'i\') OR ' .
                       '("compare_float" IS NOT NULL AND "compare_float" >= ' .
                       ((float) $cur_value[1]) .
-                      ' AND NOT substring("value", 0, 1)=\'i\')))';
+                      ' AND NOT substr("value", 0, 1)=\'i\')))';
                 }
                 break;
               case 'lt':
@@ -850,13 +823,13 @@ class PostgreSQLDriver implements DriverInterface {
                       'e."guid" IN (SELECT "guid" FROM "' .
                       $this->prefix.'data'.$etype .
                       '" WHERE "name"=\'' .
-                      pg_escape_string($this->link, $cur_value[0]) . '\' AND ' .
+                      SQLite3::escapeString($cur_value[0]) . '\' AND ' .
                       '(("compare_int" IS NOT NULL AND "compare_int" < ' .
                       ((int) $cur_value[1]) .
-                      ' AND substring("value", 0, 1)=\'i\') OR ' .
+                      ' AND substr("value", 0, 1)=\'i\') OR ' .
                       '("compare_float" IS NOT NULL AND "compare_float" < ' .
                       ((float) $cur_value[1]) .
-                      ' AND NOT substring("value", 0, 1)=\'i\')))';
+                      ' AND NOT substr("value", 0, 1)=\'i\')))';
                 }
                 break;
               case 'lte':
@@ -884,13 +857,13 @@ class PostgreSQLDriver implements DriverInterface {
                       'e."guid" IN (SELECT "guid" FROM "' .
                       $this->prefix.'data'.$etype .
                       '" WHERE "name"=\'' .
-                      pg_escape_string($this->link, $cur_value[0]) . '\' AND ' .
+                      SQLite3::escapeString($cur_value[0]) . '\' AND ' .
                       '(("compare_int" IS NOT NULL AND "compare_int" <= ' .
                       ((int) $cur_value[1]) .
-                      ' AND substring("value", 0, 1)=\'i\') OR ' .
+                      ' AND substr("value", 0, 1)=\'i\') OR ' .
                       '("compare_float" IS NOT NULL AND "compare_float" <= ' .
                       ((float) $cur_value[1]) .
-                      ' AND NOT substring("value", 0, 1)=\'i\')))';
+                      ' AND NOT substr("value", 0, 1)=\'i\')))';
                 }
                 break;
               // Cases after this point contains special values where
@@ -919,9 +892,9 @@ class PostgreSQLDriver implements DriverInterface {
                   $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
                       'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
                       $etype.'" WHERE "name"=\'' .
-                      pg_escape_string($this->link, $cur_value[0]) .
+                      SQLite3::escapeString($cur_value[0]) .
                       '\' AND "compare_true"=' .
-                      ($cur_value[1] ? 'TRUE' : 'FALSE').')';
+                      ($cur_value[1] ? '1' : '0').')';
                   break;
                 } elseif ($cur_value[1] === 1) {
                   if ($cur_query) {
@@ -930,8 +903,8 @@ class PostgreSQLDriver implements DriverInterface {
                   $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
                       'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
                       $etype.'" WHERE "name"=\'' .
-                      pg_escape_string($this->link, $cur_value[0]) .
-                      '\' AND "compare_one"=TRUE)';
+                      SQLite3::escapeString($cur_value[0]) .
+                      '\' AND "compare_one"=1)';
                   break;
                 } elseif ($cur_value[1] === 0) {
                   if ($cur_query) {
@@ -940,8 +913,8 @@ class PostgreSQLDriver implements DriverInterface {
                   $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
                       'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
                       $etype.'" WHERE "name"=\'' .
-                      pg_escape_string($this->link, $cur_value[0]) .
-                      '\' AND "compare_zero"=TRUE)';
+                      SQLite3::escapeString($cur_value[0]) .
+                      '\' AND "compare_zero"=1)';
                   break;
                 } elseif ($cur_value[1] === -1) {
                   if ($cur_query) {
@@ -950,8 +923,8 @@ class PostgreSQLDriver implements DriverInterface {
                   $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
                       'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
                       $etype.'" WHERE "name"=\'' .
-                      pg_escape_string($this->link, $cur_value[0]) .
-                      '\' AND "compare_negone"=TRUE)';
+                      SQLite3::escapeString($cur_value[0]) .
+                      '\' AND "compare_negone"=1)';
                   break;
                 } elseif ($cur_value[1] === []) {
                   if ($cur_query) {
@@ -960,8 +933,8 @@ class PostgreSQLDriver implements DriverInterface {
                   $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
                       'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
                       $etype.'" WHERE "name"=\'' .
-                      pg_escape_string($this->link, $cur_value[0]) .
-                      '\' AND "compare_emptyarray"=TRUE)';
+                      SQLite3::escapeString($cur_value[0]) .
+                      '\' AND "compare_emptyarray"=1)';
                   break;
                 }
               case 'array':
@@ -970,9 +943,12 @@ class PostgreSQLDriver implements DriverInterface {
                   if ($cur_query) {
                     $cur_query .= $type_is_or ? ' OR ' : ' AND ';
                   }
-                  $cur_query .= '\'{' .
-                      pg_escape_string($this->link, $cur_value[0]) .
-                      '}\' <@ e."varlist"';
+                  $cur_query .= 'e."varlist" LIKE \'%,' .
+                      str_replace(
+                          ['%', '_', ':'],
+                          [':%', ':_', '::'],
+                          SQLite3::escapeString($cur_value[0])
+                      ) . ',%\' ESCAPE \':\'';
                 }
                 break;
             }
@@ -1103,6 +1079,8 @@ class PostgreSQLDriver implements DriverInterface {
           '!like',
           'ilike',
           '!ilike',
+          'match',
+          '!match',
           'pmatch',
           '!pmatch',
           'ipmatch',
@@ -1116,13 +1094,9 @@ class PostgreSQLDriver implements DriverInterface {
           'lte',
           '!lte'
         ];
-    if ($this->usePLPerl) {
-      $typesAlreadyChecked[] = 'match';
-      $typesAlreadyChecked[] = '!match';
-    }
     $dataValsAreadyChecked = [true, false, 1, 0, -1, []];
 
-    $row = pg_fetch_row($result);
+    $row = $result->fetchArray(SQLITE3_NUM);
     while ($row) {
       $guid = (int) $row[0];
       $tags = $row[1];
@@ -1137,11 +1111,11 @@ class PostgreSQLDriver implements DriverInterface {
               ($row[5][0] === '~'
                   ? stripcslashes(substr($row[5], 1))
                   : $row[5]);
-          $row = pg_fetch_row($result);
+          $row = $result->fetchArray(SQLITE3_NUM);
         } while ((int) $row[0] === $guid);
       } else {
         // Make sure that $row is incremented :)
-        $row = pg_fetch_row($result);
+        $row = $result->fetchArray(SQLITE3_NUM);
       }
       // Check all conditions.
       if ($this->checkData($data, $sdata, $selectors, null, null, $typesAlreadyChecked, $dataValsAreadyChecked)) {
@@ -1190,7 +1164,7 @@ class PostgreSQLDriver implements DriverInterface {
       }
     }
 
-    pg_free_result($result);
+    $result->finalize();
 
     return $entities;
   }
@@ -1201,9 +1175,9 @@ class PostgreSQLDriver implements DriverInterface {
           'Name not given for UID.'
       );
     }
-    $result = $this->query("SELECT \"cur_uid\" FROM \"{$this->prefix}uids\" WHERE \"name\"='".pg_escape_string($this->link, $name)."';");
-    $row = pg_fetch_row($result);
-    pg_free_result($result);
+    $result = $this->query("SELECT \"cur_uid\" FROM \"{$this->prefix}uids\" WHERE \"name\"='".SQLite3::escapeString($name)."';");
+    $row = $result->fetchArray(SQLITE3_NUM);
+    $result->finalize();
     return isset($row[0]) ? (int) $row[0] : null;
   }
 
@@ -1216,7 +1190,7 @@ class PostgreSQLDriver implements DriverInterface {
     $guid = null;
     $line = '';
     $data = [];
-    $this->query('BEGIN;');
+    $this->query("SAVEPOINT 'import';");
     while (!feof($fhandle)) {
       $line .= fgets($fhandle, 8192);
       if (substr($line, -1) != "\n") {
@@ -1230,12 +1204,14 @@ class PostgreSQLDriver implements DriverInterface {
       if (preg_match('/^\s*{(\d+)}<([\w-_]+)>\[([\w,]*)\]\s*$/S', $line, $matches)) {
         // Save the current entity.
         if ($guid) {
-          $this->query("DELETE FROM \"{$this->prefix}guids\" WHERE \"guid\"={$guid}; INSERT INTO \"{$this->prefix}guids\" (\"guid\") VALUES ({$guid});");
-          $this->query("DELETE FROM \"{$this->prefix}entities_{$etype}\" WHERE \"guid\"={$guid}; INSERT INTO \"{$this->prefix}entities_{$etype}\" (\"guid\", \"tags\", \"varlist\", \"cdate\", \"mdate\") VALUES ({$guid}, '".pg_escape_string($this->link, '{'.$tags.'}')."', '".pg_escape_string($this->link, '{'.implode(',', array_keys($data)).'}')."', ".unserialize($data['cdate']).", ".unserialize($data['mdate']).");", $etype);
-          $this->query("DELETE FROM \"{$this->prefix}data_{$etype}\" WHERE \"guid\"={$guid};");
+          $this->query("DELETE FROM \"{$this->prefix}guids\" WHERE \"guid\"={$guid};");
+          $this->query("DELETE FROM \"{$this->prefix}entities_{$etype}\" WHERE \"guid\"={$guid};");
+          $this->query("DELETE FROM \"{$this->prefix}data_{$etype}\" WHERE \"guid\"={$guid};", $etype);
+          $this->query("INSERT INTO \"{$this->prefix}guids\" (\"guid\") VALUES ({$guid});");
+          $this->query("INSERT INTO \"{$this->prefix}entities_{$etype}\" (\"guid\", \"tags\", \"varlist\", \"cdate\", \"mdate\") VALUES ({$guid}, '".SQLite3::escapeString(','.$tags.',')."', '".SQLite3::escapeString(','.implode(',', array_keys($data)).',')."', ".unserialize($data['cdate']).", ".unserialize($data['mdate']).");", $etype);
           unset($data['cdate'], $data['mdate']);
           if ($data) {
-            $query = '';
+            $query = "INSERT INTO \"{$this->prefix}data_{$etype}\" (\"guid\", \"name\", \"value\", \"references\", \"compare_true\", \"compare_one\", \"compare_zero\", \"compare_negone\", \"compare_emptyarray\", \"compare_string\", \"compare_int\", \"compare_float\") VALUES ";
             foreach ($data as $name => $value) {
               preg_match_all(
                   '/a:3:\{i:0;s:22:"nymph_entity_reference";i:1;i:(\d+);/',
@@ -1244,33 +1220,29 @@ class PostgreSQLDriver implements DriverInterface {
                   PREG_PATTERN_ORDER
               );
               $uvalue = unserialize($value);
-              $query .= "INSERT INTO \"{$this->prefix}data_{$etype}\" (\"guid\", \"name\", \"value\", \"references\", \"compare_true\", \"compare_one\", \"compare_zero\", \"compare_negone\", \"compare_emptyarray\", \"compare_string\", \"compare_int\", \"compare_float\") VALUES ";
               $query .= sprintf(
-                  "(%u, '%s', '%s', '%s', %s, %s, %s, %s, %s, %s, %d, %f); ",
+                  "(%u, '%s', '%s', '%s', %s, %s, %s, %s, %s, %s, %d, %f),",
                   $guid,
-                  pg_escape_string($this->link, $name),
-                  pg_escape_string(
-                      $this->link,
+                  SQLite3::escapeString($name),
+                  SQLite3::escapeString(
                       (strpos($value, "\0") !== false
                           ? '~'.addcslashes($value, chr(0).'\\')
                           : $value)
                   ),
-                  pg_escape_string(
-                      $this->link,
-                      '{'.implode(',', $references[1]).'}'
-                  ),
-                  $uvalue == true ? 'TRUE' : 'FALSE',
-                  (!is_object($uvalue) && $uvalue == 1) ? 'TRUE' : 'FALSE',
-                  (!is_object($uvalue) && $uvalue == 0) ? 'TRUE' : 'FALSE',
-                  (!is_object($uvalue) && $uvalue == -1) ? 'TRUE' : 'FALSE',
-                  $uvalue == [] ? 'TRUE' : 'FALSE',
+                  SQLite3::escapeString(','.implode(',', $references[1]).','),
+                  $uvalue == true ? '1' : '0',
+                  (!is_object($uvalue) && $uvalue == 1) ? '1' : '0',
+                  (!is_object($uvalue) && $uvalue == 0) ? '1' : '0',
+                  (!is_object($uvalue) && $uvalue == -1) ? '1' : '0',
+                  $uvalue == [] ? '1' : '0',
                   is_string($uvalue)
-                      ? '\''.pg_escape_string($this->link, $uvalue).'\''
+                      ? '\''.SQLite3::escapeString($uvalue).'\''
                       : 'NULL',
                   is_object($uvalue) ? 1 : ((int) $uvalue),
                   is_object($uvalue) ? 1 : ((float) $uvalue)
               );
             }
+            $query = substr($query, 0, -1).';';
             $this->query($query, $etype);
           }
           $guid = null;
@@ -1288,7 +1260,8 @@ class PostgreSQLDriver implements DriverInterface {
         }
       } elseif (preg_match('/^\s*<([^>]+)>\[(\d+)\]\s*$/S', $line, $matches)) {
         // Add the UID.
-        $this->query("DELETE FROM \"{$this->prefix}uids\" WHERE \"name\"='".pg_escape_string($this->link, $matches[1])."'; INSERT INTO \"{$this->prefix}uids\" (\"name\", \"cur_uid\") VALUES ('".pg_escape_string($this->link, $matches[1])."', ".((int) $matches[2]).");");
+        $this->query("DELETE FROM \"{$this->prefix}uids\" WHERE \"name\"='".SQLite3::escapeString($matches[1])."';");
+        $this->query("INSERT INTO \"{$this->prefix}uids\" (\"name\", \"cur_uid\") VALUES ('".SQLite3::escapeString($matches[1])."', ".((int) $matches[2]).");");
       }
       $line = '';
       // Clear the entity cache.
@@ -1296,12 +1269,13 @@ class PostgreSQLDriver implements DriverInterface {
     }
     // Save the last entity.
     if ($guid) {
-      $this->query("DELETE FROM \"{$this->prefix}guids\" WHERE \"guid\"={$guid}; INSERT INTO \"{$this->prefix}guids\" (\"guid\") VALUES ({$guid});");
-      $this->query("DELETE FROM \"{$this->prefix}entities_{$etype}\" WHERE \"guid\"={$guid}; INSERT INTO \"{$this->prefix}entities_{$etype}\" (\"guid\", \"tags\", \"varlist\", \"cdate\", \"mdate\") VALUES ({$guid}, '".pg_escape_string($this->link, '{'.$tags.'}')."', '".pg_escape_string($this->link, '{'.implode(',', array_keys($data)).'}')."', ".unserialize($data['cdate']).", ".unserialize($data['mdate']).");", $etype);
-      $this->query("DELETE FROM \"{$this->prefix}data_{$etype}\" WHERE \"guid\"={$guid};");
+      $this->query("DELETE FROM \"{$this->prefix}guids\" WHERE \"guid\"={$guid};");
+      $this->query("DELETE FROM \"{$this->prefix}entities_{$etype}\" WHERE \"guid\"={$guid};");
+      $this->query("DELETE FROM \"{$this->prefix}data_{$etype}\" WHERE \"guid\"={$guid};", $etype);
+      $this->query("INSERT INTO \"{$this->prefix}guids\" (\"guid\") VALUES ({$guid});");
+      $this->query("INSERT INTO \"{$this->prefix}entities_{$etype}\" (\"guid\", \"tags\", \"varlist\", \"cdate\", \"mdate\") VALUES ({$guid}, '".SQLite3::escapeString(','.$tags.',')."', '".SQLite3::escapeString(','.implode(',', array_keys($data)).',')."', ".unserialize($data['cdate']).", ".unserialize($data['mdate']).");", $etype);
       unset($data['cdate'], $data['mdate']);
       if ($data) {
-        $query = '';
         foreach ($data as $name => $value) {
           preg_match_all(
               '/a:3:\{i:0;s:22:"nymph_entity_reference";i:1;i:(\d+);/',
@@ -1310,37 +1284,32 @@ class PostgreSQLDriver implements DriverInterface {
               PREG_PATTERN_ORDER
           );
           $uvalue = unserialize($value);
-          $query .= "INSERT INTO \"{$this->prefix}data_{$etype}\" (\"guid\", \"name\", \"value\", \"references\", \"compare_true\", \"compare_one\", \"compare_zero\", \"compare_negone\", \"compare_emptyarray\", \"compare_string\", \"compare_int\", \"compare_float\") VALUES ";
-          $query .= sprintf(
-              "(%u, '%s', '%s', '%s', %s, %s, %s, %s, %s, %s, %d, %f); ",
-              $guid,
-              pg_escape_string($this->link, $name),
-              pg_escape_string(
-                  $this->link,
-                  (strpos($value, "\0") !== false
-                      ? '~'.addcslashes($value, chr(0).'\\')
-                      : $value)
-              ),
-              pg_escape_string(
-                  $this->link,
-                  '{'.implode(',', $references[1]).'}'
-              ),
-              $uvalue == true ? 'TRUE' : 'FALSE',
-              (!is_object($uvalue) && $uvalue == 1) ? 'TRUE' : 'FALSE',
-              (!is_object($uvalue) && $uvalue == 0) ? 'TRUE' : 'FALSE',
-              (!is_object($uvalue) && $uvalue == -1) ? 'TRUE' : 'FALSE',
-              $uvalue == [] ? 'TRUE' : 'FALSE',
-              is_string($uvalue)
-                  ? '\''.pg_escape_string($this->link, $uvalue).'\''
-                  : 'NULL',
-              is_object($uvalue) ? 1 : ((int) $uvalue),
-              is_object($uvalue) ? 1 : ((float) $uvalue)
-          );
+          $this->query("INSERT INTO \"{$this->prefix}data_{$etype}\" (\"guid\", \"name\", \"value\", \"references\", \"compare_true\", \"compare_one\", \"compare_zero\", \"compare_negone\", \"compare_emptyarray\", \"compare_string\", \"compare_int\", \"compare_float\") VALUES " .
+            sprintf(
+                "(%u, '%s', '%s', '%s', %s, %s, %s, %s, %s, %s, %d, %f);",
+                $guid,
+                SQLite3::escapeString($name),
+                SQLite3::escapeString(
+                    (strpos($value, "\0") !== false
+                        ? '~'.addcslashes($value, chr(0).'\\')
+                        : $value)
+                ),
+                SQLite3::escapeString(','.implode(',', $references[1]).','),
+                $uvalue == true ? '1' : '0',
+                (!is_object($uvalue) && $uvalue == 1) ? '1' : '0',
+                (!is_object($uvalue) && $uvalue == 0) ? '1' : '0',
+                (!is_object($uvalue) && $uvalue == -1) ? '1' : '0',
+                $uvalue == [] ? '1' : '0',
+                is_string($uvalue)
+                    ? '\''.SQLite3::escapeString($uvalue).'\''
+                    : 'NULL',
+                is_object($uvalue) ? 1 : ((int) $uvalue),
+                is_object($uvalue) ? 1 : ((float) $uvalue)
+            ), $etype);
         }
-        $this->query($query);
       }
     }
-    $this->query('COMMIT;');
+    $this->query("RELEASE 'import';");
     return true;
   }
 
@@ -1350,19 +1319,19 @@ class PostgreSQLDriver implements DriverInterface {
           'Name not given for UID.'
       );
     }
-    $this->query('BEGIN;');
-    $result = $this->query("SELECT \"cur_uid\" FROM \"{$this->prefix}uids\" WHERE \"name\"='".pg_escape_string($this->link, $name)."' FOR UPDATE;");
-    $row = pg_fetch_row($result);
+    $this->query("SAVEPOINT 'newuid';");
+    $result = $this->query("SELECT \"cur_uid\" FROM \"{$this->prefix}uids\" WHERE \"name\"='".SQLite3::escapeString($name)."';");
+    $row = $result->fetchArray(SQLITE3_NUM);
     $cur_uid = is_numeric($row[0]) ? (int) $row[0] : null;
-    pg_free_result($result);
+    $result->finalize();
     if (!is_int($cur_uid)) {
       $cur_uid = 1;
-      $this->query("INSERT INTO \"{$this->prefix}uids\" (\"name\", \"cur_uid\") VALUES ('".pg_escape_string($this->link, $name)."', {$cur_uid});");
+      $this->query("INSERT INTO \"{$this->prefix}uids\" (\"name\", \"cur_uid\") VALUES ('".SQLite3::escapeString($name)."', {$cur_uid});");
     } else {
       $cur_uid++;
-      $this->query("UPDATE \"{$this->prefix}uids\" SET \"cur_uid\"={$cur_uid} WHERE \"name\"='".pg_escape_string($this->link, $name)."';");
+      $this->query("UPDATE \"{$this->prefix}uids\" SET \"cur_uid\"={$cur_uid} WHERE \"name\"='".SQLite3::escapeString($name)."';");
     }
-    $this->query('COMMIT;');
+    $this->query("RELEASE 'newuid';");
     return $cur_uid;
   }
 
@@ -1372,7 +1341,7 @@ class PostgreSQLDriver implements DriverInterface {
           'Name not given for UID.'
       );
     }
-    $this->query("UPDATE \"{$this->prefix}uids\" SET \"name\"='".pg_escape_string($this->link, $newName)."' WHERE \"name\"='".pg_escape_string($this->link, $oldName)."';");
+    $this->query("UPDATE \"{$this->prefix}uids\" SET \"name\"='".SQLite3::escapeString($newName)."' WHERE \"name\"='".SQLite3::escapeString($oldName)."';");
     return true;
   }
 
@@ -1388,8 +1357,8 @@ class PostgreSQLDriver implements DriverInterface {
     $varlist = array_merge(array_keys($data), array_keys($sdata));
     $class = is_callable([$entity, '_hookObject']) ? get_class($entity->_hookObject()) : get_class($entity);
     $etypeDirty = $class::ETYPE;
-    $etype = '_'.pg_escape_string($this->link, $etypeDirty);
-    $this->query('BEGIN;');
+    $etype = '_'.SQLite3::escapeString($etypeDirty);
+    $this->query("BEGIN;");
     if (!isset($entity->guid)) {
       while (true) {
         // 2^53 is the maximum number in JavaScript
@@ -1400,15 +1369,15 @@ class PostgreSQLDriver implements DriverInterface {
           $new_id = rand(1, 0x7FFFFFFF);
         }
         $result = $this->query("SELECT \"guid\" FROM \"{$this->prefix}guids\" WHERE \"guid\"={$new_id};", $etypeDirty);
-        $row = pg_fetch_row($result);
-        pg_free_result($result);
+        $row = $result->fetchArray(SQLITE3_NUM);
+        $result->finalize();
         if (!isset($row[0])) {
           break;
         }
       }
       $entity->guid = $new_id;
       $this->query("INSERT INTO \"{$this->prefix}guids\" (\"guid\") VALUES ({$new_id});");
-      $this->query("INSERT INTO \"{$this->prefix}entities{$etype}\" (\"guid\", \"tags\", \"varlist\", \"cdate\", \"mdate\") VALUES ({$entity->guid}, '".pg_escape_string($this->link, '{'.implode(',', array_diff($entity->tags, [''])).'}')."', '".pg_escape_string($this->link, '{'.implode(',', $varlist).'}')."', ".((float) $entity->cdate).", ".((float) $entity->mdate).");", $etypeDirty);
+      $this->query("INSERT INTO \"{$this->prefix}entities{$etype}\" (\"guid\", \"tags\", \"varlist\", \"cdate\", \"mdate\") VALUES ({$entity->guid}, '".SQLite3::escapeString(','.implode(',', array_diff($entity->tags, [''])).',')."', '".SQLite3::escapeString(','.implode(',', $varlist).',')."', ".((float) $entity->cdate).", ".((float) $entity->mdate).");", $etypeDirty);
       $values = [];
       foreach ($data as $name => $value) {
         $svalue = serialize($value);
@@ -1418,32 +1387,28 @@ class PostgreSQLDriver implements DriverInterface {
             $references,
             PREG_PATTERN_ORDER
         );
-        $values[] = "INSERT INTO \"{$this->prefix}data{$etype}\" (\"guid\", \"name\", \"value\", \"references\", \"compare_true\", \"compare_one\", \"compare_zero\", \"compare_negone\", \"compare_emptyarray\", \"compare_string\", \"compare_int\", \"compare_float\") VALUES ".
+        $this->query("INSERT INTO \"{$this->prefix}data{$etype}\" (\"guid\", \"name\", \"value\", \"references\", \"compare_true\", \"compare_one\", \"compare_zero\", \"compare_negone\", \"compare_emptyarray\", \"compare_string\", \"compare_int\", \"compare_float\") VALUES ".
           sprintf(
               '(%u, \'%s\', \'%s\', \'%s\', %s, %s, %s, %s, %s, %s, %d, %f);',
               $entity->guid,
-              pg_escape_string($this->link, $name),
-              pg_escape_string(
-                  $this->link,
+              SQLite3::escapeString($name),
+              SQLite3::escapeString(
                   (strpos($svalue, "\0") !== false
                       ? '~'.addcslashes($svalue, chr(0).'\\')
                       : $svalue)
               ),
-              pg_escape_string(
-                  $this->link,
-                  '{'.implode(',', $references[1]).'}'
-              ),
-              $value == true ? 'TRUE' : 'FALSE',
-              (!is_object($value) && $value == 1) ? 'TRUE' : 'FALSE',
-              (!is_object($value) && $value == 0) ? 'TRUE' : 'FALSE',
-              (!is_object($value) && $value == -1) ? 'TRUE' : 'FALSE',
-              $value == [] ? 'TRUE' : 'FALSE',
+              SQLite3::escapeString(','.implode(',', $references[1]).','),
+              $value == true ? '1' : '0',
+              (!is_object($value) && $value == 1) ? '1' : '0',
+              (!is_object($value) && $value == 0) ? '1' : '0',
+              (!is_object($value) && $value == -1) ? '1' : '0',
+              $value == [] ? '1' : '0',
               is_string($value)
-                  ? '\''.pg_escape_string($this->link, $value).'\''
+                  ? '\''.SQLite3::escapeString($value).'\''
                   : 'NULL',
               is_object($value) ? 1 : ((int) $value),
               is_object($value) ? 1 : ((float) $value)
-          );
+          ), $etypeDirty);
       }
       foreach ($sdata as $name => $value) {
         preg_match_all(
@@ -1453,40 +1418,35 @@ class PostgreSQLDriver implements DriverInterface {
             PREG_PATTERN_ORDER
         );
         $uvalue = unserialize($value);
-        $values[] = "INSERT INTO \"{$this->prefix}data{$etype}\" (\"guid\", \"name\", \"value\", \"references\", \"compare_true\", \"compare_one\", \"compare_zero\", \"compare_negone\", \"compare_emptyarray\", \"compare_string\", \"compare_int\", \"compare_float\") VALUES ".
+        $this->query("INSERT INTO \"{$this->prefix}data{$etype}\" (\"guid\", \"name\", \"value\", \"references\", \"compare_true\", \"compare_one\", \"compare_zero\", \"compare_negone\", \"compare_emptyarray\", \"compare_string\", \"compare_int\", \"compare_float\") VALUES ".
           sprintf(
               '(%u, \'%s\', \'%s\', \'%s\', %s, %s, %s, %s, %s, %s, %d, %f);',
               $entity->guid,
-              pg_escape_string($this->link, $name),
-              pg_escape_string(
-                  $this->link,
+              SQLite3::escapeString($name),
+              SQLite3::escapeString(
                   (strpos($value, "\0") !== false
                       ? '~'.addcslashes($value, chr(0).'\\')
                       : $value)
               ),
-              pg_escape_string(
-                  $this->link,
-                  '{'.implode(',', $references[1]).'}'
-              ),
-              $uvalue == true ? 'TRUE' : 'FALSE',
-              (!is_object($uvalue) && $uvalue == 1) ? 'TRUE' : 'FALSE',
-              (!is_object($uvalue) && $uvalue == 0) ? 'TRUE' : 'FALSE',
-              (!is_object($uvalue) && $uvalue == -1) ? 'TRUE' : 'FALSE',
-              $uvalue == [] ? 'TRUE' : 'FALSE',
+              SQLite3::escapeString(','.implode(',', $references[1]).','),
+              $uvalue == true ? '1' : '0',
+              (!is_object($uvalue) && $uvalue == 1) ? '1' : '0',
+              (!is_object($uvalue) && $uvalue == 0) ? '1' : '0',
+              (!is_object($uvalue) && $uvalue == -1) ? '1' : '0',
+              $uvalue == [] ? '1' : '0',
               is_string($uvalue)
-                  ? '\''.pg_escape_string($this->link, $uvalue).'\''
+                  ? '\''.SQLite3::escapeString($uvalue).'\''
                   : 'NULL',
               is_object($uvalue) ? 1 : ((int) $uvalue),
               is_object($uvalue) ? 1 : ((float) $uvalue)
-          );
+          ), $etypeDirty);
       }
-      $this->query(implode(' ', $values), $etypeDirty);
     } else {
       // Removed any cached versions of this entity.
       if ($this->config['cache']) {
         $this->cleanCache($entity->guid);
       }
-      $this->query("UPDATE \"{$this->prefix}entities{$etype}\" SET \"tags\"='".pg_escape_string($this->link, '{'.implode(',', array_diff($entity->tags, [''])).'}')."', \"varlist\"='".pg_escape_string($this->link, '{'.implode(',', $varlist).'}')."', \"cdate\"=".((float) $entity->cdate).", \"mdate\"=".((float) $entity->mdate)." WHERE \"guid\"={$entity->guid};", $etypeDirty);
+      $this->query("UPDATE \"{$this->prefix}entities{$etype}\" SET \"tags\"='".SQLite3::escapeString(','.implode(',', array_diff($entity->tags, [''])).',')."', \"varlist\"='".SQLite3::escapeString(','.implode(',', $varlist).',')."', \"cdate\"=".((float) $entity->cdate).", \"mdate\"=".((float) $entity->mdate)." WHERE \"guid\"={$entity->guid};", $etypeDirty);
       $this->query("DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$entity->guid};");
       $values = [];
       foreach ($data as $name => $value) {
@@ -1497,32 +1457,28 @@ class PostgreSQLDriver implements DriverInterface {
             $references,
             PREG_PATTERN_ORDER
         );
-        $values[] = "INSERT INTO \"{$this->prefix}data{$etype}\" (\"guid\", \"name\", \"value\", \"references\", \"compare_true\", \"compare_one\", \"compare_zero\", \"compare_negone\", \"compare_emptyarray\", \"compare_string\", \"compare_int\", \"compare_float\") VALUES ".
+        $this->query("INSERT INTO \"{$this->prefix}data{$etype}\" (\"guid\", \"name\", \"value\", \"references\", \"compare_true\", \"compare_one\", \"compare_zero\", \"compare_negone\", \"compare_emptyarray\", \"compare_string\", \"compare_int\", \"compare_float\") VALUES ".
           sprintf(
               '(%u, \'%s\', \'%s\', \'%s\', %s, %s, %s, %s, %s, %s, %d, %f);',
               (int) $entity->guid,
-              pg_escape_string($this->link, $name),
-              pg_escape_string(
-                  $this->link,
+              SQLite3::escapeString($name),
+              SQLite3::escapeString(
                   (strpos($svalue, "\0") !== false
                       ? '~'.addcslashes($svalue, chr(0).'\\')
                       : $svalue)
               ),
-              pg_escape_string(
-                  $this->link,
-                  '{'.implode(',', $references[1]).'}'
-              ),
-              $value == true ? 'TRUE' : 'FALSE',
-              (!is_object($value) && $value == 1) ? 'TRUE' : 'FALSE',
-              (!is_object($value) && $value == 0) ? 'TRUE' : 'FALSE',
-              (!is_object($value) && $value == -1) ? 'TRUE' : 'FALSE',
-              $value == [] ? 'TRUE' : 'FALSE',
+              SQLite3::escapeString(','.implode(',', $references[1]).','),
+              $value == true ? '1' : '0',
+              (!is_object($value) && $value == 1) ? '1' : '0',
+              (!is_object($value) && $value == 0) ? '1' : '0',
+              (!is_object($value) && $value == -1) ? '1' : '0',
+              $value == [] ? '1' : '0',
               is_string($value)
-                  ? '\''.pg_escape_string($this->link, $value).'\''
+                  ? '\''.SQLite3::escapeString($value).'\''
                   : 'NULL',
               is_object($value) ? 1 : ((int) $value),
               is_object($value) ? 1 : ((float) $value)
-          );
+          ), $etypeDirty);
       }
       foreach ($sdata as $name => $value) {
         preg_match_all(
@@ -1532,37 +1488,31 @@ class PostgreSQLDriver implements DriverInterface {
             PREG_PATTERN_ORDER
         );
         $uvalue = unserialize($value);
-        $values[] = "INSERT INTO \"{$this->prefix}data{$etype}\" (\"guid\", \"name\", \"value\", \"references\", \"compare_true\", \"compare_one\", \"compare_zero\", \"compare_negone\", \"compare_emptyarray\", \"compare_string\", \"compare_int\", \"compare_float\") VALUES ".
+        $this->query("INSERT INTO \"{$this->prefix}data{$etype}\" (\"guid\", \"name\", \"value\", \"references\", \"compare_true\", \"compare_one\", \"compare_zero\", \"compare_negone\", \"compare_emptyarray\", \"compare_string\", \"compare_int\", \"compare_float\") VALUES ".
           sprintf(
               '(%u, \'%s\', \'%s\', \'%s\', %s, %s, %s, %s, %s, %s, %d, %f);',
               (int) $entity->guid,
-              pg_escape_string($this->link, $name),
-              pg_escape_string(
-                  $this->link,
+              SQLite3::escapeString($name),
+              SQLite3::escapeString(
                   (strpos($value, "\0") !== false
                       ? '~'.addcslashes($value, chr(0).'\\')
                       : $value)
               ),
-              pg_escape_string(
-                  $this->link,
-                  '{'.implode(',', $references[1]).'}'
-              ),
-              $uvalue == true ? 'TRUE' : 'FALSE',
-              (!is_object($uvalue) && $uvalue == 1) ? 'TRUE' : 'FALSE',
-              (!is_object($uvalue) && $uvalue == 0) ? 'TRUE' : 'FALSE',
-              (!is_object($uvalue) && $uvalue == -1) ? 'TRUE' : 'FALSE',
-              $uvalue == [] ? 'TRUE' : 'FALSE',
+              SQLite3::escapeString(','.implode(',', $references[1]).','),
+              $uvalue == true ? '1' : '0',
+              (!is_object($uvalue) && $uvalue == 1) ? '1' : '0',
+              (!is_object($uvalue) && $uvalue == 0) ? '1' : '0',
+              (!is_object($uvalue) && $uvalue == -1) ? '1' : '0',
+              $uvalue == [] ? '1' : '0',
               is_string($uvalue)
-                  ? '\''.pg_escape_string($this->link, $uvalue).'\''
+                  ? '\''.SQLite3::escapeString($uvalue).'\''
                   : 'NULL',
               is_object($uvalue) ? 1 : ((int) $uvalue),
               is_object($uvalue) ? 1 : ((float) $uvalue)
-          );
+          ), $etypeDirty);
       }
-      $this->query(implode(' ', $values), $etypeDirty);
     }
-    pg_get_result($this->link); // Clear any pending result.
-    $this->query('COMMIT;');
+    $this->query("COMMIT;");
     // Cache the entity.
     if ($this->config['cache']) {
       $this->pushCache($entity, $class);
@@ -1576,7 +1526,8 @@ class PostgreSQLDriver implements DriverInterface {
           'Name not given for UID.'
       );
     }
-    $this->query("DELETE FROM \"{$this->prefix}uids\" WHERE \"name\"='".pg_escape_string($this->link, $name)."'; INSERT INTO \"{$this->prefix}uids\" (\"name\", \"cur_uid\") VALUES ('".pg_escape_string($this->link, $name)."', ".((int) $value).");");
+    $this->query("DELETE FROM \"{$this->prefix}uids\" WHERE \"name\"='".SQLite3::escapeString($name)."';");
+    $this->query("INSERT INTO \"{$this->prefix}uids\" (\"name\", \"cur_uid\") VALUES ('".SQLite3::escapeString($name)."', ".((int) $value).");");
     return true;
   }
 }

@@ -8,6 +8,8 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
     if (class_exists('\SciActive\Hook')) {
       if (getenv('DB') === 'pgsql') {
         $this->assertInstanceOf('\SciActive\HookOverride_Nymph_Drivers_PostgreSQLDriver', $driver);
+      } else if (getenv('DB') === 'sqlite') {
+        $this->assertInstanceOf('\SciActive\HookOverride_Nymph_Drivers_SQLite3Driver', $driver);
       } else {
         $this->assertInstanceOf('\SciActive\HookOverride_Nymph_Drivers_MySQLDriver', $driver);
       }

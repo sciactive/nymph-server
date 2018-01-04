@@ -9,10 +9,12 @@ echo
 if [[ "$1" == "coverage" ]]; then
   CVGMYSQL="--coverage-clover logs/clover-mysql.xml"
   CVGPGSQL="--coverage-clover logs/clover-pgsql.xml"
+  CVGSQLITE="--coverage-clover logs/clover-sqlite.xml"
   CVG="--coverage-clover logs/clover.xml"
 else
   CVGMYSQL=""
   CVGPGSQL=""
+  CVGSQLITE=""
   CVG=""
 fi
 
@@ -33,6 +35,13 @@ if [[ "$DB" == "pgsql" ]]; then
   echo -e "################################################################################\n"
 
   ../vendor/phpunit/phpunit/phpunit --testsuite default --bootstrap bootstrapPostgreSQL.php $CVGPGSQL $TESTARGS
+fi
+if [[ "$DB" == "sqlite" ]]; then
+  echo "################################################################################"
+  echo "#                          Running tests for SQLite3                           #"
+  echo -e "################################################################################\n"
+
+  ../vendor/phpunit/phpunit/phpunit --testsuite default --bootstrap bootstrapSQLite3.php $CVGSQLITE $TESTARGS
 fi
 if [[ "$DB" == "" ]]; then
   echo "################################################################################"

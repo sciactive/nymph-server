@@ -1321,7 +1321,7 @@ class MySQLDriver implements DriverInterface {
               );
             }
             $query = substr($query, 0, -1).';';
-            $this->query($query);
+            $this->query($query, $etype);
           }
           $guid = null;
           $tags = [];
