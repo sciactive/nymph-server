@@ -1,3 +1,4 @@
 composer.phar
 vendor
 testing/logs
+testing/test.db

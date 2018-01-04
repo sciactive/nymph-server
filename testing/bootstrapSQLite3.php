@@ -7,7 +7,10 @@ require file_exists(__DIR__.'/../vendor/autoload.php')
     : __DIR__.'/../../autoload-dev.php';
 
 $nymph_config = [
-  'driver' => 'SQLite3'
+  'driver' => 'SQLite3',
+  'SQLite3' => [
+    'filename' => __DIR__.'/test.db'
+  ]
 ];
 
 $nymph_config['pubsub'] = false;
