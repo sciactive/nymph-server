@@ -9,6 +9,7 @@ php:
 env:
   - DB=mysql DATABASE_MYSQL=mysql://travis@127.0.0.1:3306/nymph_testing
   - DB=pgsql DATABASE_PGSQL=postgres://postgres@localhost:5432/nymph_testing
+  - DB=sqlite
 
 matrix:
   exclude:
