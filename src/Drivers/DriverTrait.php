@@ -62,6 +62,89 @@ trait DriverTrait {
     $this->connect();
   }
 
+  public function export($filename) {
+    if (!$fhandle = fopen($filename, 'w')) {
+      throw new Exceptions\InvalidParametersException(
+          'Provided filename is not writeable.'
+      );
+    }
+    $this->exportEntities(function ($output) use ($fhandle) {
+      fwrite($fhandle, $output);
+    });
+    return fclose($fhandle);
+  }
+
+  public function exportPrint() {
+    header('Content-Type: application/octet-stream');
+    header('Content-Disposition: attachment; filename=entities.nex;');
+    // End all output buffering.
+    while (ob_end_clean()) {
+      // Keep going until empty.
+      continue;
+    }
+    $this->exportEntities(function ($output) {
+      echo $output;
+    });
+    return true;
+  }
+
+  private function importFromFile($filename, $saveEntityCallback, $saveUIDCallback, $startTransactionCallback = null, $commitTransactionCallback = null) {
+    if (!$fhandle = fopen($filename, 'r')) {
+      throw new Exceptions\InvalidParametersException(
+          'Provided filename is unreadable.'
+      );
+    }
+    $guid = null;
+    $line = '';
+    $data = [];
+    if ($startTransactionCallback) {
+      $startTransactionCallback();
+    }
+    while (!feof($fhandle)) {
+      $line .= fgets($fhandle, 8192);
+      if (substr($line, -1) != "\n") {
+        continue;
+      }
+      if (preg_match('/^\s*#/S', $line)) {
+        $line = '';
+        continue;
+      }
+      $matches = [];
+      if (preg_match('/^\s*{(\d+)}<([\w-_]+)>\[([\w,]*)\]\s*$/S', $line, $matches)) {
+        // Save the current entity.
+        if ($guid) {
+          $saveEntityCallback($guid, explode(',', $tags), $data, $etype);
+          $guid = null;
+          $tags = [];
+          $data = [];
+        }
+        // Record the new entity's info.
+        $guid = (int) $matches[1];
+        $etype = $matches[2];
+        $tags = $matches[3];
+      } elseif (preg_match('/^\s*([\w,]+)\s*=\s*(\S.*\S)\s*$/S', $line, $matches)) {
+        // Add the variable to the new entity.
+        if ($guid) {
+          $data[$matches[1]] = json_decode($matches[2]);
+        }
+      } elseif (preg_match('/^\s*<([^>]+)>\[(\d+)\]\s*$/S', $line, $matches)) {
+        // Add the UID.
+        $saveUIDCallback($matches[1], $matches[2]);
+      }
+      $line = '';
+      // Clear the entity cache.
+      $this->entityCache = [];
+    }
+    // Save the last entity.
+    if ($guid) {
+      $saveEntityCallback($guid, explode(',', $tags), $data, $etype);
+    }
+    if ($commitTransactionCallback) {
+      $commitTransactionCallback();
+    }
+    return true;
+  }
+
   public function checkData(
       &$data,
       &$sdata,
@@ -418,6 +501,195 @@ trait DriverTrait {
     unset($cur_selector);
   }
 
+  private function iterateSelectorsForQuery($selectors, $recurseCallback, $callback) {
+    $query_parts = [];
+    foreach ($selectors as $cur_selector) {
+      $cur_selector_query = '';
+      foreach ($cur_selector as $key => $value) {
+        if ($key === 0) {
+          $type = $value;
+          $type_is_not = ($type == '!&' || $type == '!|');
+          $type_is_or = ($type == '|' || $type == '!|');
+          continue;
+        }
+        $cur_query = '';
+        if (is_numeric($key)) {
+          if ($cur_query) {
+            $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+          }
+          $cur_query .= $recurseCallback($value);
+        } else {
+          $callback($cur_query, $key, $value, $type_is_or, $type_is_not);
+        }
+        if ($cur_query) {
+          if ($cur_selector_query) {
+            $cur_selector_query .= $type_is_or ? ' OR ' : ' AND ';
+          }
+          $cur_selector_query .= $cur_query;
+        }
+      }
+      if ($cur_selector_query) {
+        $query_parts[] = $cur_selector_query;
+      }
+    }
+
+    return $query_parts;
+  }
+
+  private function getEntitesRowLike(
+    $options,
+    $selectors,
+    $typesAlreadyChecked,
+    $dataValsAreadyChecked,
+    $rowFetchCallback,
+    $freeResultCallback,
+    $getGUIDCallback,
+    $getTagsAndDatesCallback,
+    $getDataNameAndSValueCallback
+  ) {
+    if (!$this->connected) {
+      throw new Exceptions\UnableToConnectException();
+    }
+    foreach ($selectors as $key => $selector) {
+      if (!$selector
+          || (
+            count($selector) === 1
+            && isset($selector[0])
+            && in_array($selector[0], ['&', '!&', '|', '!|'])
+          )) {
+        unset($selectors[$key]);
+        continue;
+      }
+      if (!isset($selector[0])
+          || !in_array($selector[0], ['&', '!&', '|', '!|'])) {
+        throw new Exceptions\InvalidParametersException(
+            'Invalid query selector passed: '.print_r($selector, true)
+        );
+      }
+    }
+
+    $entities = [];
+    $class = $options['class'] ?? '\\Nymph\\Entity';
+    if (!class_exists($class)) {
+      throw new Exceptions\EntityClassNotFoundException(
+          "Query requested using a class that can't be found: $class."
+      );
+    }
+    $etypeDirty = $options['etype'] ?? $class::ETYPE;
+    $return = $options['return'] ?? 'entity';
+
+    $count = $ocount = 0;
+
+    // Check if the requested entity is cached.
+    if ($this->config['cache'] && is_int($selectors[1]['guid'])) {
+      // Only safe to use the cache option with no other selectors than a GUID
+      // and tags.
+      if (count($selectors) == 1 &&
+          $selectors[1][0] == '&' &&
+          (
+            (count($selectors[1]) == 2) ||
+            (count($selectors[1]) == 3 && isset($selectors[1]['tag']))
+          )
+        ) {
+        $entity = $this->pullCache($selectors[1]['guid'], $class);
+        if (isset($entity)
+            && (
+              !isset($selectors[1]['tag'])
+              || $entity->hasTag($selectors[1]['tag'])
+            )) {
+          $entity->useSkipAc((bool) $options['skip_ac']);
+          return [$entity];
+        }
+      }
+    }
+
+    $this->formatSelectors($selectors);
+    $result =
+        $this->query(
+            $this->makeEntityQuery(
+                $options,
+                $selectors,
+                $etypeDirty
+            ),
+            $etypeDirty
+        );
+
+    $row = $rowFetchCallback($result);
+    while ($row) {
+      $guid = $getGUIDCallback($row);
+      $tagsAndDates = $getTagsAndDatesCallback($row);
+      $tags = $tagsAndDates['tags'];
+      $data = [
+        'cdate' => $tagsAndDates['cdate'],
+        'mdate' => $tagsAndDates['mdate']
+      ];
+      $dataNameAndSValue = $getDataNameAndSValueCallback($row);
+      // Serialized data.
+      $sdata = [];
+      if (isset($dataNameAndSValue['name'])) {
+        // This do will keep going and adding the data until the
+        // next entity is reached. $row will end on the next entity.
+        do {
+          $dataNameAndSValue = $getDataNameAndSValueCallback($row);
+          $sdata[$dataNameAndSValue['name']] = $dataNameAndSValue['svalue'];
+          $row = $rowFetchCallback($result);
+        } while ($getGUIDCallback($row) === $guid);
+      } else {
+        // Make sure that $row is incremented :)
+        $row = $rowFetchCallback($result);
+      }
+      // Check all conditions.
+      if ($this->checkData($data, $sdata, $selectors, null, null, $typesAlreadyChecked, $dataValsAreadyChecked)) {
+        if (isset($options['offset']) && ($ocount < $options['offset'])) {
+          // We must be sure this entity is actually a match before
+          // incrementing the offset.
+          $ocount++;
+          continue;
+        }
+        switch ($return) {
+          case 'entity':
+          default:
+            if ($this->config['cache']) {
+              $entity = $this->pullCache($guid, $class);
+            } else {
+              $entity = null;
+            }
+            if (!isset($entity) || $data['mdate'] > $entity->mdate) {
+              $entity = call_user_func([$class, 'factory']);
+              $entity->guid = $guid;
+              $entity->cdate = $data['cdate'];
+              unset($data['cdate']);
+              $entity->mdate = $data['mdate'];
+              unset($data['mdate']);
+              if ($tags) {
+                $entity->tags = $tags;
+              }
+              $entity->putData($data, $sdata);
+              if ($this->config['cache']) {
+                $this->pushCache($entity, $class);
+              }
+            }
+            if (isset($options['skip_ac'])) {
+              $entity->useSkipAc((bool) $options['skip_ac']);
+            }
+            $entities[] = $entity;
+            break;
+          case 'guid':
+            $entities[] = $guid;
+            break;
+        }
+        $count++;
+        if (isset($options['limit']) && $count >= $options['limit']) {
+          break;
+        }
+      }
+    }
+
+    $freeResultCallback($result);
+
+    return $entities;
+  }
+
   public function getEntity($options = [], ...$selectors) {
     // Set up options and selectors.
     if ((int) $selectors[0] === $selectors[0] || is_numeric($selectors[0])) {
@@ -429,6 +701,126 @@ trait DriverTrait {
       return null;
     }
     return $entities[0];
+  }
+
+  private function saveEntityRowLike(
+    &$entity,
+    $formatEtypeCallback,
+    $checkGUIDCallback,
+    $saveNewEntityCallback,
+    $saveExistingEntityCallback,
+    $startTransactionCallback = null,
+    $commitTransactionCallback = null
+  ) {
+    // Save the created date.
+    if (!isset($entity->guid)) {
+      $entity->cdate = microtime(true);
+    }
+    // Save the modified date.
+    $entity->mdate = microtime(true);
+    $data = $entity->getData();
+    $sdata = $entity->getSData();
+    $varlist = array_merge(array_keys($data), array_keys($sdata));
+    $class = is_callable([$entity, '_hookObject']) ? get_class($entity->_hookObject()) : get_class($entity);
+    $etypeDirty = $class::ETYPE;
+    $etype = $formatEtypeCallback($etypeDirty);
+    if ($startTransactionCallback) {
+      $startTransactionCallback();
+    }
+    if (!isset($entity->guid)) {
+      while (true) {
+        // 2^53 is the maximum number in JavaScript
+        // (http://ecma262-5.com/ELS5_HTML.htm#Section_8.5)
+        $new_id = mt_rand(1, pow(2, 53));
+        // That number might be too big on some machines. :(
+        if ($new_id < 1) {
+          $new_id = rand(1, 0x7FFFFFFF);
+        }
+        if ($checkGUIDCallback($new_id)) {
+          break;
+        }
+      }
+      $entity->guid = $new_id;
+      $saveNewEntityCallback($entity, $data, $sdata, $varlist, $etype, $etypeDirty);
+    } else {
+      // Removed any cached versions of this entity.
+      if ($this->config['cache']) {
+        $this->cleanCache($entity->guid);
+      }
+      $saveExistingEntityCallback($entity, $data, $sdata, $varlist, $etype, $etypeDirty);
+    }
+    if ($commitTransactionCallback) {
+      $commitTransactionCallback();
+    }
+    // Cache the entity.
+    if ($this->config['cache']) {
+      $this->pushCache($entity, $class);
+    }
+    return true;
+  }
+
+  /**
+   * Pull an entity from the cache.
+   *
+   * @param int $guid The entity's GUID.
+   * @param string $class The entity's class.
+   * @return Entity|null The entity or null if it's not cached.
+   * @access protected
+   */
+  protected function pullCache($guid, $class) {
+    // Increment the entity access count.
+    if (!isset($this->entityCount[$guid])) {
+      $this->entityCount[$guid] = 0;
+    }
+    $this->entityCount[$guid]++;
+    if (isset($this->entityCache[$guid][$class])) {
+      return (clone $this->entityCache[$guid][$class]);
+    }
+    return null;
+  }
+
+  /**
+   * Push an entity onto the cache.
+   *
+   * @param Entity &$entity The entity to push onto the cache.
+   * @param string $class The class of the entity.
+   * @access protected
+   */
+  protected function pushCache(&$entity, $class) {
+    if (!isset($entity->guid)) {
+      return;
+    }
+    // Increment the entity access count.
+    if (!isset($this->entityCount[$entity->guid])) {
+      $this->entityCount[$entity->guid] = 0;
+    }
+    $this->entityCount[$entity->guid]++;
+    // Check the threshold.
+    if ($this->entityCount[$entity->guid] < $this->config['cache_threshold']) {
+      return;
+    }
+    // Cache the entity.
+    if ((array) $this->entityCache[$entity->guid] ===
+        $this->entityCache[$entity->guid]) {
+      $this->entityCache[$entity->guid][$class] = clone $entity;
+    } else {
+      while ($this->config['cache_limit']
+          && count($this->entityCache) >= $this->config['cache_limit']) {
+        // Find which entity has been accessed the least.
+        asort($this->entityCount);
+        foreach ($this->entityCount as $key => $val) {
+          if (isset($this->entityCache[$key])) {
+            break;
+          }
+        }
+        // Remove it.
+        if (isset($this->entityCache[$key])) {
+          unset($this->entityCache[$key]);
+        }
+      }
+      $this->entityCache[$entity->guid] = [$class => (clone $entity)];
+    }
+    $this->entityCache[$entity->guid][$class]->clearCache();
   }
 
   public function hsort(
@@ -522,70 +914,6 @@ trait DriverTrait {
     if ($reverse) {
       $array = array_reverse($array);
     }
-  }
-
-  /**
-   * Pull an entity from the cache.
-   *
-   * @param int $guid The entity's GUID.
-   * @param string $class The entity's class.
-   * @return Entity|null The entity or null if it's not cached.
-   * @access protected
-   */
-  protected function pullCache($guid, $class) {
-    // Increment the entity access count.
-    if (!isset($this->entityCount[$guid])) {
-      $this->entityCount[$guid] = 0;
-    }
-    $this->entityCount[$guid]++;
-    if (isset($this->entityCache[$guid][$class])) {
-      return (clone $this->entityCache[$guid][$class]);
-    }
-    return null;
-  }
-
-  /**
-   * Push an entity onto the cache.
-   *
-   * @param Entity &$entity The entity to push onto the cache.
-   * @param string $class The class of the entity.
-   * @access protected
-   */
-  protected function pushCache(&$entity, $class) {
-    if (!isset($entity->guid)) {
-      return;
-    }
-    // Increment the entity access count.
-    if (!isset($this->entityCount[$entity->guid])) {
-      $this->entityCount[$entity->guid] = 0;
-    }
-    $this->entityCount[$entity->guid]++;
-    // Check the threshold.
-    if ($this->entityCount[$entity->guid] < $this->config['cache_threshold']) {
-      return;
-    }
-    // Cache the entity.
-    if ((array) $this->entityCache[$entity->guid] ===
-        $this->entityCache[$entity->guid]) {
-      $this->entityCache[$entity->guid][$class] = clone $entity;
-    } else {
-      while ($this->config['cache_limit']
-          && count($this->entityCache) >= $this->config['cache_limit']) {
-        // Find which entity has been accessed the least.
-        asort($this->entityCount);
-        foreach ($this->entityCount as $key => $val) {
-          if (isset($this->entityCache[$key])) {
-            break;
-          }
-        }
-        // Remove it.
-        if (isset($this->entityCache[$key])) {
-          unset($this->entityCache[$key]);
-        }
-      }
-      $this->entityCache[$entity->guid] = [$class => (clone $entity)];
-    }
-    $this->entityCache[$entity->guid][$class]->clearCache();
   }
 
   public function sort(
