@@ -251,10 +251,10 @@ class PostgreSQLDriver implements DriverInterface {
     return $result;
   }
 
-  public function deleteEntityByID($guid, $etype = null) {
+  public function deleteEntityByID($guid, $etypeDirty = null) {
     $guid = (int) $guid;
-    $etype = isset($etype) ? '_'.pg_escape_string($this->link, $etype) : '';
-    $this->query("DELETE FROM \"{$this->prefix}entities{$etype}\" WHERE \"guid\"={$guid}; DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$guid};");
+    $etype = isset($etypeDirty) ? '_'.pg_escape_string($this->link, $etypeDirty) : '';
+    $this->query("DELETE FROM \"{$this->prefix}entities{$etype}\" WHERE \"guid\"={$guid}; DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$guid};", $etypeDirty);
     $this->query("DELETE FROM \"{$this->prefix}guids\" WHERE \"guid\"={$guid};");
     // Removed any cached versions of this entity.
     if ($this->config['cache']) {

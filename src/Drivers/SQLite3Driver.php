@@ -223,13 +223,13 @@ class SQLite3Driver implements DriverInterface {
     return $result;
   }
 
-  public function deleteEntityByID($guid, $etype = null) {
+  public function deleteEntityByID($guid, $etypeDirty = null) {
     $guid = (int) $guid;
-    $etype = isset($etype) ? '_'.SQLite3::escapeString($etype) : '';
+    $etype = isset($etypeDirty) ? '_'.SQLite3::escapeString($etypeDirty) : '';
     $this->query("SAVEPOINT 'deleteentity';");
     $this->query("DELETE FROM \"{$this->prefix}guids\" WHERE \"guid\"={$guid};");
-    $this->query("DELETE FROM \"{$this->prefix}entities{$etype}\" WHERE \"guid\"={$guid};");
-    $this->query("DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$guid};");
+    $this->query("DELETE FROM \"{$this->prefix}entities{$etype}\" WHERE \"guid\"={$guid};", $etypeDirty);
+    $this->query("DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$guid};", $etypeDirty);
     $this->query("RELEASE 'deleteentity';");
     // Removed any cached versions of this entity.
     if ($this->config['cache']) {

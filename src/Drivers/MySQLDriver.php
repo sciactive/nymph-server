@@ -157,10 +157,10 @@ class MySQLDriver implements DriverInterface {
     return $result;
   }
 
-  public function deleteEntityByID($guid, $etype = null) {
-    $etype = isset($etype) ? '_'.mysqli_real_escape_string($this->link, $etype) : '';
-    $this->query("DELETE e, d FROM `{$this->prefix}entities{$etype}` e LEFT JOIN `{$this->prefix}data{$etype}` d ON e.`guid`=d.`guid` WHERE e.`guid`='".((int) $guid)."';", $etype);
-    $this->query("DELETE FROM `{$this->prefix}guids` WHERE `guid`='".((int) $guid)."';", $etype);
+  public function deleteEntityByID($guid, $etypeDirty = null) {
+    $etype = isset($etypeDirty) ? '_'.mysqli_real_escape_string($this->link, $etypeDirty) : '';
+    $this->query("DELETE e, d FROM `{$this->prefix}entities{$etype}` e LEFT JOIN `{$this->prefix}data{$etype}` d ON e.`guid`=d.`guid` WHERE e.`guid`='".((int) $guid)."';", $etypeDirty);
+    $this->query("DELETE FROM `{$this->prefix}guids` WHERE `guid`='".((int) $guid)."';");
     // Removed any cached versions of this entity.
     if ($this->config['cache']) {
       $this->cleanCache($guid);
