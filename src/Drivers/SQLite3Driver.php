@@ -353,19 +353,21 @@ class SQLite3Driver implements DriverInterface {
           case '!ref':
             $guids = [];
             if ((array) $cur_value[1] === $cur_value[1]) {
-              foreach ($cur_value[1] as $cur_entity) {
-                if ((object) $cur_entity === $cur_entity) {
-                  $guids[] = (int) $cur_entity->guid;
-                } elseif ((array) $cur_entity === $cur_entity) {
-                  $guids[] = (int) $cur_entity['guid'];
-                } else {
-                  $guids[] = (int) $cur_entity;
+              if (key_exists('guid', $cur_value[1])) {
+                $guids[] = (int) $cur_value[1]['guid'];
+              } else {
+                foreach ($cur_value[1] as $cur_entity) {
+                  if ((object) $cur_entity === $cur_entity) {
+                    $guids[] = (int) $cur_entity->guid;
+                  } elseif ((array) $cur_entity === $cur_entity) {
+                    $guids[] = (int) $cur_entity['guid'];
+                  } else {
+                    $guids[] = (int) $cur_entity;
+                  }
                 }
               }
             } elseif ((object) $cur_value[1] === $cur_value[1]) {
               $guids[] = (int) $cur_value[1]->guid;
-            } elseif ((array) $cur_value[1] === $cur_value[1]) {
-              $guids[] = (int) $cur_value[1]['guid'];
             } else {
               $guids[] = (int) $cur_value[1];
             }
