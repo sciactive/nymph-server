@@ -360,7 +360,7 @@ class PostgreSQLDriver implements DriverInterface {
           $etypeDirty,
           true
       );
-    }, function(&$cur_query, $key, $value, $type_is_or, $type_is_not) use ($etype) {
+    }, function (&$cur_query, $key, $value, $type_is_or, $type_is_not) use ($etype) {
       $clause_not = $key[0] === '!';
       // Any options having to do with data only return if the
       // entity has the specified variables.

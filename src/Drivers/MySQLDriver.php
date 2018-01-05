@@ -268,7 +268,7 @@ class MySQLDriver implements DriverInterface {
           true,
           $data_aliases
       );
-    }, function(&$cur_query, $key, $value, $type_is_or, $type_is_not) use (&$data_aliases) {
+    }, function (&$cur_query, $key, $value, $type_is_or, $type_is_not) use (&$data_aliases) {
       $clause_not = $key[0] === '!';
       // Any options having to do with data only return if the
       // entity has the specified variables.

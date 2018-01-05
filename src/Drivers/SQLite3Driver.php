@@ -69,51 +69,8 @@ class SQLite3Driver implements DriverInterface {
         // Create the preg_match and regexp functions.
         // TODO(hperrin): Add more of these functions to get rid of post-query checks.
         $this->link->createFunction('preg_match', 'preg_match', 2, SQLITE3_DETERMINISTIC);
-        $this->link->createFunction('regexp', function($pattern, $subject) {
-          return !!preg_match(
-              '~' . str_replace(
-                  [
-                    '~',
-                    '[[:<:]]',
-                    '[[:>:]]',
-                    '[:alnum:]',
-                    '[:alpha:]',
-                    '[:ascii:]',
-                    '[:blank:]',
-                    '[:cntrl:]',
-                    '[:digit:]',
-                    '[:graph:]',
-                    '[:lower:]',
-                    '[:print:]',
-                    '[:punct:]',
-                    '[:space:]',
-                    '[:upper:]',
-                    '[:word:]',
-                    '[:xdigit:]',
-                  ],
-                  [
-                    '\~',
-                    '\b(?=\w)',
-                    '(?<=\w)\b',
-                    '[A-Za-z0-9]',
-                    '[A-Za-z]',
-                    '[\x00-\x7F]',
-                    '\s',
-                    '[\000\001\002\003\004\005\006\007\008\009\010\011\012\013\014\015\016\017\018\019\020\021\022\023\024\025\026\027\028\029\030\031\032\033\034\035\036\037\177]',
-                    '\d',
-                    '[A-Za-z0-9!"#$%&\'()*+,\-./:;<=>?@[\\\]^_`{|}\~]',
-                    '[a-z]',
-                    '[A-Za-z0-9!"#$%&\'()*+,\-./:;<=>?@[\\\]^_`{|}\~]',
-                    '[!"#$%&\'()*+,\-./:;<=>?@[\\\]^_`{|}\~]',
-                    '[\t\n\x0B\f\r ]',
-                    '[A-Z]',
-                    '[A-Za-z0-9_]',
-                    '[0-9A-Fa-f]',
-                  ],
-                  $pattern
-              ) . '~',
-              $subject
-          );
+        $this->link->createFunction('regexp', function ($pattern, $subject) {
+          return !!$this->posixRegexMatch($pattern, $subject);
         }, 2, SQLITE3_DETERMINISTIC);
       } else {
         $this->connected = false;
@@ -338,7 +295,7 @@ class SQLite3Driver implements DriverInterface {
           $etypeDirty,
           true
       );
-    }, function(&$cur_query, $key, $value, $type_is_or, $type_is_not) use ($etype) {
+    }, function (&$cur_query, $key, $value, $type_is_or, $type_is_not) use ($etype) {
       $clause_not = $key[0] === '!';
       // Any options having to do with data only return if the
       // entity has the specified variables.
