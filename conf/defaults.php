@@ -22,13 +22,6 @@ return [
    */
   'pubsub' => class_exists('\\Nymph\\PubSub\\HookMethods'),
   /*
-   * Use PL/Perl Functions
-   * (Postgres only) This speeds up PCRE regular expression matching ("match"
-   * criteria type) a lot, but requires the Perl Procedural Language to be
-   * installed on your Postgres server.
-   */
-  'use_plperl' => false,
-  /*
    * Cache Entities
    * Cache recently retrieved entities to speed up database queries. Uses more
    * memory.
@@ -88,11 +81,37 @@ return [
     'prefix' => 'nymph_',
     /*
      * Table Engine
-     * The MySQL table engine. You can use InnoDB if you are using MySQL >= 5.6.
+     * The MySQL table engine. You should use MYISAM if you are using
+     * MySQL < 5.6.
      *
-     * Options are: "MYISAM", "InnoDB"
+     * Options are: Any MySQL storage engine supported on your server.
      */
-    'engine' => 'MYISAM',
+    'engine' => 'InnoDB',
+    /*
+     * Enable Transactions
+     * Whether to use transactions. If your table engine doesn't support
+     * it (like MYISAM), you should turn this off.
+     */
+    'transactions' => true,
+    /*
+     * Enable Foreign Keys
+     * Whether to use foreign keys. If your table engine doesn't support
+     * it (like MYISAM), you should turn this off.
+     */
+    'foreign_keys' => true,
+    /*
+     * Enable Row Locking
+     * Whether to use row locking. If your table engine doesn't support
+     * it (like MYISAM), you should turn this off.
+     */
+    'row_locking' => true,
+    /*
+     * Enable Table Locking
+     * Whether to use table locking. If you use row locking, this should be off.
+     * If you can't use row locking (like with MYISAM), you can use table
+     * locking to ensure data consistency.
+     */
+    'table_locking' => false,
   ],
   /*
    * PostgreSQL specific settings
@@ -140,6 +159,13 @@ return [
      */
     'prefix' => 'nymph_',
     /*
+     * Use PL/Perl Functions
+     * This speeds up PCRE regular expression matching ("match" clauses) a lot,
+     * but requires the Perl Procedural Language to be installed on your
+     * Postgres server.
+     */
+    'use_plperl' => false,
+    /*
      * Allow Persistent Connections
      * Allow connections to persist, if that is how PHP is configured.
      */
@@ -150,9 +176,8 @@ return [
    */
   'SQLite3' => [
     /*
-     * Host
-     * The host on which to connect to SQLite3. Can include a port, like
-     * hostname:port.
+     * Filename
+     * The filename of the SQLite3 DB. Use ':memory:' for an in-memory DB.
      */
     'filename' => ':memory:',
     /*
@@ -169,7 +194,7 @@ return [
     /*
      * Open Flags
      * The flags used to open the SQLite3 db. (Can be used to programmatically
-     * open for readonly).
+     * open for readonly, which is needed for PubSub.)
      */
     'open_flags' => SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE,
     /*

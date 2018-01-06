@@ -33,7 +33,7 @@ class PostgreSQLDriver implements DriverInterface {
 
   public function __construct($NymphConfig) {
     $this->__traitConstruct($NymphConfig);
-    $this->usePLPerl = $this->config['use_plperl'];
+    $this->usePLPerl = $this->config['PostgreSQL']['use_plperl'];
     $this->prefix = $this->config['PostgreSQL']['prefix'];
   }
 
@@ -256,7 +256,7 @@ class PostgreSQLDriver implements DriverInterface {
     $etype = isset($etypeDirty) ? '_'.pg_escape_string($this->link, $etypeDirty) : '';
     $this->query("DELETE FROM \"{$this->prefix}entities{$etype}\" WHERE \"guid\"={$guid}; DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$guid};", $etypeDirty);
     $this->query("DELETE FROM \"{$this->prefix}guids\" WHERE \"guid\"={$guid};");
-    // Removed any cached versions of this entity.
+    // Remove any cached versions of this entity.
     if ($this->config['cache']) {
       $this->cleanCache($guid);
     }

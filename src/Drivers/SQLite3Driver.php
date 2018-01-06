@@ -188,7 +188,7 @@ class SQLite3Driver implements DriverInterface {
     $this->query("DELETE FROM \"{$this->prefix}entities{$etype}\" WHERE \"guid\"={$guid};", $etypeDirty);
     $this->query("DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$guid};", $etypeDirty);
     $this->query("RELEASE 'deleteentity';");
-    // Removed any cached versions of this entity.
+    // Remove any cached versions of this entity.
     if ($this->config['cache']) {
       $this->cleanCache($guid);
     }
