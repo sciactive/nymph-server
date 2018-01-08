@@ -120,17 +120,21 @@ class SQLite3Driver implements DriverInterface {
         $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}entities{$etype}_id_tags\" ON \"{$this->prefix}entities{$etype}\" (\"tags\");");
         $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}entities{$etype}_id_varlist\" ON \"{$this->prefix}entities{$etype}\" (\"varlist\");");
         // Create the data table.
-        $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}data{$etype}\" (\"guid\" INTEGER NOT NULL REFERENCES \"{$this->prefix}entities{$etype}\"(\"guid\") ON DELETE CASCADE, \"name\" TEXT NOT NULL, \"value\" TEXT NOT NULL, \"references\" TEXT, \"compare_true\" INTEGER, \"compare_one\" INTEGER, \"compare_zero\" INTEGER, \"compare_negone\" INTEGER, \"compare_emptyarray\" INTEGER, \"compare_string\" TEXT, \"compare_int\" INTEGER, \"compare_float\" REAL, PRIMARY KEY(\"guid\", \"name\"));");
+        $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}data{$etype}\" (\"guid\" INTEGER NOT NULL REFERENCES \"{$this->prefix}entities{$etype}\"(\"guid\") ON DELETE CASCADE, \"name\" TEXT NOT NULL, \"value\" TEXT NOT NULL, PRIMARY KEY(\"guid\", \"name\"));");
         $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_guid\" ON \"{$this->prefix}data{$etype}\" (\"guid\");");
         $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_name\" ON \"{$this->prefix}data{$etype}\" (\"name\");");
-        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_references\" ON \"{$this->prefix}data{$etype}\" (\"references\");");
-        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_name__compare_true\" ON \"{$this->prefix}data{$etype}\" (\"name\") WHERE \"compare_true\" = 1;");
-        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_name__not_compare_true\" ON \"{$this->prefix}data{$etype}\" (\"name\") WHERE \"compare_true\" = 0;");
         $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_value\" ON \"{$this->prefix}data{$etype}\" (\"value\");");
-        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_compare_int\" ON \"{$this->prefix}data{$etype}\" (\"compare_int\");");
-        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_compare_float\" ON \"{$this->prefix}data{$etype}\" (\"compare_float\");");
         $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_guid__name_user\" ON \"{$this->prefix}data{$etype}\" (\"guid\") WHERE \"name\" = 'user';");
         $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_guid__name_group\" ON \"{$this->prefix}data{$etype}\" (\"guid\") WHERE \"name\" = 'group';");
+        // Create the comparisons table.
+        $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}comparisons{$etype}\" (\"guid\" INTEGER NOT NULL REFERENCES \"{$this->prefix}entities{$etype}\"(\"guid\") ON DELETE CASCADE, \"name\" TEXT NOT NULL, \"references\" TEXT, \"eq_true\" INTEGER, \"eq_one\" INTEGER, \"eq_zero\" INTEGER, \"eq_negone\" INTEGER, \"eq_emptyarray\" INTEGER, \"string\" TEXT, \"int\" INTEGER, \"float\" REAL, \"is_int\" INTEGER, PRIMARY KEY(\"guid\", \"name\"));");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}comparisons{$etype}_id_guid\" ON \"{$this->prefix}comparisons{$etype}\" (\"guid\");");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}comparisons{$etype}_id_name\" ON \"{$this->prefix}comparisons{$etype}\" (\"name\");");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}comparisons{$etype}_id_references\" ON \"{$this->prefix}comparisons{$etype}\" (\"references\");");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}comparisons{$etype}_id_name__eq_true\" ON \"{$this->prefix}comparisons{$etype}\" (\"name\") WHERE \"eq_true\" = 1;");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}comparisons{$etype}_id_name__not_eq_true\" ON \"{$this->prefix}comparisons{$etype}\" (\"name\") WHERE \"eq_true\" = 0;");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}comparisons{$etype}_id_int\" ON \"{$this->prefix}comparisons{$etype}\" (\"int\");");
+        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}comparisons{$etype}_id_float\" ON \"{$this->prefix}comparisons{$etype}\" (\"float\");");
       } else {
         // Create the GUID table.
         $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}guids\" (\"guid\" INTEGER NOT NULL PRIMARY KEY ASC);");
@@ -187,6 +191,7 @@ class SQLite3Driver implements DriverInterface {
     $this->query("DELETE FROM \"{$this->prefix}guids\" WHERE \"guid\"={$guid};");
     $this->query("DELETE FROM \"{$this->prefix}entities{$etype}\" WHERE \"guid\"={$guid};", $etypeDirty);
     $this->query("DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$guid};", $etypeDirty);
+    $this->query("DELETE FROM \"{$this->prefix}comparisons{$etype}\" WHERE \"guid\"={$guid};", $etypeDirty);
     $this->query("RELEASE 'deleteentity';");
     // Remove any cached versions of this entity.
     if ($this->config['cache']) {
@@ -376,8 +381,8 @@ class SQLite3Driver implements DriverInterface {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
-                  $etype.'" WHERE "name"=\'' .
+                  'e."guid" IN (SELECT "guid" FROM "' .
+                  $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
                   SQLite3::escapeString($cur_value[0]).'\' AND (';
               $cur_query .= '"references" LIKE \'%,';
               $cur_query .=
@@ -455,10 +460,10 @@ class SQLite3Driver implements DriverInterface {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
-                  $etype.'" WHERE "name"=\'' .
+                  'e."guid" IN (SELECT "guid" FROM "' .
+                  $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
                   SQLite3::escapeString($cur_value[0]) .
-                  '\' AND "compare_string" LIKE \'' .
+                  '\' AND "string" LIKE \'' .
                   SQLite3::escapeString($cur_value[1]) .
                   '\' ESCAPE \'\\\')';
             }
@@ -488,10 +493,10 @@ class SQLite3Driver implements DriverInterface {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
-                  $etype.'" WHERE "name"=\'' .
+                  'e."guid" IN (SELECT "guid" FROM "' .
+                  $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
                   SQLite3::escapeString($cur_value[0]) .
-                  '\' AND lower("compare_string") LIKE lower(\'' .
+                  '\' AND lower("string") LIKE lower(\'' .
                   SQLite3::escapeString($cur_value[1]) .
                   '\') ESCAPE \'\\\')';
             }
@@ -519,10 +524,10 @@ class SQLite3Driver implements DriverInterface {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
-                  $etype.'" WHERE "name"=\'' .
+                  'e."guid" IN (SELECT "guid" FROM "' .
+                  $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
                   SQLite3::escapeString($cur_value[0]) .
-                  '\' AND "compare_string" REGEXP \'' .
+                  '\' AND "string" REGEXP \'' .
                   SQLite3::escapeString($cur_value[1]).'\')';
             }
             break;
@@ -549,10 +554,10 @@ class SQLite3Driver implements DriverInterface {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
-                  $etype.'" WHERE "name"=\'' .
+                  'e."guid" IN (SELECT "guid" FROM "' .
+                  $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
                   SQLite3::escapeString($cur_value[0]) .
-                  '\' AND lower("compare_string") REGEXP lower(\'' .
+                  '\' AND lower("string") REGEXP lower(\'' .
                   SQLite3::escapeString($cur_value[1]).'\'))';
             }
             break;
@@ -583,12 +588,12 @@ class SQLite3Driver implements DriverInterface {
               $cur_query .=
                   (($type_is_not xor $clause_not) ? 'NOT ' : '') .
                   'e."guid" IN (SELECT "guid" FROM "' .
-                  $this->prefix.'data'.$etype .
+                  $this->prefix.'comparisons'.$etype .
                   '" WHERE "name"=\'' .
                   SQLite3::escapeString($cur_value[0]) .
-                  '\' AND "compare_string" IS NOT NULL AND ' .
+                  '\' AND "string" IS NOT NULL AND ' .
                   'preg_match(\'' . SQLite3::escapeString($cur_value[1]) .
-                  '\', "compare_string"))';
+                  '\', "string"))';
             }
             break;
           case 'gt':
@@ -614,15 +619,12 @@ class SQLite3Driver implements DriverInterface {
               $cur_query .=
                   (($type_is_not xor $clause_not) ? 'NOT ' : '') .
                   'e."guid" IN (SELECT "guid" FROM "' .
-                  $this->prefix.'data'.$etype .
-                  '" WHERE "name"=\'' .
+                  $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
                   SQLite3::escapeString($cur_value[0]) . '\' AND ' .
-                  '(("compare_int" IS NOT NULL AND "compare_int" > ' .
-                  ((int) $cur_value[1]) .
-                  ' AND substr("value", 0, 1)=\'i\') OR ' .
-                  '("compare_float" IS NOT NULL AND "compare_float" > ' .
-                  ((float) $cur_value[1]) .
-                  ' AND NOT substr("value", 0, 1)=\'i\')))';
+                  '(("is_int"=\'1\' AND "int" IS NOT NULL AND "int" > ' .
+                  ((int) $cur_value[1]) . ') OR (' .
+                  'NOT "is_int"=\'1\' AND "float" IS NOT NULL AND "float" > ' .
+                  ((float) $cur_value[1]) . ')))';
             }
             break;
           case 'gte':
@@ -648,15 +650,12 @@ class SQLite3Driver implements DriverInterface {
               $cur_query .=
                   (($type_is_not xor $clause_not) ? 'NOT ' : '') .
                   'e."guid" IN (SELECT "guid" FROM "' .
-                  $this->prefix.'data'.$etype .
-                  '" WHERE "name"=\'' .
+                  $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
                   SQLite3::escapeString($cur_value[0]) . '\' AND ' .
-                  '(("compare_int" IS NOT NULL AND "compare_int" >= ' .
-                  ((int) $cur_value[1]) .
-                  ' AND substr("value", 0, 1)=\'i\') OR ' .
-                  '("compare_float" IS NOT NULL AND "compare_float" >= ' .
-                  ((float) $cur_value[1]) .
-                  ' AND NOT substr("value", 0, 1)=\'i\')))';
+                  '(("is_int"=\'1\' AND "int" IS NOT NULL AND "int" >= ' .
+                  ((int) $cur_value[1]) . ') OR (' .
+                  'NOT "is_int"=\'1\' AND "float" IS NOT NULL AND "float" >= ' .
+                  ((float) $cur_value[1]) . ')))';
             }
             break;
           case 'lt':
@@ -682,15 +681,12 @@ class SQLite3Driver implements DriverInterface {
               $cur_query .=
                   (($type_is_not xor $clause_not) ? 'NOT ' : '') .
                   'e."guid" IN (SELECT "guid" FROM "' .
-                  $this->prefix.'data'.$etype .
-                  '" WHERE "name"=\'' .
+                  $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
                   SQLite3::escapeString($cur_value[0]) . '\' AND ' .
-                  '(("compare_int" IS NOT NULL AND "compare_int" < ' .
-                  ((int) $cur_value[1]) .
-                  ' AND substr("value", 0, 1)=\'i\') OR ' .
-                  '("compare_float" IS NOT NULL AND "compare_float" < ' .
-                  ((float) $cur_value[1]) .
-                  ' AND NOT substr("value", 0, 1)=\'i\')))';
+                  '(("is_int"=\'1\' AND "int" IS NOT NULL AND "int" < ' .
+                  ((int) $cur_value[1]) . ') OR (' .
+                  'NOT "is_int"=\'1\' AND "float" IS NOT NULL AND "float" < ' .
+                  ((float) $cur_value[1]) . ')))';
             }
             break;
           case 'lte':
@@ -716,15 +712,12 @@ class SQLite3Driver implements DriverInterface {
               $cur_query .=
                   (($type_is_not xor $clause_not) ? 'NOT ' : '') .
                   'e."guid" IN (SELECT "guid" FROM "' .
-                  $this->prefix.'data'.$etype .
-                  '" WHERE "name"=\'' .
+                  $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
                   SQLite3::escapeString($cur_value[0]) . '\' AND ' .
-                  '(("compare_int" IS NOT NULL AND "compare_int" <= ' .
-                  ((int) $cur_value[1]) .
-                  ' AND substr("value", 0, 1)=\'i\') OR ' .
-                  '("compare_float" IS NOT NULL AND "compare_float" <= ' .
-                  ((float) $cur_value[1]) .
-                  ' AND NOT substr("value", 0, 1)=\'i\')))';
+                  '(("is_int"=\'1\' AND "int" IS NOT NULL AND "int" <= ' .
+                  ((int) $cur_value[1]) . ') OR (' .
+                  'NOT "is_int"=\'1\' AND "float" IS NOT NULL AND "float" <= ' .
+                  ((float) $cur_value[1]) . ')))';
             }
             break;
           // Cases after this point contains special values where
@@ -751,10 +744,10 @@ class SQLite3Driver implements DriverInterface {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
-                  $etype.'" WHERE "name"=\'' .
+                  'e."guid" IN (SELECT "guid" FROM "' .
+                  $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
                   SQLite3::escapeString($cur_value[0]) .
-                  '\' AND "compare_true"=' .
+                  '\' AND "eq_true"=' .
                   ($cur_value[1] ? '1' : '0').')';
               break;
             } elseif ($cur_value[1] === 1) {
@@ -762,40 +755,40 @@ class SQLite3Driver implements DriverInterface {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
-                  $etype.'" WHERE "name"=\'' .
+                  'e."guid" IN (SELECT "guid" FROM "' .
+                  $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
                   SQLite3::escapeString($cur_value[0]) .
-                  '\' AND "compare_one"=1)';
+                  '\' AND "eq_one"=1)';
               break;
             } elseif ($cur_value[1] === 0) {
               if ($cur_query) {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
-                  $etype.'" WHERE "name"=\'' .
+                  'e."guid" IN (SELECT "guid" FROM "' .
+                  $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
                   SQLite3::escapeString($cur_value[0]) .
-                  '\' AND "compare_zero"=1)';
+                  '\' AND "eq_zero"=1)';
               break;
             } elseif ($cur_value[1] === -1) {
               if ($cur_query) {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
-                  $etype.'" WHERE "name"=\'' .
+                  'e."guid" IN (SELECT "guid" FROM "' .
+                  $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
                   SQLite3::escapeString($cur_value[0]) .
-                  '\' AND "compare_negone"=1)';
+                  '\' AND "eq_negone"=1)';
               break;
             } elseif ($cur_value[1] === []) {
               if ($cur_query) {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
-                  $etype.'" WHERE "name"=\'' .
+                  'e."guid" IN (SELECT "guid" FROM "' .
+                  $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
                   SQLite3::escapeString($cur_value[0]) .
-                  '\' AND "compare_emptyarray"=1)';
+                  '\' AND "eq_emptyarray"=1)';
               break;
             }
           case 'array':
@@ -910,16 +903,23 @@ class SQLite3Driver implements DriverInterface {
       $this->query("DELETE FROM \"{$this->prefix}guids\" WHERE \"guid\"={$guid};");
       $this->query("DELETE FROM \"{$this->prefix}entities_{$etype}\" WHERE \"guid\"={$guid};");
       $this->query("DELETE FROM \"{$this->prefix}data_{$etype}\" WHERE \"guid\"={$guid};", $etype);
+      $this->query("DELETE FROM \"{$this->prefix}comparisons_{$etype}\" WHERE \"guid\"={$guid};", $etype);
       $this->query("INSERT INTO \"{$this->prefix}guids\" (\"guid\") VALUES ({$guid});");
       $this->query("INSERT INTO \"{$this->prefix}entities_{$etype}\" (\"guid\", \"tags\", \"varlist\", \"cdate\", \"mdate\") VALUES ({$guid}, '".SQLite3::escapeString(','.implode(',', $tags).',')."', '".SQLite3::escapeString(','.implode(',', array_keys($data)).',')."', ".unserialize($data['cdate']).", ".unserialize($data['mdate']).");", $etype);
       unset($data['cdate'], $data['mdate']);
       if ($data) {
-        $query = "INSERT INTO \"{$this->prefix}data_{$etype}\" (\"guid\", \"name\", \"value\", \"references\", \"compare_true\", \"compare_one\", \"compare_zero\", \"compare_negone\", \"compare_emptyarray\", \"compare_string\", \"compare_int\", \"compare_float\") VALUES ";
         foreach ($data as $name => $value) {
-          $query .= $this->makeInsertValuesSQL($guid, $name, $value, unserialize($value)) . ',';
+          $this->query(
+              "INSERT INTO \"{$this->prefix}data_{$etype}\" (\"guid\", \"name\", \"value\") VALUES " .
+                $this->makeInsertValuesSQLData($guid, $name, $value) . ';',
+              $etype
+          );
+          $this->query(
+              "INSERT INTO \"{$this->prefix}comparisons_{$etype}\" (\"guid\", \"name\", \"references\", \"eq_true\", \"eq_one\", \"eq_zero\", \"eq_negone\", \"eq_emptyarray\", \"string\", \"int\", \"float\", \"is_int\") VALUES " .
+                $this->makeInsertValuesSQL($guid, $name, $value, unserialize($value)) . ';',
+              $etype
+          );
         }
-        $query = substr($query, 0, -1).';';
-        $this->query($query, $etype);
       }
     }, function ($name, $cur_uid) {
       $this->query("DELETE FROM \"{$this->prefix}uids\" WHERE \"name\"='".SQLite3::escapeString($name)."';");
@@ -965,19 +965,23 @@ class SQLite3Driver implements DriverInterface {
 
   public function saveEntity(&$entity) {
     $insertData = function ($entity, $data, $sdata, $etype, $etypeDirty) {
-      foreach ($data as $name => $value) {
+      $runInsertQuery = function ($name, $value, $svalue) use ($entity, $etype, $etypeDirty) {
         $this->query(
-            "INSERT INTO \"{$this->prefix}data{$etype}\" (\"guid\", \"name\", \"value\", \"references\", \"compare_true\", \"compare_one\", \"compare_zero\", \"compare_negone\", \"compare_emptyarray\", \"compare_string\", \"compare_int\", \"compare_float\") VALUES ".
+            "INSERT INTO \"{$this->prefix}data{$etype}\" (\"guid\", \"name\", \"value\") VALUES ".
+              $this->makeInsertValuesSQLData($entity->guid, $name, serialize($value)) . ';',
+            $etypeDirty
+        );
+        $this->query(
+            "INSERT INTO \"{$this->prefix}comparisons{$etype}\" (\"guid\", \"name\", \"references\", \"eq_true\", \"eq_one\", \"eq_zero\", \"eq_negone\", \"eq_emptyarray\", \"string\", \"int\", \"float\", \"is_int\") VALUES ".
               $this->makeInsertValuesSQL($entity->guid, $name, serialize($value), $value) . ';',
             $etypeDirty
         );
+      };
+      foreach ($data as $name => $value) {
+        $runInsertQuery($name, $value, serialize($value));
       }
-      foreach ($sdata as $name => $value) {
-        $this->query(
-            "INSERT INTO \"{$this->prefix}data{$etype}\" (\"guid\", \"name\", \"value\", \"references\", \"compare_true\", \"compare_one\", \"compare_zero\", \"compare_negone\", \"compare_emptyarray\", \"compare_string\", \"compare_int\", \"compare_float\") VALUES ".
-              $this->makeInsertValuesSQL($entity->guid, $name, $value, unserialize($value)) . ';',
-            $etypeDirty
-        );
+      foreach ($sdata as $name => $svalue) {
+        $runInsertQuery($name, unserialize($svalue), $svalue);
       }
     };
     return $this->saveEntityRowLike($entity, function ($etypeDirty) {
@@ -994,6 +998,7 @@ class SQLite3Driver implements DriverInterface {
     }, function ($entity, $data, $sdata, $varlist, $etype, $etypeDirty) use ($insertData) {
       $this->query("UPDATE \"{$this->prefix}entities{$etype}\" SET \"tags\"='".SQLite3::escapeString(','.implode(',', array_diff($entity->tags, [''])).',')."', \"varlist\"='".SQLite3::escapeString(','.implode(',', $varlist).',')."', \"cdate\"=".((float) $entity->cdate).", \"mdate\"=".((float) $entity->mdate)." WHERE \"guid\"={$entity->guid};", $etypeDirty);
       $this->query("DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$entity->guid};");
+      $this->query("DELETE FROM \"{$this->prefix}comparisons{$etype}\" WHERE \"guid\"={$entity->guid};");
       $insertData($entity, $data, $sdata, $etype, $etypeDirty);
     }, function () {
       $this->query("BEGIN;");
@@ -1013,6 +1018,19 @@ class SQLite3Driver implements DriverInterface {
     return true;
   }
 
+  private function makeInsertValuesSQLData($guid, $name, $svalue) {
+    return sprintf(
+        "(%u, '%s', '%s')",
+        (int) $guid,
+        SQLite3::escapeString($name),
+        SQLite3::escapeString(
+            (strpos($svalue, "\0") !== false
+                ? '~'.addcslashes($svalue, chr(0).'\\')
+                : $svalue)
+        )
+    );
+  }
+
   private function makeInsertValuesSQL($guid, $name, $svalue, $uvalue) {
     preg_match_all(
         '/a:3:\{i:0;s:22:"nymph_entity_reference";i:1;i:(\d+);/',
@@ -1021,14 +1039,9 @@ class SQLite3Driver implements DriverInterface {
         PREG_PATTERN_ORDER
     );
     return sprintf(
-        "(%u, '%s', '%s', '%s', %s, %s, %s, %s, %s, %s, %d, %f)",
+        "(%u, '%s', '%s', %s, %s, %s, %s, %s, %s, %d, %f, %s)",
         (int) $guid,
         SQLite3::escapeString($name),
-        SQLite3::escapeString(
-            (strpos($svalue, "\0") !== false
-                ? '~'.addcslashes($svalue, chr(0).'\\')
-                : $svalue)
-        ),
         SQLite3::escapeString(','.implode(',', $references[1]).','),
         $uvalue == true ? '1' : '0',
         (!is_object($uvalue) && $uvalue == 1) ? '1' : '0',
@@ -1039,7 +1052,8 @@ class SQLite3Driver implements DriverInterface {
             ? '\''.SQLite3::escapeString($uvalue).'\''
             : 'NULL',
         is_object($uvalue) ? 1 : ((int) $uvalue),
-        is_object($uvalue) ? 1 : ((float) $uvalue)
+        is_object($uvalue) ? 1 : ((float) $uvalue),
+        is_int($uvalue) ? '1' : '0'
     );
   }
 }
