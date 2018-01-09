@@ -346,6 +346,8 @@ class Nymph {
    *   oldest. Therefore, offset will be from the newest entity.
    * - sort - (string) How to sort the entities. Accepts "guid", "cdate", and
    *   "mdate". Defaults to "cdate".
+   * - return - (string) What to return. "entity" or "guid". Defaults to
+   *   "entity".
    * - source - (string) Will be 'client' if the query came from a REST call.
    * - skip_ac - (bool) If true, Tilmeld will not filter returned entities
    *   according to access controls. (If Tilmeld is installed.) (This is Always

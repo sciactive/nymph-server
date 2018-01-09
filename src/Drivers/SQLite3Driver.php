@@ -299,7 +299,7 @@ class SQLite3Driver implements DriverInterface {
           [$value],
           $etypeDirty,
           true
-      );
+      )['query'];
     }, function (&$cur_query, $key, $value, $type_is_or, $type_is_not) use ($etype) {
       $clause_not = $key[0] === '!';
       // Any options having to do with data only return if the
@@ -835,7 +835,11 @@ class SQLite3Driver implements DriverInterface {
       }
     }
 
-    return $query;
+    return [
+      'fullCoverage' => false,
+      'limitOffsetCoverage' => false,
+      'query' => $query
+    ];
   }
 
   public function getEntities($options = [], ...$selectors) {

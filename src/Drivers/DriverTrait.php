@@ -611,13 +611,14 @@ trait DriverTrait {
     }
 
     $this->formatSelectors($selectors);
+    $query = $this->makeEntityQuery(
+        $options,
+        $selectors,
+        $etypeDirty
+    );
     $result =
         $this->query(
-            $this->makeEntityQuery(
-                $options,
-                $selectors,
-                $etypeDirty
-            ),
+            $query['query'],
             $etypeDirty
         );
 
@@ -646,8 +647,13 @@ trait DriverTrait {
         $row = $rowFetchCallback($result);
       }
       // Check all conditions.
-      if ($this->checkData($data, $sdata, $selectors, null, null, $typesAlreadyChecked, $dataValsAreadyChecked)) {
-        if (isset($options['offset']) && ($ocount < $options['offset'])) {
+      if ($query['fullCoverage']) {
+        $passed = true;
+      } else {
+        $passed = $this->checkData($data, $sdata, $selectors, null, null, $typesAlreadyChecked, $dataValsAreadyChecked);
+      }
+      if ($passed) {
+        if (isset($options['offset']) && !$query['limitOffsetCoverage'] && ($ocount < $options['offset'])) {
           // We must be sure this entity is actually a match before
           // incrementing the offset.
           $ocount++;
@@ -685,9 +691,11 @@ trait DriverTrait {
             $entities[] = $guid;
             break;
         }
-        $count++;
-        if (isset($options['limit']) && $count >= $options['limit']) {
-          break;
+        if (!$query['limitOffsetCoverage']) {
+          $count++;
+          if (isset($options['limit']) && $count >= $options['limit']) {
+            break;
+          }
         }
       }
     }

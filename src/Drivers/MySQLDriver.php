@@ -122,7 +122,7 @@ class MySQLDriver implements DriverInterface {
     if (isset($etype)) {
       $etype = '_'.mysqli_real_escape_string($this->link, $etype);
       // Create the entity table.
-      $this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}entities{$etype}` (`guid` BIGINT(20) UNSIGNED NOT NULL{$foreignKeyEntityTableGuid}, `tags` LONGTEXT, `varlist` LONGTEXT, `cdate` DECIMAL(18,6) NOT NULL, `mdate` DECIMAL(18,6) NOT NULL, PRIMARY KEY (`guid`), FULLTEXT `id_tags` (`tags`), FULLTEXT `id_varlist` (`varlist`)) ENGINE {$this->config['MySQL']['engine']} CHARACTER SET utf8 COLLATE utf8_bin;");
+      $this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}entities{$etype}` (`guid` BIGINT(20) UNSIGNED NOT NULL{$foreignKeyEntityTableGuid}, `tags` LONGTEXT, `varlist` LONGTEXT, `cdate` DECIMAL(18,6) NOT NULL, `mdate` DECIMAL(18,6) NOT NULL, PRIMARY KEY (`guid`), INDEX `id_cdate` USING BTREE (`cdate`), INDEX `id_mdate` USING BTREE (`mdate`), FULLTEXT `id_tags` (`tags`), FULLTEXT `id_varlist` (`varlist`)) ENGINE {$this->config['MySQL']['engine']} CHARACTER SET utf8 COLLATE utf8_bin;");
       // Create the data table.
       $this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}data{$etype}` (`guid` BIGINT(20) UNSIGNED NOT NULL{$foreignKeyDataTableGuid}, `name` TEXT NOT NULL, `value` LONGTEXT NOT NULL, PRIMARY KEY (`guid`,`name`(255))) ENGINE {$this->config['MySQL']['engine']} CHARACTER SET utf8 COLLATE utf8_bin;");
       // Create the data comparisons table.
@@ -267,27 +267,27 @@ class MySQLDriver implements DriverInterface {
    * @param array $selectors The formatted selector array.
    * @param string $etypeDirty
    * @param bool $subquery Whether only a subquery should be returned.
-   * @param array &$data_aliases The data alias array to use for subqueries.
    * @return string The SQL query.
    */
   private function makeEntityQuery(
       $options,
       $selectors,
       $etypeDirty,
-      $subquery = false,
-      &$data_aliases = []
+      $subquery = false
   ) {
+    $fullQueryCoverage = true;
     $sort = $options['sort'] ?? 'cdate';
     $etype = '_'.mysqli_real_escape_string($this->link, $etypeDirty);
-    $query_parts = $this->iterateSelectorsForQuery($selectors, function ($value) use ($options, $etypeDirty, &$data_aliases) {
-      return $this->makeEntityQuery(
+    $query_parts = $this->iterateSelectorsForQuery($selectors, function ($value) use ($options, $etypeDirty, &$fullQueryCoverage) {
+      $subquery = $this->makeEntityQuery(
           $options,
           [$value],
           $etypeDirty,
-          true,
-          $data_aliases
+          true
       );
-    }, function (&$cur_query, $key, $value, $type_is_or, $type_is_not) use (&$data_aliases) {
+      $fullQueryCoverage = $fullQueryCoverage && $subquery['fullCoverage'];
+      return $subquery['query'];
+    }, function (&$cur_query, $key, $value, $type_is_or, $type_is_not) use ($etype, &$fullQueryCoverage) {
       $clause_not = $key[0] === '!';
       // Any options having to do with data only return if the
       // entity has the specified variables.
@@ -300,7 +300,7 @@ class MySQLDriver implements DriverInterface {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e.`guid`=\''.(int) $cur_guid.'\'';
+                  'ie.`guid`=\''.(int) $cur_guid.'\'';
             }
             break;
           case 'tag':
@@ -311,12 +311,12 @@ class MySQLDriver implements DriverInterface {
                   if ($cur_query) {
                     $cur_query .= ' OR ';
                   }
-                  $cur_query .= 'e.`tags` NOT REGEXP \'[[:<:]]' .
+                  $cur_query .= 'ie.`tags` NOT REGEXP \'[[:<:]]' .
                       mysqli_real_escape_string($this->link, $cur_tag) .
                       '[[:>:]]\'';
                 }
               } else {
-                $cur_query .= 'e.`tags` NOT REGEXP \'[[:<:]](' .
+                $cur_query .= 'ie.`tags` NOT REGEXP \'[[:<:]](' .
                     mysqli_real_escape_string(
                         $this->link,
                         implode('|', $cur_value)
@@ -330,7 +330,7 @@ class MySQLDriver implements DriverInterface {
               foreach ($cur_value as $cur_tag) {
                 $groupQuery .= ($type_is_or ? ' ' : ' +').$cur_tag;
               }
-              $cur_query .= 'MATCH (e.`tags`) AGAINST (\'' .
+              $cur_query .= 'MATCH (ie.`tags`) AGAINST (\'' .
                   mysqli_real_escape_string($this->link, $groupQuery) .
                   '\' IN BOOLEAN MODE)';
             }
@@ -342,15 +342,17 @@ class MySQLDriver implements DriverInterface {
                 if ($cur_query) {
                   $cur_query .= $type_is_or ? ' OR ' : ' AND ';
                 }
-                $cur_query .= '(e.`varlist` NOT REGEXP \'[[:<:]]' .
+                $cur_query .= '(ie.`varlist` NOT REGEXP \'[[:<:]]' .
                     mysqli_real_escape_string($this->link, $cur_var) .
                     '[[:>:]]\'';
-                $where_clause = '`name`=\'' .
-                    mysqli_real_escape_string($this->link, $cur_var) .
-                    '\' AND `value`=\'N;\'';
-                $alias = $this->addDataAlias('data', $where_clause, $data_aliases);
-                $cur_query .= ' OR (e.`guid`='.$alias.'.`guid`)';
-                $cur_query .= ')';
+                $cur_query .= ' OR ' .
+                    $this->makeDataPart(
+                        'data',
+                        $etype,
+                        '`name`=\'' .
+                            mysqli_real_escape_string($this->link, $cur_var) .
+                            '\' AND `value`=\'N;\''
+                    ).')';
               }
             } else {
               if ($cur_query) {
@@ -360,7 +362,7 @@ class MySQLDriver implements DriverInterface {
               foreach ($cur_value as $cur_var) {
                 $groupQuery .= ($type_is_or ? ' ' : ' +').$cur_var;
               }
-              $cur_query .= 'MATCH (e.`varlist`) AGAINST (\'' .
+              $cur_query .= 'MATCH (ie.`varlist`) AGAINST (\'' .
                   mysqli_real_escape_string($this->link, $groupQuery) .
                   '\' IN BOOLEAN MODE)';
             }
@@ -391,7 +393,7 @@ class MySQLDriver implements DriverInterface {
               $cur_query .= $type_is_or ? ' OR ' : ' AND ';
             }
             if ($type_is_not xor $clause_not) {
-              $cur_query .= '(e.`varlist` NOT REGEXP \'[[:<:]]' .
+              $cur_query .= '(ie.`varlist` NOT REGEXP \'[[:<:]]' .
                   mysqli_real_escape_string($this->link, $cur_value[0]) .
                   '[[:>:]]\' OR (';
               $noPrepend = true;
@@ -401,13 +403,15 @@ class MySQLDriver implements DriverInterface {
                 } else {
                   $noPrepend = false;
                 }
-                $where_clause = '`name`=\'' .
-                    mysqli_real_escape_string($this->link, $cur_value[0]) .
-                    '\' AND `references` NOT REGEXP \'[[:<:]]' .
-                    mysqli_real_escape_string($this->link, $cur_qguid) .
-                    '[[:>:]]\'';
-                $alias = $this->addDataAlias('comparisons', $where_clause, $data_aliases);
-                $cur_query .= '(e.`guid`='.$alias.'.`guid`)';
+                $cur_query .= $this->makeDataPart(
+                    'comparisons',
+                    $etype,
+                    '`name`=\'' .
+                        mysqli_real_escape_string($this->link, $cur_value[0]) .
+                        '\' AND `references` NOT REGEXP \'[[:<:]]' .
+                        mysqli_real_escape_string($this->link, $cur_qguid) .
+                        '[[:>:]]\''
+                );
               }
               $cur_query .= '))';
             } else {
@@ -415,13 +419,15 @@ class MySQLDriver implements DriverInterface {
               foreach ($guids as $cur_qguid) {
                 $groupQuery .= ($type_is_or ? ' ' : ' +').$cur_qguid;
               }
-              $where_clause = '`name`=\'' .
-                  mysqli_real_escape_string($this->link, $cur_value[0]) .
-                  '\' AND MATCH (`references`) AGAINST (\'' .
-                  mysqli_real_escape_string($this->link, $groupQuery) .
-                  '\' IN BOOLEAN MODE)';
-              $alias = $this->addDataAlias('comparisons', $where_clause, $data_aliases);
-              $cur_query .= '(e.`guid`='.$alias.'.`guid`)';
+              $cur_query .= $this->makeDataPart(
+                  'comparisons',
+                  $etype,
+                  '`name`=\'' .
+                      mysqli_real_escape_string($this->link, $cur_value[0]) .
+                      '\' AND MATCH (`references`) AGAINST (\'' .
+                      mysqli_real_escape_string($this->link, $groupQuery) .
+                      '\' IN BOOLEAN MODE)'
+              );
             }
             break;
           case 'strict':
@@ -431,14 +437,14 @@ class MySQLDriver implements DriverInterface {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e.`cdate`='.((float) $cur_value[1]);
+                  'ie.`cdate`='.((float) $cur_value[1]);
               break;
             } elseif ($cur_value[0] == 'mdate') {
               if ($cur_query) {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e.`mdate`='.((float) $cur_value[1]);
+                  'ie.`mdate`='.((float) $cur_value[1]);
               break;
             } else {
               if ($cur_query) {
@@ -449,23 +455,26 @@ class MySQLDriver implements DriverInterface {
               } else {
                 $svalue = serialize($cur_value[1]);
               }
-              $where_clause = '`name`=\'' .
-                  mysqli_real_escape_string($this->link, $cur_value[0]) .
-                  '\' AND '.(($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '`value`=\'' .
-                  mysqli_real_escape_string($this->link, $svalue).'\'';
-              $alias = $this->addDataAlias('data', $where_clause, $data_aliases);
               $cur_query .= '(' .
                   (
                     ($type_is_not xor $clause_not)
-                        ? 'e.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $cur_value[0]
                             ).'[[:>:]]\' OR '
                         : ''
                   ) .
-                  '(e.`guid`='.$alias.'.`guid`))';
+                  $this->makeDataPart(
+                      'data',
+                      $etype,
+                      '`name`=\'' .
+                          mysqli_real_escape_string($this->link, $cur_value[0]).
+                          '\' AND ' .
+                          (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+                          '`value`=\'' .
+                          mysqli_real_escape_string($this->link, $svalue).'\''
+                  ).')';
             }
             break;
           case 'like':
@@ -475,7 +484,7 @@ class MySQLDriver implements DriverInterface {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '(e.`cdate` LIKE \'' .
+                  '(ie.`cdate` LIKE \'' .
                   mysqli_real_escape_string($this->link, $cur_value[1]) .
                   '\')';
               break;
@@ -484,7 +493,7 @@ class MySQLDriver implements DriverInterface {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '(e.`mdate` LIKE \'' .
+                  '(ie.`mdate` LIKE \'' .
                   mysqli_real_escape_string($this->link, $cur_value[1]) .
                   '\')';
               break;
@@ -492,24 +501,27 @@ class MySQLDriver implements DriverInterface {
               if ($cur_query) {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
-              $where_clause = '`name`=\'' .
-                  mysqli_real_escape_string($this->link, $cur_value[0]) .
-                  '\' AND '.(($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '`string` LIKE \'' .
-                  mysqli_real_escape_string($this->link, $cur_value[1]) .
-                  '\'';
-              $alias = $this->addDataAlias('comparisons', $where_clause, $data_aliases);
               $cur_query .= '(' .
                   (
                     ($type_is_not xor $clause_not)
-                        ? 'e.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $cur_value[0]
                             ).'[[:>:]]\' OR '
                         : ''
                   ) .
-                  '(e.`guid`='.$alias.'.`guid`))';
+                  $this->makeDataPart(
+                      'comparisons',
+                      $etype,
+                      '`name`=\'' .
+                          mysqli_real_escape_string($this->link, $cur_value[0]).
+                          '\' AND ' .
+                          (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+                          '`string` LIKE \'' .
+                          mysqli_real_escape_string($this->link, $cur_value[1]).
+                          '\''
+                  ).')';
             }
             break;
           case 'ilike':
@@ -519,7 +531,7 @@ class MySQLDriver implements DriverInterface {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '(e.`cdate` LIKE LOWER(\'' .
+                  '(ie.`cdate` LIKE LOWER(\'' .
                   mysqli_real_escape_string($this->link, $cur_value[1]) .
                   '\'))';
               break;
@@ -528,7 +540,7 @@ class MySQLDriver implements DriverInterface {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '(e.`mdate` LIKE LOWER(\'' .
+                  '(ie.`mdate` LIKE LOWER(\'' .
                   mysqli_real_escape_string($this->link, $cur_value[1]) .
                   '\'))';
               break;
@@ -536,24 +548,27 @@ class MySQLDriver implements DriverInterface {
               if ($cur_query) {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
-              $where_clause = '`name`=\'' .
-                  mysqli_real_escape_string($this->link, $cur_value[0]) .
-                  '\' AND '.(($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'LOWER(`string`) LIKE LOWER(\'' .
-                  mysqli_real_escape_string($this->link, $cur_value[1]) .
-                  '\')';
-              $alias = $this->addDataAlias('comparisons', $where_clause, $data_aliases);
               $cur_query .= '(' .
                   (
                     ($type_is_not xor $clause_not)
-                        ? 'e.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $cur_value[0]
                             ).'[[:>:]]\' OR '
                         : ''
                   ) .
-                  '(e.`guid`='.$alias.'.`guid`))';
+                  $this->makeDataPart(
+                      'comparisons',
+                      $etype,
+                      '`name`=\'' .
+                          mysqli_real_escape_string($this->link, $cur_value[0]).
+                          '\' AND ' .
+                          (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+                          'LOWER(`string`) LIKE LOWER(\'' .
+                          mysqli_real_escape_string($this->link, $cur_value[1]).
+                          '\')'
+                  ).')';
             }
             break;
           case 'pmatch':
@@ -563,7 +578,7 @@ class MySQLDriver implements DriverInterface {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '(e.`cdate` REGEXP \'' .
+                  '(ie.`cdate` REGEXP \'' .
                   mysqli_real_escape_string($this->link, $cur_value[1]) .
                   '\')';
               break;
@@ -572,7 +587,7 @@ class MySQLDriver implements DriverInterface {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '(e.`mdate` REGEXP \'' .
+                  '(ie.`mdate` REGEXP \'' .
                   mysqli_real_escape_string($this->link, $cur_value[1]) .
                   '\')';
               break;
@@ -580,24 +595,27 @@ class MySQLDriver implements DriverInterface {
               if ($cur_query) {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
-              $where_clause = '`name`=\'' .
-                  mysqli_real_escape_string($this->link, $cur_value[0]) .
-                  '\' AND '.(($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '`string` REGEXP \'' .
-                  mysqli_real_escape_string($this->link, $cur_value[1]) .
-                  '\'';
-              $alias = $this->addDataAlias('comparisons', $where_clause, $data_aliases);
               $cur_query .= '(' .
                   (
                     ($type_is_not xor $clause_not)
-                        ? 'e.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $cur_value[0]
                             ).'[[:>:]]\' OR '
                         : ''
                   ) .
-                  '(e.`guid`='.$alias.'.`guid`))';
+                  $this->makeDataPart(
+                      'comparisons',
+                      $etype,
+                      '`name`=\'' .
+                          mysqli_real_escape_string($this->link, $cur_value[0]).
+                          '\' AND ' .
+                          (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+                          '`string` REGEXP \'' .
+                          mysqli_real_escape_string($this->link, $cur_value[1]).
+                          '\''
+                  ).')';
             }
             break;
           case 'ipmatch':
@@ -607,7 +625,7 @@ class MySQLDriver implements DriverInterface {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '(e.`cdate` REGEXP LOWER(\'' .
+                  '(ie.`cdate` REGEXP LOWER(\'' .
                   mysqli_real_escape_string($this->link, $cur_value[1]) .
                   '\'))';
               break;
@@ -616,7 +634,7 @@ class MySQLDriver implements DriverInterface {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '(e.`mdate` REGEXP LOWER(\'' .
+                  '(ie.`mdate` REGEXP LOWER(\'' .
                   mysqli_real_escape_string($this->link, $cur_value[1]) .
                   '\'))';
               break;
@@ -624,35 +642,27 @@ class MySQLDriver implements DriverInterface {
               if ($cur_query) {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
-              $where_clause = '`name`=\'' .
-                  mysqli_real_escape_string($this->link, $cur_value[0]) .
-                  '\' AND '.(($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'LOWER(`string`) REGEXP LOWER(\'' .
-                  mysqli_real_escape_string($this->link, $cur_value[1]) .
-                  '\')';
-              $alias = $this->addDataAlias('comparisons', $where_clause, $data_aliases);
               $cur_query .= '(' .
                   (
                     ($type_is_not xor $clause_not)
-                        ? 'e.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $cur_value[0]
                             ).'[[:>:]]\' OR '
                         : ''
                   ) .
-                  '(e.`guid`='.$alias.'.`guid`))';
-            }
-            break;
-          case 'match':
-          case '!match':
-            if (!($type_is_not xor $clause_not)) {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
-              }
-              $cur_query .= 'MATCH (e.`varlist`) AGAINST (\'+' .
-                  mysqli_real_escape_string($this->link, $cur_value[0]) .
-                  '\' IN BOOLEAN MODE)';
+                  $this->makeDataPart(
+                      'comparisons',
+                      $etype,
+                      '`name`=\'' .
+                          mysqli_real_escape_string($this->link, $cur_value[0]).
+                          '\' AND ' .
+                          (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+                          'LOWER(`string`) REGEXP LOWER(\'' .
+                          mysqli_real_escape_string($this->link, $cur_value[1]).
+                          '\')'
+                  ).')';
             }
             break;
           case 'gt':
@@ -662,38 +672,41 @@ class MySQLDriver implements DriverInterface {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e.`cdate`>'.((float) $cur_value[1]);
+                  'ie.`cdate`>'.((float) $cur_value[1]);
               break;
             } elseif ($cur_value[0] == 'mdate') {
               if ($cur_query) {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e.`mdate`>'.((float) $cur_value[1]);
+                  'ie.`mdate`>'.((float) $cur_value[1]);
               break;
             } else {
               if ($cur_query) {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
-              $where_clause = '`name`=\'' .
-                  mysqli_real_escape_string($this->link, $cur_value[0]) .
-                  '\' AND '.(($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '((`is_int`=TRUE AND `int` > ' .
-                  ((int) $cur_value[1]) . ') OR (' .
-                  '`is_int`=FALSE AND `float` > ' .
-                  ((float) $cur_value[1]) . '))';
-              $alias = $this->addDataAlias('comparisons', $where_clause, $data_aliases);
               $cur_query .= '(' .
                   (
                     ($type_is_not xor $clause_not)
-                        ? 'e.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $cur_value[0]
                             ).'[[:>:]]\' OR '
                         : ''
                   ) .
-                  '(e.`guid`='.$alias.'.`guid`))';
+                  $this->makeDataPart(
+                      'comparisons',
+                      $etype,
+                      '`name`=\'' .
+                          mysqli_real_escape_string($this->link, $cur_value[0]).
+                          '\' AND ' .
+                          (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+                          '((`is_int`=TRUE AND `int` > ' .
+                          ((int) $cur_value[1]) . ') OR (' .
+                          '`is_int`=FALSE AND `float` > ' .
+                          ((float) $cur_value[1]) . '))'
+                  ).')';
             }
             break;
           case 'gte':
@@ -703,38 +716,41 @@ class MySQLDriver implements DriverInterface {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e.`cdate`>='.((float) $cur_value[1]);
+                  'ie.`cdate`>='.((float) $cur_value[1]);
               break;
             } elseif ($cur_value[0] == 'mdate') {
               if ($cur_query) {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e.`mdate`>='.((float) $cur_value[1]);
+                  'ie.`mdate`>='.((float) $cur_value[1]);
               break;
             } else {
               if ($cur_query) {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
-              $where_clause = '`name`=\'' .
-                  mysqli_real_escape_string($this->link, $cur_value[0]) .
-                  '\' AND '.(($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '((`is_int`=TRUE AND `int` >= ' .
-                  ((int) $cur_value[1]) . ') OR (' .
-                  '`is_int`=FALSE AND `float` >= ' .
-                  ((float) $cur_value[1]) . '))';
-              $alias = $this->addDataAlias('comparisons', $where_clause, $data_aliases);
               $cur_query .= '(' .
                   (
                     ($type_is_not xor $clause_not)
-                        ? 'e.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $cur_value[0]
                             ).'[[:>:]]\' OR '
                         : ''
                   ) .
-                  '(e.`guid`='.$alias.'.`guid`))';
+                  $this->makeDataPart(
+                      'comparisons',
+                      $etype,
+                      '`name`=\'' .
+                          mysqli_real_escape_string($this->link, $cur_value[0]).
+                          '\' AND ' .
+                          (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+                          '((`is_int`=TRUE AND `int` >= ' .
+                          ((int) $cur_value[1]) . ') OR (' .
+                          '`is_int`=FALSE AND `float` >= ' .
+                          ((float) $cur_value[1]) . '))'
+                  ).')';
             }
             break;
           case 'lt':
@@ -744,38 +760,41 @@ class MySQLDriver implements DriverInterface {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e.`cdate`<'.((float) $cur_value[1]);
+                  'ie.`cdate`<'.((float) $cur_value[1]);
               break;
             } elseif ($cur_value[0] == 'mdate') {
               if ($cur_query) {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e.`mdate`<'.((float) $cur_value[1]);
+                  'ie.`mdate`<'.((float) $cur_value[1]);
               break;
             } else {
               if ($cur_query) {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
-              $where_clause = '`name`=\'' .
-                  mysqli_real_escape_string($this->link, $cur_value[0]) .
-                  '\' AND '.(($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '((`is_int`=TRUE AND `int` < ' .
-                  ((int) $cur_value[1]) . ') OR (' .
-                  '`is_int`=FALSE AND `float` < ' .
-                  ((float) $cur_value[1]) . '))';
-              $alias = $this->addDataAlias('comparisons', $where_clause, $data_aliases);
               $cur_query .= '(' .
                   (
                     ($type_is_not xor $clause_not)
-                        ? 'e.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $cur_value[0]
                             ).'[[:>:]]\' OR '
                         : ''
                   ) .
-                  '(e.`guid`='.$alias.'.`guid`))';
+                  $this->makeDataPart(
+                      'comparisons',
+                      $etype,
+                      '`name`=\'' .
+                          mysqli_real_escape_string($this->link, $cur_value[0]).
+                          '\' AND ' .
+                          (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+                          '((`is_int`=TRUE AND `int` < ' .
+                          ((int) $cur_value[1]) . ') OR (' .
+                          '`is_int`=FALSE AND `float` < ' .
+                          ((float) $cur_value[1]) . '))'
+                  ).')';
             }
             break;
           case 'lte':
@@ -785,38 +804,41 @@ class MySQLDriver implements DriverInterface {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e.`cdate`<='.((float) $cur_value[1]);
+                  'ie.`cdate`<='.((float) $cur_value[1]);
               break;
             } elseif ($cur_value[0] == 'mdate') {
               if ($cur_query) {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e.`mdate`<='.((float) $cur_value[1]);
+                  'ie.`mdate`<='.((float) $cur_value[1]);
               break;
             } else {
               if ($cur_query) {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
-              $where_clause = '`name`=\'' .
-                  mysqli_real_escape_string($this->link, $cur_value[0]) .
-                  '\' AND '.(($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '((`is_int`=TRUE AND `int` <= ' .
-                  ((int) $cur_value[1]) . ') OR (' .
-                  '`is_int`=FALSE AND `float` <= ' .
-                  ((float) $cur_value[1]) . '))';
-              $alias = $this->addDataAlias('comparisons', $where_clause, $data_aliases);
               $cur_query .= '(' .
                   (
                     ($type_is_not xor $clause_not)
-                        ? 'e.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $cur_value[0]
                             ).'[[:>:]]\' OR '
                         : ''
                   ) .
-                  '(e.`guid`='.$alias.'.`guid`))';
+                  $this->makeDataPart(
+                      'comparisons',
+                      $etype,
+                      '`name`=\'' .
+                          mysqli_real_escape_string($this->link, $cur_value[0]).
+                          '\' AND ' .
+                          (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+                          '((`is_int`=TRUE AND `int` <= ' .
+                          ((int) $cur_value[1]) . ') OR (' .
+                          '`is_int`=FALSE AND `float` <= ' .
+                          ((float) $cur_value[1]) . '))'
+                  ).')';
             }
             break;
           // Cases after this point contains special values where
@@ -829,130 +851,150 @@ class MySQLDriver implements DriverInterface {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e."cdate"='.((float) $cur_value[1]);
+                  'ie."cdate"='.((float) $cur_value[1]);
               break;
             } elseif ($cur_value[0] == 'mdate') {
               if ($cur_query) {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
               $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'e."mdate"='.((float) $cur_value[1]);
+                  'ie."mdate"='.((float) $cur_value[1]);
               break;
             } elseif ($cur_value[1] === true || $cur_value[1] === false) {
               if ($cur_query) {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
-              $where_clause = '`name`=\'' .
-                  mysqli_real_escape_string($this->link, $cur_value[0]) .
-                  '\' AND '.(($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '`eq_true`=' . ($cur_value[1] ? 'TRUE' : 'FALSE');
-              $alias = $this->addDataAlias('comparisons', $where_clause, $data_aliases);
               $cur_query .= '(' .
                   (
                     ($type_is_not xor $clause_not)
-                        ? 'e.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $cur_value[0]
                             ).'[[:>:]]\' OR '
                         : ''
                   ) .
-                  '(e.`guid`='.$alias.'.`guid`))';
+                  $this->makeDataPart(
+                      'comparisons',
+                      $etype,
+                      '`name`=\'' .
+                          mysqli_real_escape_string($this->link, $cur_value[0]).
+                          '\' AND ' .
+                          (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+                          '`eq_true`=' . ($cur_value[1] ? 'TRUE' : 'FALSE')
+                  ).')';
               break;
             } elseif ($cur_value[1] === 1) {
               if ($cur_query) {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
-              $where_clause = '`name`=\'' .
-                  mysqli_real_escape_string($this->link, $cur_value[0]) .
-                  '\' AND '.(($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '`eq_one`=TRUE';
-              $alias = $this->addDataAlias('comparisons', $where_clause, $data_aliases);
               $cur_query .= '(' .
                   (
                     ($type_is_not xor $clause_not)
-                        ? 'e.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $cur_value[0]
                             ).'[[:>:]]\' OR '
                         : ''
                   ) .
-                  '(e.`guid`='.$alias.'.`guid`))';
+                  $this->makeDataPart(
+                      'comparisons',
+                      $etype,
+                      '`name`=\'' .
+                          mysqli_real_escape_string($this->link, $cur_value[0]).
+                          '\' AND ' .
+                          (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+                          '`eq_one`=TRUE'
+                  ).')';
               break;
             } elseif ($cur_value[1] === 0) {
               if ($cur_query) {
                 $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
               }
-              $where_clause = '`name`=\'' .
-                  mysqli_real_escape_string($this->link, $cur_value[0]) .
-                  '\' AND '.(($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '`eq_zero`=TRUE';
-              $alias = $this->addDataAlias('comparisons', $where_clause, $data_aliases);
               $cur_query .= '(' .
                   (
                     ($type_is_not xor $clause_not)
-                        ? 'e.`varlist` NOT REGEXP \'[[:<:]]' .
-                            mysqli_real_escape_string(
-                                $this->link,
-                                $cur_value[0]
-                            ).'[[:>:]]\' OR '
-                        : ''
-                  ).'(e.`guid`='.$alias.'.`guid`))';
-              break;
-            } elseif ($cur_value[1] === -1) {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
-              }
-              $where_clause = '`name`=\'' .
-                  mysqli_real_escape_string($this->link, $cur_value[0]) .
-                  '\' AND '.(($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '`eq_negone`=TRUE';
-              $alias = $this->addDataAlias('comparisons', $where_clause, $data_aliases);
-              $cur_query .= '(' .
-                  (
-                    ($type_is_not xor $clause_not)
-                        ? 'e.`varlist` NOT REGEXP \'[[:<:]]' .
-                            mysqli_real_escape_string(
-                                $this->link,
-                                $cur_value[0]
-                            ).'[[:>:]]\' OR '
-                        : ''
-                  ).'(e.`guid`='.$alias.'.`guid`))';
-              break;
-            } elseif ($cur_value[1] === []) {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
-              }
-              $where_clause = '`name`=\'' .
-                  mysqli_real_escape_string($this->link, $cur_value[0]) .
-                  '\' AND '.(($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '`eq_emptyarray`=TRUE';
-              $alias = $this->addDataAlias('comparisons', $where_clause, $data_aliases);
-              $cur_query .= '(' .
-                  (
-                    ($type_is_not xor $clause_not)
-                        ? 'e.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $cur_value[0]
                             ).'[[:>:]]\' OR '
                         : ''
                   ) .
-                  '(e.`guid`='.$alias.'.`guid`))';
+                  $this->makeDataPart(
+                      'comparisons',
+                      $etype,
+                      '`name`=\'' .
+                          mysqli_real_escape_string($this->link, $cur_value[0]).
+                          '\' AND ' .
+                          (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+                          '`eq_zero`=TRUE'
+                  ).')';
+              break;
+            } elseif ($cur_value[1] === -1) {
+              if ($cur_query) {
+                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              }
+              $cur_query .= '(' .
+                  (
+                    ($type_is_not xor $clause_not)
+                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
+                            mysqli_real_escape_string(
+                                $this->link,
+                                $cur_value[0]
+                            ).'[[:>:]]\' OR '
+                        : ''
+                  ) .
+                  $this->makeDataPart(
+                      'comparisons',
+                      $etype,
+                      '`name`=\'' .
+                          mysqli_real_escape_string($this->link, $cur_value[0]).
+                          '\' AND ' .
+                          (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+                          '`eq_negone`=TRUE'
+                  ).')';
+              break;
+            } elseif ($cur_value[1] === []) {
+              if ($cur_query) {
+                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              }
+              $cur_query .= '(' .
+                  (
+                    ($type_is_not xor $clause_not)
+                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
+                            mysqli_real_escape_string(
+                                $this->link,
+                                $cur_value[0]
+                            ).'[[:>:]]\' OR '
+                        : ''
+                  ) .
+                  $this->makeDataPart(
+                      'comparisons',
+                      $etype,
+                      '`name`=\'' .
+                          mysqli_real_escape_string($this->link, $cur_value[0]).
+                          '\' AND ' .
+                          (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+                          '`eq_emptyarray`=TRUE'
+                  ).')';
               break;
             }
             // Fall through.
+          case 'match':
+          case '!match':
           case 'array':
           case '!array':
             if (!($type_is_not xor $clause_not)) {
               if ($cur_query) {
                 $cur_query .= $type_is_or ? ' OR ' : ' AND ';
               }
-              $cur_query .= 'MATCH (e.`varlist`) AGAINST (\'+' .
+              $cur_query .= 'MATCH (ie.`varlist`) AGAINST (\'+' .
                   mysqli_real_escape_string($this->link, $cur_value[0]) .
                   '\' IN BOOLEAN MODE)';
             }
+            $fullQueryCoverage = false;
             break;
         }
       }
@@ -960,39 +1002,55 @@ class MySQLDriver implements DriverInterface {
 
     switch ($sort) {
       case 'guid':
-        $sort = 'e.`guid`';
+        $sort = '`guid`';
         break;
       case 'mdate':
-        $sort = 'e.`mdate`';
+        $sort = '`mdate`';
         break;
       case 'cdate':
       default:
-        $sort = 'e.`cdate`';
+        $sort = '`cdate`';
         break;
     }
     if ($query_parts) {
       if ($subquery) {
         $query = "((".implode(') AND (', $query_parts)."))";
       } else {
-        if ($data_aliases) {
-          $data_part = '';
-          foreach ($data_aliases as $cur_alias) {
-            $data_part .= " LEFT JOIN (SELECT `guid` FROM `{$this->prefix}{$cur_alias['table']}{$etype}` WHERE {$cur_alias['where_clause']}) {$cur_alias['alias']} ON e.`guid`={$cur_alias['alias']}.`guid`";
-          }
-        } else {
-          $data_part = '';
+        $limit = "";
+        if ($fullQueryCoverage && key_exists('limit', $options)) {
+          $limit = " LIMIT ".((int) $options['limit']);
         }
-        $query = "SELECT e.`guid`, e.`tags`, e.`cdate`, e.`mdate`, d.`name`, d.`value` FROM `{$this->prefix}entities{$etype}` e LEFT JOIN `{$this->prefix}data{$etype}` d ON e.`guid`=d.`guid`{$data_part} WHERE (".implode(') AND (', $query_parts).") ORDER BY ".(isset($options['reverse']) && $options['reverse'] ? $sort.' DESC' : $sort).";";
+        $offset = "";
+        if ($fullQueryCoverage && key_exists('offset', $options)) {
+          $offset = " OFFSET ".((int) $options['offset']);
+        }
+        $query = "SELECT e.`guid`, e.`tags`, e.`cdate`, e.`mdate`, d.`name`, d.`value` FROM `{$this->prefix}entities{$etype}` e LEFT JOIN `{$this->prefix}data{$etype}` d ON e.`guid`=d.`guid` INNER JOIN (SELECT ie.`guid` FROM `{$this->prefix}entities{$etype}` ie WHERE (".implode(') AND (', $query_parts).") ORDER BY ie.".(isset($options['reverse']) && $options['reverse'] ? $sort.' DESC' : $sort)."{$limit}{$offset}) f ON e.`guid`=f.`guid`;";
       }
     } else {
       if ($subquery) {
         $query = '';
       } else {
-        $query = "SELECT e.`guid`, e.`tags`, e.`cdate`, e.`mdate`, d.`name`, d.`value` FROM `{$this->prefix}entities{$etype}` e LEFT JOIN `{$this->prefix}data{$etype}` d ON e.`guid`=d.`guid` ORDER BY ".(isset($options['reverse']) && $options['reverse'] ? $sort.' DESC' : $sort).";";
+        $limit = "";
+        if (key_exists('limit', $options)) {
+          $limit = " LIMIT ".((int) $options['limit']);
+        }
+        $offset = "";
+        if (key_exists('offset', $options)) {
+          $offset = " OFFSET ".((int) $options['offset']);
+        }
+        if ($limit || $offset) {
+          $query = "SELECT e.`guid`, e.`tags`, e.`cdate`, e.`mdate`, d.`name`, d.`value` FROM `{$this->prefix}entities{$etype}` e LEFT JOIN `{$this->prefix}data{$etype}` d ON e.`guid`=d.`guid` INNER JOIN (SELECT ie.`guid` FROM `{$this->prefix}entities{$etype}` ie ORDER BY ie.".(isset($options['reverse']) && $options['reverse'] ? $sort.' DESC' : $sort)."{$limit}{$offset}) f ON e.`guid`=f.`guid`;";
+        } else {
+          $query = "SELECT e.`guid`, e.`tags`, e.`cdate`, e.`mdate`, d.`name`, d.`value` FROM `{$this->prefix}entities{$etype}` e LEFT JOIN `{$this->prefix}data{$etype}` d ON e.`guid`=d.`guid` ORDER BY e.".(isset($options['reverse']) && $options['reverse'] ? $sort.' DESC' : $sort).";";
+        }
       }
     }
 
-    return $query;
+    return [
+      'fullCoverage' => $fullQueryCoverage,
+      'limitOffsetCoverage' => $fullQueryCoverage,
+      'query' => $query
+    ];
   }
 
   public function getEntities($options = [], ...$selectors) {
@@ -1167,16 +1225,8 @@ class MySQLDriver implements DriverInterface {
     return true;
   }
 
-  private function addDataAlias($table, $where_clause, &$data_aliases) {
-    do {
-      $new_alias = 'd'.rand(1, 9999999999);
-    } while (in_array($new_alias, $data_aliases));
-    $data_aliases[] = [
-      'table' => $table,
-      'where_clause' => $where_clause,
-      'alias' => $new_alias
-    ];
-    return $new_alias;
+  private function makeDataPart($table, $etype, $where_clause) {
+    return "ie.`guid` IN (SELECT `guid` FROM `{$this->prefix}{$table}{$etype}` WHERE {$where_clause})";
   }
 
   private function makeInsertValuesSQL($guid, $name, $svalue, $uvalue) {
