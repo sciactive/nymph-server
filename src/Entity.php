@@ -686,6 +686,32 @@ class Entity implements EntityInterface {
     return $this->sdata;
   }
 
+  public function getValidatable() {
+    if ($this->isASleepingReference) {
+      $this->referenceWake();
+    }
+    foreach ($this->sdata as $key => $value) {
+      $this->data[$key] = unserialize($value);
+      unset($this->sdata[$key]);
+    }
+    $data = [];
+    foreach ($this->data as $key => $value) {
+      $data[$key] = $value;
+    }
+    $data['guid'] = $this->guid;
+    $data['cdate'] = $this->cdate;
+    $data['mdate'] = $this->mdate;
+    $data['tags'] = $this->tags;
+    array_walk($data, [$this, 'referenceToEntity']);
+    array_walk_recursive($data, function (&$item) {
+      if (is_a($item, '\SciActive\HookOverride')
+          && is_callable([$item, '_hookObject'])) {
+        $item = $item->_hookObject();
+      }
+    });
+    return (object) $data;
+  }
+
   public function getTags() {
     return $this->tags;
   }
@@ -863,8 +889,8 @@ class Entity implements EntityInterface {
   public function referenceSleep($reference) {
     if (count($reference) !== 3
         || $reference[0] !== 'nymph_entity_reference'
-        || (int) $reference[1] !== $reference[1]
-        || (string) $reference[2] !== $reference[2]) {
+        || !is_int($reference[1])
+        || !is_string($reference[2])) {
       throw new Exceptions\InvalidParametersException(
           'referenceSleep expects parameter 1 to be a valid Nymph entity ' .
           'reference.'

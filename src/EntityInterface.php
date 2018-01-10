@@ -56,10 +56,11 @@ interface EntityInterface extends DataObjectInterface, \JsonSerializable {
    * This should only be used by the entity manager to save the data array
    * into storage.
    *
+   * @param bool $includeSData Whether to include the serialized data as well.
    * @return array The entity's data array.
    * @access protected
    */
-  public function getData();
+  public function getData($includeSData = false);
   /**
    * Used to retrieve the serialized data array.
    *
@@ -75,6 +76,15 @@ interface EntityInterface extends DataObjectInterface, \JsonSerializable {
    * @access protected
    */
   public function getSData();
+  /**
+   * Get a stdClass object that holds the same data as the entity.
+   *
+   * A validator that uses the reflection API would not be able to validate an
+   * entity. This provides an object that can be validated.
+   *
+   * @return \stdClass A pure object representation of the entity. 
+   */
+  public function getValidatable();
   /**
    * Check that the entity has all of the given tags.
    *
