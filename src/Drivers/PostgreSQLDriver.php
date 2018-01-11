@@ -800,6 +800,8 @@ class PostgreSQLDriver implements DriverInterface {
           // Cases after this point contains special values where
           // it can be solved by the query, but if those values
           // don't match, just check the variable exists.
+          case 'equal':
+          case '!equal':
           case 'data':
           case '!data':
             if ($cur_value[0] == 'cdate') {

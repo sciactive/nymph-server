@@ -31,6 +31,8 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
         'type' => '&',
         'isset' => ['fish'],
         'data' => ['fish', 'junk'],
+        'equal' => ['fish', 'junk'],
+        '!equal' => ['fish', 'junk'],
         'array' => [
           ['spoot', 'smoot'],
           ['fish', 'barbecue']
@@ -74,7 +76,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
   /**
    * @expectedException \Nymph\Exceptions\InvalidParametersException
    */
-  public function testInvalidQuery() {
+  public function testInvalidQueryDeprecated() {
     Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
         ['&',
@@ -82,6 +84,21 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
         ],
         [
           'data' => ['this_query', 'should_fail']
+        ]
+    );
+  }
+
+  /**
+   * @expectedException \Nymph\Exceptions\InvalidParametersException
+   */
+  public function testInvalidQuery() {
+    Nymph::getEntities(
+        ['class' => 'NymphTesting\TestModel'],
+        ['&',
+          'tag' => 'thing'
+        ],
+        [
+          'equal' => ['this_query', 'should_fail']
         ]
     );
   }
@@ -469,7 +486,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
   /**
    * @depends testCreateEntity
    */
-  public function testData($arr) {
+  public function testDataDeprecated($arr) {
     $testEntity = $arr['entity'];
 
     // Retrieving entity by data...
@@ -483,7 +500,21 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
   /**
    * @depends testCreateEntity
    */
-  public function testNotData($arr) {
+  public function testEqual($arr) {
+    $testEntity = $arr['entity'];
+
+    // Retrieving entity by equal...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'NymphTesting\TestModel'],
+        ['&', 'equal' => ['string', 'test']]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+  }
+
+  /**
+   * @depends testCreateEntity
+   */
+  public function testNotDataDeprecated($arr) {
     $testEntity = $arr['entity'];
     $referenceEntity = TestModel::factory($arr['refGuid']);
     $this->assertSame($arr['refGuid'], $referenceEntity->guid);
@@ -500,7 +531,24 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
   /**
    * @depends testCreateEntity
    */
-  public function testDataInclusive($arr) {
+  public function testNotEqual($arr) {
+    $testEntity = $arr['entity'];
+    $referenceEntity = TestModel::factory($arr['refGuid']);
+    $this->assertSame($arr['refGuid'], $referenceEntity->guid);
+
+    // Retrieving entity by !equal...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'NymphTesting\TestModel'],
+        ['&', 'tag' => 'test', '!equal' => ['string', 'wrong']]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+    $this->assertFalse($referenceEntity->inArray($resultEntity));
+  }
+
+  /**
+   * @depends testCreateEntity
+   */
+  public function testDataInclusiveDeprecated($arr) {
     $testEntity = $arr['entity'];
 
     // Retrieving entity by data inclusively...
@@ -514,7 +562,21 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
   /**
    * @depends testCreateEntity
    */
-  public function testNotDataInclusive($arr) {
+  public function testEqualInclusive($arr) {
+    $testEntity = $arr['entity'];
+
+    // Retrieving entity by equal inclusively...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'NymphTesting\TestModel'],
+        ['|', 'equal' => [['string', 'test'], ['string', 'pickles']]]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+  }
+
+  /**
+   * @depends testCreateEntity
+   */
+  public function testNotDataInclusiveDeprecated($arr) {
     $testEntity = $arr['entity'];
 
     // Retrieving entity by !data inclusively...
@@ -530,13 +592,43 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
   /**
    * @depends testCreateEntity
    */
-  public function testWrongData($arr) {
+  public function testNotEqualInclusive($arr) {
+    $testEntity = $arr['entity'];
+
+    // Retrieving entity by !equal inclusively...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'NymphTesting\TestModel'],
+        ['&', 'tag' => 'test'],
+        ['!|', 'equal' => [['name', $testEntity->name], ['string', 'pickles']]],
+        ['|', '!equal' => [['name', $testEntity->name], ['string', 'pickles']]]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+  }
+
+  /**
+   * @depends testCreateEntity
+   */
+  public function testWrongDataDeprecated($arr) {
     $testEntity = $arr['entity'];
 
     // Testing wrong data...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
         ['&', 'data' => ['string', 'pickles']]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+  }
+
+  /**
+   * @depends testCreateEntity
+   */
+  public function testWrongEqual($arr) {
+    $testEntity = $arr['entity'];
+
+    // Testing wrong equal...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'NymphTesting\TestModel'],
+        ['&', 'equal' => ['string', 'pickles']]
     );
     $this->assertFalse($testEntity->inArray($resultEntity));
   }
@@ -620,7 +712,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
   /**
    * @depends testCreateEntity
    */
-  public function testTagsAndData($arr) {
+  public function testTagsAndDataDeprecated($arr) {
     $testEntity = $arr['entity'];
 
     // Retrieving entity by tags and data...
@@ -634,7 +726,21 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
   /**
    * @depends testCreateEntity
    */
-  public function testWrongTagsRightData($arr) {
+  public function testTagsAndEqual($arr) {
+    $testEntity = $arr['entity'];
+
+    // Retrieving entity by tags and equal...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'NymphTesting\TestModel'],
+        ['&', 'tag' => 'test', 'equal' => ['string', 'test']]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+  }
+
+  /**
+   * @depends testCreateEntity
+   */
+  public function testWrongTagsRightDataDeprecated($arr) {
     $testEntity = $arr['entity'];
 
     // Testing wrong tags and right data...
@@ -648,7 +754,21 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
   /**
    * @depends testCreateEntity
    */
-  public function testRightTagsWrongData($arr) {
+  public function testWrongTagsRightEqual($arr) {
+    $testEntity = $arr['entity'];
+
+    // Testing wrong tags and right equal...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'NymphTesting\TestModel'],
+        ['&', 'tag' => 'pickles', 'equal' => ['string', 'test']]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+  }
+
+  /**
+   * @depends testCreateEntity
+   */
+  public function testRightTagsWrongDataDeprecated($arr) {
     $testEntity = $arr['entity'];
 
     // Testing right tags and wrong data...
@@ -662,13 +782,41 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
   /**
    * @depends testCreateEntity
    */
-  public function testWrongTagsWrongData($arr) {
+  public function testRightTagsWrongEqual($arr) {
+    $testEntity = $arr['entity'];
+
+    // Testing right tags and wrong equal...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'NymphTesting\TestModel'],
+        ['&', 'tag' => 'test', 'equal' => ['string', 'pickles']]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+  }
+
+  /**
+   * @depends testCreateEntity
+   */
+  public function testWrongTagsWrongDataDeprecated($arr) {
     $testEntity = $arr['entity'];
 
     // Testing wrong tags and wrong data...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
         ['&', 'tag' => 'pickles', 'data' => ['string', 'pickles']]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
+  }
+
+  /**
+   * @depends testCreateEntity
+   */
+  public function testWrongTagsWrongEqual($arr) {
+    $testEntity = $arr['entity'];
+
+    // Testing wrong tags and wrong equal...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'NymphTesting\TestModel'],
+        ['&', 'tag' => 'pickles', 'equal' => ['string', 'pickles']]
     );
     $this->assertFalse($testEntity->inArray($resultEntity));
   }
@@ -792,7 +940,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
   /**
    * @depends testCreateEntity
    */
-  public function testPCREAndDataInclusive($arr) {
+  public function testPCREAndDataInclusiveDeprecated($arr) {
     $testEntity = $arr['entity'];
 
     // Retrieving entity by regex + data inclusively...
@@ -800,6 +948,21 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
         ['class' => 'NymphTesting\TestModel'],
         ['&', 'tag' => 'test'],
         ['|', 'data' => ['string', 'pickles'], 'match' => ['string', '/test/']]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+  }
+
+  /**
+   * @depends testCreateEntity
+   */
+  public function testPCREAndEqualInclusive($arr) {
+    $testEntity = $arr['entity'];
+
+    // Retrieving entity by regex + equal inclusively...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'NymphTesting\TestModel'],
+        ['&', 'tag' => 'test'],
+        ['|', 'equal' => ['string', 'pickles'], 'match' => ['string', '/test/']]
     );
     $this->assertTrue($testEntity->inArray($resultEntity));
   }
@@ -914,7 +1077,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
   /**
    * @depends testCreateEntity
    */
-  public function testPosixRegexAndDataInclusive($arr) {
+  public function testPosixRegexAndDataInclusiveDeprecated($arr) {
     $testEntity = $arr['entity'];
 
     // Retrieving entity by regex + data inclusively...
@@ -922,6 +1085,21 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
         ['class' => 'NymphTesting\TestModel'],
         ['&', 'tag' => 'test'],
         ['|', 'data' => ['string', 'pickles'], 'pmatch' => ['string', 'test']]
+    );
+    $this->assertTrue($testEntity->inArray($resultEntity));
+  }
+
+  /**
+   * @depends testCreateEntity
+   */
+  public function testPosixRegexAndEqualInclusive($arr) {
+    $testEntity = $arr['entity'];
+
+    // Retrieving entity by regex + equal inclusively...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'NymphTesting\TestModel'],
+        ['&', 'tag' => 'test'],
+        ['|', 'equal' => ['string', 'pickles'], 'pmatch' => ['string', 'test']]
     );
     $this->assertTrue($testEntity->inArray($resultEntity));
   }

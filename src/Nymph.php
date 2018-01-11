@@ -373,8 +373,9 @@ class Nymph {
    * - guid - A GUID. True if the entity's GUID is equal.
    * - tag - A tag. True if the entity has the tag.
    * - isset - A name. True if the named variable exists and is not null.
-   * - data - An array with a name, then value. True if the named variable is
+   * - equal - An array with a name, then value. True if the named variable is
    *   defined and equal.
+   * - data (deprecated) - An alias for equal.
    * - strict - An array with a name, then value. True if the named variable
    *   is defined and identical.
    * - array - An array with a name, then value. True if the named variable is
@@ -440,7 +441,7 @@ class Nymph {
    *     '&', // all must be true
    *     'tag' => 'person',
    *     'isset' => 'spouse',
-   *     'data' => [
+   *     'equal' => [
    *       ['gender', 'male'],
    *       ['lname', 'Smith']
    *     ],
@@ -463,7 +464,7 @@ class Nymph {
    *   ],
    *   [
    *     '|',
-   *     'data' => [
+   *     'equal' => [
    *       ['name', 'Clark'],
    *       ['name', 'James']
    *     ],

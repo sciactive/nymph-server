@@ -226,7 +226,12 @@ trait DriverTrait {
               if ((($key === 'guid' || $key === '!guid') && !isset($guid))
                   || (($key === 'tag' || $key === '!tag') && !isset($tags))
                   || (
-                    ($key === 'data' || $key === '!data')
+                    (
+                      $key === 'equal'
+                      || $key === '!equal'
+                      || $key === 'data'
+                      || $key === '!data'
+                    )
                     && in_array($cur_value[1], $dataValsAreadyChecked, true)
                   )) {
                 // Skip because it has already been checked (by the query).
@@ -242,8 +247,14 @@ trait DriverTrait {
                     && $key !== 'tag'
                     // && $key !== '!tag'
                     && substr($key, 0, 1) !== '!'
-                    && !($key === 'data' && $cur_value[1] == false)
-                    // && !($key === '!data' && $cur_value[1] == true)
+                    && !(
+                      ($key === 'equal' || $key === 'data')
+                      && $cur_value[1] == false
+                    )
+                    // && !(
+                    //   ($key === '!equal' || $key === '!data')
+                    //   && $cur_value[1] == true
+                    // )
                     && !key_exists($cur_value[0], $data)) {
                   $pass = false;
                 } else {
@@ -287,6 +298,8 @@ trait DriverTrait {
                           )
                           xor ($type_is_not xor $clause_not));
                       break;
+                    case 'equal':
+                    case '!equal':
                     case 'data':
                     case '!data':
                       $pass = (
