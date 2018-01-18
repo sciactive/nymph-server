@@ -1,6 +1,6 @@
 # Nymph Server - collaborative app data
 
-[![Build Status](https://img.shields.io/travis/sciactive/nymph-server/master.svg?style=flat)](http://travis-ci.org/sciactive/nymph-server) [![Latest Stable Version](https://img.shields.io/packagist/v/sciactive/nymph-server.svg?style=flat)](https://packagist.org/packages/sciactive/nymph-server) [![License](https://img.shields.io/packagist/l/sciactive/nymph-server.svg?style=flat)](https://packagist.org/packages/sciactive/nymph-server) [![Open Issues](https://img.shields.io/github/issues/sciactive/nymph-server.svg?style=flat)](https://github.com/sciactive/nymph-server/issues)
+[![Build Status](https://img.shields.io/travis/sciactive/nymph-server/master.svg)](http://travis-ci.org/sciactive/nymph-server) [![Latest Stable Version](https://img.shields.io/packagist/v/sciactive/nymph-server.svg)](https://packagist.org/packages/sciactive/nymph-server) [![Open Issues](https://img.shields.io/github/issues/sciactive/nymph-server.svg)](https://github.com/sciactive/nymph-server/issues) [![License](https://img.shields.io/github/license/sciactive/nymph-server.svg)]()
 
 Nymph is an object data store that is easy to use in JavaScript and PHP.
 
