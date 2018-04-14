@@ -30,7 +30,7 @@ class EntityInvalidDataException extends \Exception {
   ) {
     parent::__construct($message, $code, $previous);
     if (!empty($fields)) {
-      if ((array) $fields !== $fields) {
+      if (!is_array($fields)) {
         $fields = [(string) $fields];
       }
       $this->fields = $fields;

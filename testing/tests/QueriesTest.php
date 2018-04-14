@@ -105,7 +105,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
 
   public function testDeleteOldTestData() {
     $all = Nymph::getEntities(['class' => 'NymphTesting\TestModel']);
-    $this->assertTrue((array) $all === $all);
+    $this->assertTrue(is_array($all));
     foreach ($all as $cur) {
       $this->assertTrue($cur->delete());
     }
@@ -139,26 +139,26 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
   This one's phone number is (555) 555-1818.
   This one's zip code is 92064.";
     $testEntity->number = 30;
-    $testEntity->number_string = "30";
-    $testEntity->number_float = 30.5;
-    $testEntity->number_float_string = "30.5";
+    $testEntity->numberString = "30";
+    $testEntity->numberFloat = 30.5;
+    $testEntity->numberFloatString = "30.5";
     $testEntity->timestamp = time();
     $this->assertTrue($testEntity->save());
-    $entity_guid = $testEntity->guid;
+    $entityGuid = $testEntity->guid;
 
-    $entity_reference_test = new TestModel();
-    $entity_reference_test->string = 'wrong';
-    $entity_reference_test->timestamp = strtotime('-2 days');
-    $this->assertTrue($entity_reference_test->save());
-    $entity_reference_guid = $entity_reference_test->guid;
-    $testEntity->reference = $entity_reference_test;
-    $testEntity->ref_array = [0 => ['entity' => $entity_reference_test]];
+    $entityReferenceTest = new TestModel();
+    $entityReferenceTest->string = 'wrong';
+    $entityReferenceTest->timestamp = strtotime('-2 days');
+    $this->assertTrue($entityReferenceTest->save());
+    $entityReferenceGuid = $entityReferenceTest->guid;
+    $testEntity->reference = $entityReferenceTest;
+    $testEntity->refArray = [0 => ['entity' => $entityReferenceTest]];
     $this->assertTrue($testEntity->save());
 
-    $entity_reference_test->test = 'good';
-    $this->assertTrue($entity_reference_test->save());
+    $entityReferenceTest->test = 'good';
+    $this->assertTrue($entityReferenceTest->save());
 
-    $testEntity = Nymph::getEntity(['class' => 'NymphTesting\TestModel'], $entity_guid);
+    $testEntity = Nymph::getEntity(['class' => 'NymphTesting\TestModel'], $entityGuid);
     $this->assertThat(
         $testEntity,
         $this->logicalOr(
@@ -167,7 +167,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
         )
     );
 
-    return ['entity' => $testEntity, 'refGuid' => $entity_reference_guid];
+    return ['entity' => $testEntity, 'refGuid' => $entityReferenceGuid];
   }
 
   /**
@@ -1120,7 +1120,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'gt' => [['number_float', 30.5], ['pickles', 100]]]
+        ['|', 'gt' => [['numberFloat', 30.5], ['pickles', 100]]]
     );
     $this->assertFalse($testEntity->inArray($resultEntity));
 
@@ -1134,7 +1134,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'gt' => [['number_float', 31], ['pickles', 100]]]
+        ['|', 'gt' => [['numberFloat', 31], ['pickles', 100]]]
     );
     $this->assertFalse($testEntity->inArray($resultEntity));
 
@@ -1148,28 +1148,28 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'gt' => [['number_string', 30], ['pickles', 100]]]
+        ['|', 'gt' => [['numberString', 30], ['pickles', 100]]]
     );
     $this->assertFalse($testEntity->inArray($resultEntity));
 
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'gt' => [['number_string', 31], ['pickles', 100]]]
+        ['|', 'gt' => [['numberString', 31], ['pickles', 100]]]
     );
     $this->assertFalse($testEntity->inArray($resultEntity));
 
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'gt' => [['number_string', 29], ['pickles', 100]]]
+        ['|', 'gt' => [['numberString', 29], ['pickles', 100]]]
     );
     $this->assertTrue($testEntity->inArray($resultEntity));
 
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'gt' => [['number_float_string', 29], ['pickles', 100]]]
+        ['|', 'gt' => [['numberFloatString', 29], ['pickles', 100]]]
     );
     $this->assertTrue($testEntity->inArray($resultEntity));
   }
@@ -1190,7 +1190,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'gte' => [['number_float', 30.5], ['pickles', 100]]]
+        ['|', 'gte' => [['numberFloat', 30.5], ['pickles', 100]]]
     );
     $this->assertTrue($testEntity->inArray($resultEntity));
 
@@ -1204,7 +1204,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'gte' => [['number_float', 31], ['pickles', 100]]]
+        ['|', 'gte' => [['numberFloat', 31], ['pickles', 100]]]
     );
     $this->assertFalse($testEntity->inArray($resultEntity));
 
@@ -1218,28 +1218,28 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'gte' => [['number_string', 30], ['pickles', 100]]]
+        ['|', 'gte' => [['numberString', 30], ['pickles', 100]]]
     );
     $this->assertTrue($testEntity->inArray($resultEntity));
 
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'gte' => [['number_string', 31], ['pickles', 100]]]
+        ['|', 'gte' => [['numberString', 31], ['pickles', 100]]]
     );
     $this->assertFalse($testEntity->inArray($resultEntity));
 
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'gte' => [['number_string', 29], ['pickles', 100]]]
+        ['|', 'gte' => [['numberString', 29], ['pickles', 100]]]
     );
     $this->assertTrue($testEntity->inArray($resultEntity));
 
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'gte' => [['number_float_string', 29], ['pickles', 100]]]
+        ['|', 'gte' => [['numberFloatString', 29], ['pickles', 100]]]
     );
     $this->assertTrue($testEntity->inArray($resultEntity));
   }
@@ -1260,7 +1260,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'lt' => [['number_float', 30.5], ['pickles', 100]]]
+        ['|', 'lt' => [['numberFloat', 30.5], ['pickles', 100]]]
     );
     $this->assertFalse($testEntity->inArray($resultEntity));
 
@@ -1274,7 +1274,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'lt' => [['number_float', 31], ['pickles', 100]]]
+        ['|', 'lt' => [['numberFloat', 31], ['pickles', 100]]]
     );
     $this->assertTrue($testEntity->inArray($resultEntity));
 
@@ -1288,28 +1288,28 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'lt' => [['number_string', 30], ['pickles', 100]]]
+        ['|', 'lt' => [['numberString', 30], ['pickles', 100]]]
     );
     $this->assertFalse($testEntity->inArray($resultEntity));
 
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'lt' => [['number_string', 31], ['pickles', 100]]]
+        ['|', 'lt' => [['numberString', 31], ['pickles', 100]]]
     );
     $this->assertTrue($testEntity->inArray($resultEntity));
 
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'lt' => [['number_string', 29], ['pickles', 100]]]
+        ['|', 'lt' => [['numberString', 29], ['pickles', 100]]]
     );
     $this->assertFalse($testEntity->inArray($resultEntity));
 
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'lt' => [['number_float_string', 29], ['pickles', 100]]]
+        ['|', 'lt' => [['numberFloatString', 29], ['pickles', 100]]]
     );
     $this->assertFalse($testEntity->inArray($resultEntity));
   }
@@ -1330,7 +1330,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'lte' => [['number_float', 30.5], ['pickles', 100]]]
+        ['|', 'lte' => [['numberFloat', 30.5], ['pickles', 100]]]
     );
     $this->assertTrue($testEntity->inArray($resultEntity));
 
@@ -1344,7 +1344,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'lte' => [['number_float', 31], ['pickles', 100]]]
+        ['|', 'lte' => [['numberFloat', 31], ['pickles', 100]]]
     );
     $this->assertTrue($testEntity->inArray($resultEntity));
 
@@ -1358,28 +1358,28 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'lte' => [['number_string', 30], ['pickles', 100]]]
+        ['|', 'lte' => [['numberString', 30], ['pickles', 100]]]
     );
     $this->assertTrue($testEntity->inArray($resultEntity));
 
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'lte' => [['number_string', 31], ['pickles', 100]]]
+        ['|', 'lte' => [['numberString', 31], ['pickles', 100]]]
     );
     $this->assertTrue($testEntity->inArray($resultEntity));
 
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'lte' => [['number_string', 29], ['pickles', 100]]]
+        ['|', 'lte' => [['numberString', 29], ['pickles', 100]]]
     );
     $this->assertFalse($testEntity->inArray($resultEntity));
 
     // Retrieving entity by inequality...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['|', 'lte' => [['number_float_string', 29], ['pickles', 100]]]
+        ['|', 'lte' => [['numberFloatString', 29], ['pickles', 100]]]
     );
     $this->assertFalse($testEntity->inArray($resultEntity));
   }
@@ -1515,7 +1515,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
     $this->assertSame('good', $testEntity->reference->test);
 
     // Testing referenced entity arrays...
-    $this->assertSame('good', $testEntity->ref_array[0]['entity']->test);
+    $this->assertSame('good', $testEntity->refArray[0]['entity']->test);
   }
 
   /**
@@ -1640,7 +1640,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
     // Retrieving entity by array reference...
     $resultEntity = Nymph::getEntities(
         ['class' => 'NymphTesting\TestModel'],
-        ['&', 'ref' => ['ref_array', $arr['refGuid']]]
+        ['&', 'ref' => ['refArray', $arr['refGuid']]]
     );
     $this->assertTrue($testEntity->inArray($resultEntity));
   }
@@ -1656,8 +1656,8 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
         ['class' => 'NymphTesting\TestModel'],
         ['&',
           'ref' => [
-            ['ref_array', $arr['refGuid']],
-            ['ref_array', $arr['refGuid'] + 1]
+            ['refArray', $arr['refGuid']],
+            ['refArray', $arr['refGuid'] + 1]
           ]
         ]
     );
@@ -1675,8 +1675,8 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
         ['class' => 'NymphTesting\TestModel'],
         ['&',
           '!ref' => [
-            ['ref_array', $arr['refGuid'] + 1],
-            ['ref_array', $arr['refGuid'] + 2]
+            ['refArray', $arr['refGuid'] + 1],
+            ['refArray', $arr['refGuid'] + 2]
           ],
           '!lte' => ['number', 29.99]
         ],
@@ -1719,8 +1719,8 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
         ['class' => 'NymphTesting\TestModel'],
         ['&',
           '!ref' => [
-            ['ref_array', $arr['refGuid'] + 1],
-            ['ref_array', $arr['refGuid'] + 2]
+            ['refArray', $arr['refGuid'] + 1],
+            ['refArray', $arr['refGuid'] + 2]
           ],
           '!lte' => ['number', 29.99]
         ],
@@ -1757,8 +1757,8 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
         ['class' => 'NymphTesting\TestModel'],
         ['&',
           '!ref' => [
-            ['ref_array', $arr['refGuid'] + 1],
-            ['ref_array', $arr['refGuid'] + 2]
+            ['refArray', $arr['refGuid'] + 1],
+            ['refArray', $arr['refGuid'] + 2]
           ],
           '!lte' => ['number', 29.99]
         ],
@@ -1795,7 +1795,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
         ['class' => 'NymphTesting\TestModel'],
         ['|',
           ['&',
-            '!ref' => ['ref_array', $arr['refGuid'] + 2],
+            '!ref' => ['refArray', $arr['refGuid'] + 2],
             '!lte' => ['number', 29.99]
           ],
           ['&',
@@ -1809,7 +1809,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
         ['class' => 'NymphTesting\TestModel'],
         ['|',
           ['&',
-            '!ref' => ['ref_array', $arr['refGuid'] + 2],
+            '!ref' => ['refArray', $arr['refGuid'] + 2],
             '!lte' => ['number', 29.99]
           ],
           ['&',
@@ -1835,7 +1835,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
         ['class' => 'NymphTesting\TestModel'],
         ['&',
           ['&',
-            '!ref' => ['ref_array', $arr['refGuid'] + 2],
+            '!ref' => ['refArray', $arr['refGuid'] + 2],
             '!lte' => ['number', 29.99]
           ],
           ['&',

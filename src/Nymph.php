@@ -1,6 +1,5 @@
 <?php namespace Nymph;
 
-use Nymph\Drivers\MySQLDriver;
 use Nymph\Drivers\DriverInterface;
 
 /**

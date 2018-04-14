@@ -59,7 +59,7 @@ class PostgreSQLDriver implements DriverInterface {
           'PostgreSQL.'
       );
     }
-    $connection_type = $this->config['PostgreSQL']['connection_type'];
+    $connectionType = $this->config['PostgreSQL']['connection_type'];
     $host = $this->config['PostgreSQL']['host'];
     $port = $this->config['PostgreSQL']['port'];
     $user = $this->config['PostgreSQL']['user'];
@@ -67,27 +67,27 @@ class PostgreSQLDriver implements DriverInterface {
     $database = $this->config['PostgreSQL']['database'];
     // Connecting, selecting database
     if (!$this->connected) {
-      if ($connection_type == 'host') {
-        $connect_string = 'host=\'' . addslashes($host) .
+      if ($connectionType == 'host') {
+        $connectString = 'host=\'' . addslashes($host) .
             '\' port=\'' . addslashes($port) .
             '\' dbname=\'' . addslashes($database) .
             '\' user=\'' . addslashes($user) .
             '\' password=\'' . addslashes($password) .
             '\' connect_timeout=5';
       } else {
-        $connect_string = 'dbname=\'' . addslashes($database) .
+        $connectString = 'dbname=\'' . addslashes($database) .
             '\' user=\'' . addslashes($user) .
             '\' password=\'' . addslashes($password) .
             '\' connect_timeout=5';
       }
       if ($this->config['PostgreSQL']['allow_persistent']) {
         $this->link = pg_connect(
-            $connect_string .
+            $connectString .
                 ' options=\'-c enable_hashjoin=off -c enable_mergejoin=off\''
         );
       } else {
         $this->link = pg_connect(
-            $connect_string .
+            $connectString .
                 ' options=\'-c enable_hashjoin=off -c enable_mergejoin=off\'',
             PGSQL_CONNECT_FORCE_NEW
         );
@@ -102,7 +102,7 @@ class PostgreSQLDriver implements DriverInterface {
             && $user == 'nymph'
             && $password == 'password'
             && $database == 'nymph'
-            && $connection_type == 'host') {
+            && $connectionType == 'host') {
           throw new Exceptions\NotConfiguredException();
         } else {
           throw new Exceptions\UnableToConnectException(
@@ -360,7 +360,7 @@ class PostgreSQLDriver implements DriverInterface {
     $fullQueryCoverage = true;
     $sort = $options['sort'] ?? 'cdate';
     $etype = '_'.pg_escape_string($this->link, $etypeDirty);
-    $query_parts = $this->iterateSelectorsForQuery($selectors, function ($value) use ($options, $etypeDirty, &$fullQueryCoverage) {
+    $queryParts = $this->iterateSelectorsForQuery($selectors, function ($value) use ($options, $etypeDirty, &$fullQueryCoverage) {
       $subquery = $this->makeEntityQuery(
           $options,
           [$value],
@@ -369,125 +369,125 @@ class PostgreSQLDriver implements DriverInterface {
       );
       $fullQueryCoverage = $fullQueryCoverage && $subquery['fullCoverage'];
       return $subquery['query'];
-    }, function (&$cur_query, $key, $value, $type_is_or, $type_is_not) use ($etype, &$fullQueryCoverage) {
-      $clause_not = $key[0] === '!';
+    }, function (&$curQuery, $key, $value, $typeIsOr, $typeIsNot) use ($etype, &$fullQueryCoverage) {
+      $clauseNot = $key[0] === '!';
       // Any options having to do with data only return if the
       // entity has the specified variables.
-      foreach ($value as $cur_value) {
+      foreach ($value as $curValue) {
         switch ($key) {
           case 'guid':
           case '!guid':
-            foreach ($cur_value as $cur_guid) {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            foreach ($curValue as $curGuid) {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."guid"='.(int) $cur_guid;
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."guid"='.(int) $curGuid;
             }
             break;
           case 'tag':
           case '!tag':
-            foreach ($cur_value as $cur_tag) {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            foreach ($curValue as $curTag) {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '\'{'.pg_escape_string($this->link, $cur_tag) .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  '\'{'.pg_escape_string($this->link, $curTag) .
                   '}\' <@ ie."tags"';
             }
             break;
           case 'isset':
           case '!isset':
-            foreach ($cur_value as $cur_var) {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            foreach ($curValue as $curVar) {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= '(' .
-                  (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  '\'{'.pg_escape_string($this->link, $cur_var) .
+              $curQuery .= '(' .
+                  (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  '\'{'.pg_escape_string($this->link, $curVar) .
                   '}\' <@ ie."varlist"';
-              if ($type_is_not xor $clause_not) {
-                $cur_query .= ' OR ie."guid" IN (SELECT "guid" FROM "' .
+              if ($typeIsNot xor $clauseNot) {
+                $curQuery .= ' OR ie."guid" IN (SELECT "guid" FROM "' .
                     $this->prefix.'data'.$etype.'" WHERE "name"=\'' .
-                    pg_escape_string($this->link, $cur_var) .
+                    pg_escape_string($this->link, $curVar) .
                     '\' AND "value"=\'N;\')';
               }
-              $cur_query .= ')';
+              $curQuery .= ')';
             }
             break;
           case 'ref':
           case '!ref':
             $guids = [];
-            if ((array) $cur_value[1] === $cur_value[1]) {
-              if (key_exists('guid', $cur_value[1])) {
-                $guids[] = (int) $cur_value[1]['guid'];
+            if (is_array($curValue[1])) {
+              if (key_exists('guid', $curValue[1])) {
+                $guids[] = (int) $curValue[1]['guid'];
               } else {
-                foreach ($cur_value[1] as $cur_entity) {
-                  if ((object) $cur_entity === $cur_entity) {
-                    $guids[] = (int) $cur_entity->guid;
-                  } elseif ((array) $cur_entity === $cur_entity) {
-                    $guids[] = (int) $cur_entity['guid'];
+                foreach ($curValue[1] as $curEntity) {
+                  if (is_object($curEntity)) {
+                    $guids[] = (int) $curEntity->guid;
+                  } elseif (is_array($curEntity)) {
+                    $guids[] = (int) $curEntity['guid'];
                   } else {
-                    $guids[] = (int) $cur_entity;
+                    $guids[] = (int) $curEntity;
                   }
                 }
               }
-            } elseif ((object) $cur_value[1] === $cur_value[1]) {
-              $guids[] = (int) $cur_value[1]->guid;
+            } elseif (is_object($curValue[1])) {
+              $guids[] = (int) $curValue[1]->guid;
             } else {
-              $guids[] = (int) $cur_value[1];
+              $guids[] = (int) $curValue[1];
             }
             if ($guids) {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "'.$this->prefix.'comparisons' .
                   $etype.'" WHERE "name"=\'' .
-                  pg_escape_string($this->link, $cur_value[0]).'\' AND (';
-              //$cur_query .= '(POSITION(\'a:3:{i:0;s:22:"nymph_entity_reference";i:1;i:';
-              //$cur_query .= implode(';\' IN "value") != 0) '.($type_is_or ? 'OR' : 'AND').' (POSITION(\'a:3:{i:0;s:22:"nymph_entity_reference";i:1;i:', $guids);
-              //$cur_query .= ';\' IN "value") != 0)';
-              $cur_query .= '\'{';
-              $cur_query .=
+                  pg_escape_string($this->link, $curValue[0]).'\' AND (';
+              //$curQuery .= '(POSITION(\'a:3:{i:0;s:22:"nymph_entity_reference";i:1;i:';
+              //$curQuery .= implode(';\' IN "value") != 0) '.($typeIsOr ? 'OR' : 'AND').' (POSITION(\'a:3:{i:0;s:22:"nymph_entity_reference";i:1;i:', $guids);
+              //$curQuery .= ';\' IN "value") != 0)';
+              $curQuery .= '\'{';
+              $curQuery .=
                   implode(
                       '}\' <@ "references"' .
-                          ($type_is_or ? ' OR ' : ' AND ') . '\'{',
+                          ($typeIsOr ? ' OR ' : ' AND ') . '\'{',
                       $guids
                   );
-              $cur_query .= '}\' <@ "references"';
-              $cur_query .= '))';
+              $curQuery .= '}\' <@ "references"';
+              $curQuery .= '))';
             }
             break;
           case 'strict':
           case '!strict':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."cdate"='.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."cdate"='.((float) $curValue[1]);
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."mdate"='.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."mdate"='.((float) $curValue[1]);
               break;
             } else {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              if (is_callable([$cur_value[1], 'toReference'])) {
-                $svalue = serialize($cur_value[1]->toReference());
+              if (is_callable([$curValue[1], 'toReference'])) {
+                $svalue = serialize($curValue[1]->toReference());
               } else {
-                $svalue = serialize($cur_value[1]);
+                $svalue = serialize($curValue[1]);
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
                   $etype.'" WHERE "name"=\'' .
-                  pg_escape_string($this->link, $cur_value[0]) .
+                  pg_escape_string($this->link, $curValue[0]) .
                   '\' AND "value"=\'' .
                   pg_escape_string(
                       $this->link,
@@ -501,172 +501,172 @@ class PostgreSQLDriver implements DriverInterface {
             break;
           case 'like':
           case '!like':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   '(ie."cdate" LIKE \'' .
-                  pg_escape_string($this->link, $cur_value[1]).'\')';
+                  pg_escape_string($this->link, $curValue[1]).'\')';
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   '(ie."mdate" LIKE \'' .
-                  pg_escape_string($this->link, $cur_value[1]).'\')';
+                  pg_escape_string($this->link, $curValue[1]).'\')';
               break;
             } else {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "'.$this->prefix.'comparisons' .
                   $etype.'" WHERE "name"=\'' .
-                  pg_escape_string($this->link, $cur_value[0]) .
+                  pg_escape_string($this->link, $curValue[0]) .
                   '\' AND "string" LIKE \'' .
-                  pg_escape_string($this->link, $cur_value[1]).'\')';
+                  pg_escape_string($this->link, $curValue[1]).'\')';
             }
             break;
           case 'ilike':
           case '!ilike':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   '(ie."cdate" ILIKE \'' .
-                  pg_escape_string($this->link, $cur_value[1]).'\')';
+                  pg_escape_string($this->link, $curValue[1]).'\')';
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   '(ie."mdate" ILIKE \'' .
-                  pg_escape_string($this->link, $cur_value[1]).'\')';
+                  pg_escape_string($this->link, $curValue[1]).'\')';
               break;
             } else {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "'.$this->prefix.'comparisons' .
                   $etype.'" WHERE "name"=\'' .
-                  pg_escape_string($this->link, $cur_value[0]) .
+                  pg_escape_string($this->link, $curValue[0]) .
                   '\' AND "string" ILIKE \'' .
-                  pg_escape_string($this->link, $cur_value[1]).'\')';
+                  pg_escape_string($this->link, $curValue[1]).'\')';
             }
             break;
           case 'pmatch':
           case '!pmatch':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   '(ie."cdate" ~ \'' .
-                  pg_escape_string($this->link, $cur_value[1]).'\')';
+                  pg_escape_string($this->link, $curValue[1]).'\')';
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   '(ie."mdate" ~ \'' .
-                  pg_escape_string($this->link, $cur_value[1]).'\')';
+                  pg_escape_string($this->link, $curValue[1]).'\')';
               break;
             } else {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "'.$this->prefix.'comparisons' .
                   $etype.'" WHERE "name"=\'' .
-                  pg_escape_string($this->link, $cur_value[0]) .
+                  pg_escape_string($this->link, $curValue[0]) .
                   '\' AND "string" ~ \'' .
-                  pg_escape_string($this->link, $cur_value[1]).'\')';
+                  pg_escape_string($this->link, $curValue[1]).'\')';
             }
             break;
           case 'ipmatch':
           case '!ipmatch':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   '(ie."cdate" ~* \'' .
-                  pg_escape_string($this->link, $cur_value[1]).'\')';
+                  pg_escape_string($this->link, $curValue[1]).'\')';
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   '(ie."mdate" ~* \'' .
-                  pg_escape_string($this->link, $cur_value[1]).'\')';
+                  pg_escape_string($this->link, $curValue[1]).'\')';
               break;
             } else {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "'.$this->prefix.'comparisons' .
                   $etype.'" WHERE "name"=\'' .
-                  pg_escape_string($this->link, $cur_value[0]) .
+                  pg_escape_string($this->link, $curValue[0]) .
                   '\' AND "string" ~* \'' .
-                  pg_escape_string($this->link, $cur_value[1]).'\')';
+                  pg_escape_string($this->link, $curValue[1]).'\')';
             }
             break;
           case 'match':
           case '!match':
             if ($this->usePLPerl) {
-              $lastslashpos = strrpos($cur_value[1], '/');
-              $regex = substr($cur_value[1], 1, $lastslashpos - 1);
-              $mods = substr($cur_value[1], $lastslashpos + 1) ?: '';
-              if ($cur_value[0] == 'cdate') {
-                if ($cur_query) {
-                  $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+              $lastslashpos = strrpos($curValue[1], '/');
+              $regex = substr($curValue[1], 1, $lastslashpos - 1);
+              $mods = substr($curValue[1], $lastslashpos + 1) ?: '';
+              if ($curValue[0] == 'cdate') {
+                if ($curQuery) {
+                  $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
                 }
-                $cur_query .=
-                    (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+                $curQuery .=
+                    (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                     $this->prefix.'match_perl(ie."cdate", \'' .
                     pg_escape_string($this->link, $regex) .
                     '\', \''.pg_escape_string($this->link, $mods).'\')';
                 break;
-              } elseif ($cur_value[0] == 'mdate') {
-                if ($cur_query) {
-                  $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+              } elseif ($curValue[0] == 'mdate') {
+                if ($curQuery) {
+                  $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
                 }
-                $cur_query .=
-                    (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+                $curQuery .=
+                    (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                     $this->prefix.'match_perl(ie."mdate", \'' .
                     pg_escape_string($this->link, $regex) .
                     '\', \''.pg_escape_string($this->link, $mods).'\')';
                 break;
               } else {
-                if ($cur_query) {
-                  $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+                if ($curQuery) {
+                  $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
                 }
-                $cur_query .=
-                    (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+                $curQuery .=
+                    (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                     'ie."guid" IN (SELECT "guid" FROM "' .
                     $this->prefix.'comparisons'.$etype .
                     '" WHERE "name"=\'' .
-                    pg_escape_string($this->link, $cur_value[0]) .
+                    pg_escape_string($this->link, $curValue[0]) .
                     '\' AND "string" IS NOT NULL AND ' .
                     $this->prefix.'match_perl("string", \'' .
                     pg_escape_string($this->link, $regex) .
                     '\', \''.pg_escape_string($this->link, $mods).'\'))';
               }
             } else {
-              if (!($type_is_not xor $clause_not)) {
-                if ($cur_query) {
-                  $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+              if (!($typeIsNot xor $clauseNot)) {
+                if ($curQuery) {
+                  $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
                 }
-                $cur_query .= '\'{' .
-                    pg_escape_string($this->link, $cur_value[0]) .
+                $curQuery .= '\'{' .
+                    pg_escape_string($this->link, $curValue[0]) .
                     '}\' <@ ie."varlist"';
               }
               // If usePLPerl is false, the query can't cover match clauses.
@@ -676,130 +676,130 @@ class PostgreSQLDriver implements DriverInterface {
             break;
           case 'gt':
           case '!gt':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."cdate">'.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."cdate">'.((float) $curValue[1]);
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."mdate">'.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."mdate">'.((float) $curValue[1]);
               break;
             } else {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .=
-                  (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .=
+                  (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "' .
                   $this->prefix.'comparisons'.$etype .
                   '" WHERE "name"=\'' .
-                  pg_escape_string($this->link, $cur_value[0]) . '\' AND ' .
+                  pg_escape_string($this->link, $curValue[0]) . '\' AND ' .
                   '(("is_int"=TRUE AND "int" IS NOT NULL AND "int" > ' .
-                  ((int) $cur_value[1]) . ') OR ' .
+                  ((int) $curValue[1]) . ') OR ' .
                   '("is_int"=FALSE AND "float" IS NOT NULL AND "float" > ' .
-                  ((float) $cur_value[1]) . ')))';
+                  ((float) $curValue[1]) . ')))';
             }
             break;
           case 'gte':
           case '!gte':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."cdate">='.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."cdate">='.((float) $curValue[1]);
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."mdate">='.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."mdate">='.((float) $curValue[1]);
               break;
             } else {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .=
-                  (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .=
+                  (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "' .
                   $this->prefix.'comparisons'.$etype .
                   '" WHERE "name"=\'' .
-                  pg_escape_string($this->link, $cur_value[0]) . '\' AND ' .
+                  pg_escape_string($this->link, $curValue[0]) . '\' AND ' .
                   '(("is_int"=TRUE AND "int" IS NOT NULL AND "int" >= ' .
-                  ((int) $cur_value[1]) . ') OR ' .
+                  ((int) $curValue[1]) . ') OR ' .
                   '("is_int"=FALSE AND "float" IS NOT NULL AND "float" >= ' .
-                  ((float) $cur_value[1]) . ')))';
+                  ((float) $curValue[1]) . ')))';
             }
             break;
           case 'lt':
           case '!lt':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."cdate"<'.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."cdate"<'.((float) $curValue[1]);
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."mdate"<'.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."mdate"<'.((float) $curValue[1]);
               break;
             } else {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .=
-                  (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .=
+                  (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "' .
                   $this->prefix.'comparisons'.$etype .
                   '" WHERE "name"=\'' .
-                  pg_escape_string($this->link, $cur_value[0]) . '\' AND ' .
+                  pg_escape_string($this->link, $curValue[0]) . '\' AND ' .
                   '(("is_int"=TRUE AND "int" IS NOT NULL AND "int" < ' .
-                  ((int) $cur_value[1]) . ') OR ' .
+                  ((int) $curValue[1]) . ') OR ' .
                   '("is_int"=FALSE AND "float" IS NOT NULL AND "float" < ' .
-                  ((float) $cur_value[1]) . ')))';
+                  ((float) $curValue[1]) . ')))';
             }
             break;
           case 'lte':
           case '!lte':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."cdate"<='.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."cdate"<='.((float) $curValue[1]);
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."mdate"<='.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."mdate"<='.((float) $curValue[1]);
               break;
             } else {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .=
-                  (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .=
+                  (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "' .
                   $this->prefix.'comparisons'.$etype .
                   '" WHERE "name"=\'' .
-                  pg_escape_string($this->link, $cur_value[0]) . '\' AND ' .
+                  pg_escape_string($this->link, $curValue[0]) . '\' AND ' .
                   '(("is_int"=TRUE AND "int" IS NOT NULL AND "int" <= ' .
-                  ((int) $cur_value[1]) . ') OR ' .
+                  ((int) $curValue[1]) . ') OR ' .
                   '("is_int"=FALSE AND "float" IS NOT NULL AND "float" <= ' .
-                  ((float) $cur_value[1]) . ')))';
+                  ((float) $curValue[1]) . ')))';
             }
             break;
           // Cases after this point contains special values where
@@ -809,81 +809,81 @@ class PostgreSQLDriver implements DriverInterface {
           case '!equal':
           case 'data':
           case '!data':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."cdate"='.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."cdate"='.((float) $curValue[1]);
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."mdate"='.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."mdate"='.((float) $curValue[1]);
               break;
-            } elseif ($cur_value[1] === true || $cur_value[1] === false) {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+            } elseif ($curValue[1] === true || $curValue[1] === false) {
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "'.
                   $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
-                  pg_escape_string($this->link, $cur_value[0]) .
+                  pg_escape_string($this->link, $curValue[0]) .
                   '\' AND "eq_true"=' .
-                  ($cur_value[1] ? 'TRUE' : 'FALSE').')';
+                  ($curValue[1] ? 'TRUE' : 'FALSE').')';
               break;
-            } elseif ($cur_value[1] === 1) {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+            } elseif ($curValue[1] === 1) {
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "'.
                   $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
-                  pg_escape_string($this->link, $cur_value[0]) .
+                  pg_escape_string($this->link, $curValue[0]) .
                   '\' AND "eq_one"=TRUE)';
               break;
-            } elseif ($cur_value[1] === 0) {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+            } elseif ($curValue[1] === 0) {
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "'.
                   $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
-                  pg_escape_string($this->link, $cur_value[0]) .
+                  pg_escape_string($this->link, $curValue[0]) .
                   '\' AND "eq_zero"=TRUE)';
               break;
-            } elseif ($cur_value[1] === -1) {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+            } elseif ($curValue[1] === -1) {
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "'.
                   $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
-                  pg_escape_string($this->link, $cur_value[0]) .
+                  pg_escape_string($this->link, $curValue[0]) .
                   '\' AND "eq_negone"=TRUE)';
               break;
-            } elseif ($cur_value[1] === []) {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+            } elseif ($curValue[1] === []) {
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "'.
                   $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
-                  pg_escape_string($this->link, $cur_value[0]) .
+                  pg_escape_string($this->link, $curValue[0]) .
                   '\' AND "eq_emptyarray"=TRUE)';
               break;
             }
             // Fall through.
           case 'array':
           case '!array':
-            if (!($type_is_not xor $clause_not)) {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if (!($typeIsNot xor $clauseNot)) {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= '\'{' .
-                  pg_escape_string($this->link, $cur_value[0]) .
+              $curQuery .= '\'{' .
+                  pg_escape_string($this->link, $curValue[0]) .
                   '}\' <@ ie."varlist"';
             }
             $fullQueryCoverage = false;
@@ -904,9 +904,9 @@ class PostgreSQLDriver implements DriverInterface {
         $sort = '"cdate"';
         break;
     }
-    if ($query_parts) {
+    if ($queryParts) {
       if ($subquery) {
-        $query = "((".implode(') AND (', $query_parts)."))";
+        $query = "((".implode(') AND (', $queryParts)."))";
       } else {
         $limit = "";
         if ($fullQueryCoverage && key_exists('limit', $options)) {
@@ -916,7 +916,7 @@ class PostgreSQLDriver implements DriverInterface {
         if ($fullQueryCoverage && key_exists('offset', $options)) {
           $offset = " OFFSET ".((int) $options['offset']);
         }
-        $query = "SELECT e.\"guid\", e.\"tags\", e.\"cdate\", e.\"mdate\", d.\"name\", d.\"value\" FROM \"{$this->prefix}entities{$etype}\" e LEFT JOIN \"{$this->prefix}data{$etype}\" d USING (\"guid\") INNER JOIN (SELECT \"guid\" FROM \"{$this->prefix}entities{$etype}\" ie WHERE (".implode(') AND (', $query_parts).") ORDER BY ie.".(isset($options['reverse']) && $options['reverse'] ? $sort.' DESC' : $sort)."{$limit}{$offset}) f USING (\"guid\");";
+        $query = "SELECT e.\"guid\", e.\"tags\", e.\"cdate\", e.\"mdate\", d.\"name\", d.\"value\" FROM \"{$this->prefix}entities{$etype}\" e LEFT JOIN \"{$this->prefix}data{$etype}\" d USING (\"guid\") INNER JOIN (SELECT \"guid\" FROM \"{$this->prefix}entities{$etype}\" ie WHERE (".implode(') AND (', $queryParts).") ORDER BY ie.".(isset($options['reverse']) && $options['reverse'] ? $sort.' DESC' : $sort)."{$limit}{$offset}) f USING (\"guid\");";
       }
     } else {
       if ($subquery) {
@@ -1022,8 +1022,8 @@ class PostgreSQLDriver implements DriverInterface {
         }
         $this->query($query, $etype);
       }
-    }, function ($name, $cur_uid) {
-      $this->query("DELETE FROM \"{$this->prefix}uids\" WHERE \"name\"='".pg_escape_string($this->link, $name)."'; INSERT INTO \"{$this->prefix}uids\" (\"name\", \"cur_uid\") VALUES ('".pg_escape_string($this->link, $name)."', ".((int) $cur_uid).");");
+    }, function ($name, $curUid) {
+      $this->query("DELETE FROM \"{$this->prefix}uids\" WHERE \"name\"='".pg_escape_string($this->link, $name)."'; INSERT INTO \"{$this->prefix}uids\" (\"name\", \"cur_uid\") VALUES ('".pg_escape_string($this->link, $name)."', ".((int) $curUid).");");
     }, function () {
       $this->query('BEGIN;');
     }, function () {
@@ -1040,17 +1040,17 @@ class PostgreSQLDriver implements DriverInterface {
     $this->query('BEGIN;');
     $result = $this->query("SELECT \"cur_uid\" FROM \"{$this->prefix}uids\" WHERE \"name\"='".pg_escape_string($this->link, $name)."' FOR UPDATE;");
     $row = pg_fetch_row($result);
-    $cur_uid = is_numeric($row[0]) ? (int) $row[0] : null;
+    $curUid = is_numeric($row[0]) ? (int) $row[0] : null;
     pg_free_result($result);
-    if (!is_int($cur_uid)) {
-      $cur_uid = 1;
-      $this->query("INSERT INTO \"{$this->prefix}uids\" (\"name\", \"cur_uid\") VALUES ('".pg_escape_string($this->link, $name)."', {$cur_uid});");
+    if (!is_int($curUid)) {
+      $curUid = 1;
+      $this->query("INSERT INTO \"{$this->prefix}uids\" (\"name\", \"cur_uid\") VALUES ('".pg_escape_string($this->link, $name)."', {$curUid});");
     } else {
-      $cur_uid++;
-      $this->query("UPDATE \"{$this->prefix}uids\" SET \"cur_uid\"={$cur_uid} WHERE \"name\"='".pg_escape_string($this->link, $name)."';");
+      $curUid++;
+      $this->query("UPDATE \"{$this->prefix}uids\" SET \"cur_uid\"={$curUid} WHERE \"name\"='".pg_escape_string($this->link, $name)."';");
     }
     $this->query('COMMIT;');
-    return $cur_uid;
+    return $curUid;
   }
 
   public function renameUID($oldName, $newName) {

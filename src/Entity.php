@@ -274,13 +274,13 @@ class Entity implements EntityInterface {
    * @return \Nymph\Entity The new instance.
    */
   public static function factory() {
-    $class = get_called_class();
+    $className = get_called_class();
     $args = func_get_args();
-    $reflector = new \ReflectionClass($class);
+    $reflector = new \ReflectionClass($className);
     $entity = $reflector->newInstanceArgs($args);
     // Use hook functionality when available.
     if (class_exists('\SciActive\Hook')) {
-      \SciActive\Hook::hookObject($entity, $class.'->', false);
+      \SciActive\Hook::hookObject($entity, $className.'->', false);
     }
     return $entity;
   }
@@ -295,13 +295,13 @@ class Entity implements EntityInterface {
    * @return \Nymph\Entity The new instance.
    */
   public static function factoryReference($reference) {
-    $class = $reference[2];
-    if (!class_exists($class)) {
+    $className = $reference[2];
+    if (!class_exists($className)) {
       throw new Exceptions\EntityClassNotFoundException(
-          "factoryReference called for a class that can't be found, $class."
+          "factoryReference called for a class that can't be found, $className."
       );
     }
-    $entity = call_user_func([$class, 'factory']);
+    $entity = call_user_func([$className, 'factory']);
     $entity->referenceSleep($reference);
     return $entity;
   }
@@ -340,15 +340,15 @@ class Entity implements EntityInterface {
       if ($this->data[$name][0] == 'nymph_entity_reference') {
         if ($this->entityCache[$name] === 0) {
           // The entity hasn't been loaded yet, so load it now.
-          $class = $this->data[$name][2];
-          if (!class_exists($class)) {
+          $className = $this->data[$name][2];
+          if (!class_exists($className)) {
             throw new Exceptions\EntityCorruptedException(
                 "Entity reference refers to a class that can't be found, " .
-                "$class."
+                "$className."
             );
           }
           $this->entityCache[$name] =
-              $class::factoryReference($this->data[$name]);
+              $className::factoryReference($this->data[$name]);
           $this->entityCache[$name]->useSkipAc($this->useSkipAc);
         }
         return $this->entityCache[$name];
@@ -364,11 +364,11 @@ class Entity implements EntityInterface {
     }
     // If it's not an entity, return the regular value.
     try {
-      if ((array) $this->data[$name] === $this->data[$name]) {
+      if (is_array($this->data[$name])) {
         // But, if it's an array, check all the values for entity references,
         // and change them.
         array_walk($this->data[$name], [$this, 'referenceToEntity']);
-      } elseif ((object) $this->data[$name] === $this->data[$name]
+      } elseif (is_object($this->data[$name])
                 && !(
                   (
                     is_a($this->data[$name], '\Nymph\Entity')
@@ -535,7 +535,7 @@ class Entity implements EntityInterface {
     if ($this->isASleepingReference) {
       $this->referenceWake();
     }
-    if ((array) $array !== $array) {
+    if (!is_array($array)) {
       return false;
     }
     foreach ($array as $key => $curEntity) {
@@ -560,7 +560,7 @@ class Entity implements EntityInterface {
 
     // Handle individual entities.
     foreach ($this->entityCache as $key => &$value) {
-      if (strpos($key, 'reference_guid: ') === 0) {
+      if (strpos($key, 'referenceGuid__') === 0) {
         // If it's from an array, remove it.
         unset($this->entityCache[$key]);
       } else {
@@ -597,8 +597,8 @@ class Entity implements EntityInterface {
     if ((is_a($item, '\Nymph\Entity') || is_a($item, '\SciActive\HookOverride'))
         && isset($item->guid) && is_callable([$item, 'toReference'])) {
       // This is an entity, so we should put it in the entity cache.
-      if (!isset($this->entityCache["reference_guid: {$item->guid}"])) {
-        $this->entityCache["reference_guid: {$item->guid}"] = clone $item;
+      if (!isset($this->entityCache["referenceGuid__{$item->guid}"])) {
+        $this->entityCache["referenceGuid__{$item->guid}"] = clone $item;
       }
       // Make a reference to the entity (its GUID and the class the entity was
       // loaded as).
@@ -669,7 +669,7 @@ class Entity implements EntityInterface {
     } elseif (is_array($item)) {
       // Recurse into lower arrays.
       return array_map([$this, 'getDataReference'], $item);
-    } elseif ((object) $item === $item) {
+    } elseif (is_object($item)) {
       foreach ($item as &$curProperty) {
         $curProperty = $this->getDataReference($curProperty);
       }
@@ -720,7 +720,7 @@ class Entity implements EntityInterface {
     if ($this->isASleepingReference) {
       $this->referenceWake();
     }
-    if ((array) $this->tags !== $this->tags) {
+    if (!is_array($this->tags)) {
       return false;
     }
     $tagArray = func_get_args();
@@ -809,38 +809,38 @@ class Entity implements EntityInterface {
       $this->referenceWake();
     }
 
-    foreach ($this->objectData as $var) {
-      if (isset($data[$var]) && (array) $data[$var] === $data) {
-        $data[$var] = (object) $data[$var];
+    foreach ($this->objectData as $name) {
+      if (isset($data[$name]) && (array) $data[$name] === $data) {
+        $data[$name] = (object) $data[$name];
       }
     }
 
     $privateData = [];
-    foreach ($this->privateData as $var) {
-      if (key_exists($var, $this->data) || key_exists($var, $this->sdata)) {
-        $privateData[$var] = $this->$var;
+    foreach ($this->privateData as $name) {
+      if (key_exists($name, $this->data) || key_exists($name, $this->sdata)) {
+        $privateData[$name] = $this->$name;
       }
-      if (key_exists($var, $data)) {
-        unset($data[$var]);
+      if (key_exists($name, $data)) {
+        unset($data[$name]);
       }
     }
 
     $protectedData = [];
-    foreach ($this->protectedData as $var) {
-      if (key_exists($var, $this->data) || key_exists($var, $this->sdata)) {
-        $protectedData[$var] = $this->$var;
+    foreach ($this->protectedData as $name) {
+      if (key_exists($name, $this->data) || key_exists($name, $this->sdata)) {
+        $protectedData[$name] = $this->$name;
       }
-      if (key_exists($var, $data)) {
-        unset($data[$var]);
+      if (key_exists($name, $data)) {
+        unset($data[$name]);
       }
     }
 
     $nonWhitelistData = [];
     if ($this->whitelistData !== false) {
       $nonWhitelistData = $this->getData(true);
-      foreach ($data as $var => $val) {
-        if (!in_array($var, $this->whitelistData)) {
-          unset($data[$var]);
+      foreach ($data as $name => $val) {
+        if (!in_array($name, $this->whitelistData)) {
+          unset($data[$name]);
         }
       }
     }
@@ -854,7 +854,7 @@ class Entity implements EntityInterface {
     if ($this->isASleepingReference) {
       $this->referenceWake();
     }
-    if ((array) $data !== $data) {
+    if (!is_array($data)) {
       $data = [];
     }
     // Erase the entity cache.
@@ -924,21 +924,21 @@ class Entity implements EntityInterface {
     }
     if (is_array($item)) {
       if (isset($item[0]) && $item[0] === 'nymph_entity_reference') {
-        if (!isset($this->entityCache["reference_guid: {$item[1]}"])) {
+        if (!isset($this->entityCache["referenceGuid__{$item[1]}"])) {
           if (!class_exists($item[2])) {
             throw new Exceptions\EntityClassNotFoundException(
                 "Tried to load entity reference that refers to a class that " .
                 "can't be found, {$item[2]}."
             );
           }
-          $this->entityCache["reference_guid: {$item[1]}"] =
+          $this->entityCache["referenceGuid__{$item[1]}"] =
               call_user_func([$item[2], 'factoryReference'], $item);
         }
-        $item = $this->entityCache["reference_guid: {$item[1]}"];
+        $item = $this->entityCache["referenceGuid__{$item[1]}"];
       } else {
         array_walk($item, [$this, 'referenceToEntity']);
       }
-    } elseif ((object) $item === $item
+    } elseif (is_object($item)
               && !(
                 (
                   is_a($item, '\Nymph\Entity')
@@ -1016,8 +1016,8 @@ class Entity implements EntityInterface {
     }
     foreach ($tagArray as $tag) {
       // Can't use array_search, because $tag may exist more than once.
-      foreach ($this->tags as $curKey => $cur_tag) {
-        if ($cur_tag === $tag) {
+      foreach ($this->tags as $curKey => $curTag) {
+        if ($curTag === $tag) {
           unset($this->tags[$curKey]);
         }
       }

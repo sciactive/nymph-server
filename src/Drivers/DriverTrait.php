@@ -201,28 +201,28 @@ trait DriverTrait {
       $typesAlreadyChecked = [],
       $dataValsAreadyChecked = []
   ) {
-    foreach ($selectors as $cur_selector) {
+    foreach ($selectors as $curSelector) {
       $pass = false;
-      foreach ($cur_selector as $key => $value) {
+      foreach ($curSelector as $key => $value) {
         if ($key === 0) {
           $type = $value;
-          $type_is_not = ($type == '!&' || $type == '!|');
-          $type_is_or = ($type == '|' || $type == '!|');
-          $pass = !$type_is_or;
+          $typeIsNot = ($type == '!&' || $type == '!|');
+          $typeIsOr = ($type == '|' || $type == '!|');
+          $pass = !$typeIsOr;
           continue;
         }
         if (is_numeric($key)) {
           $tmpArr = [$value];
           $pass = $this->checkData($data, $sdata, $tmpArr);
         } else {
-          $clause_not = $key[0] === '!';
+          $clauseNot = $key[0] === '!';
           if (in_array($key, $typesAlreadyChecked)) {
             // Skip because it has already been checked. (By the query.)
             $pass = true;
           } else {
             // Check if it doesn't pass any for &, check if it
             // passes any for |.
-            foreach ($value as $cur_value) {
+            foreach ($value as $curValue) {
               if ((($key === 'guid' || $key === '!guid') && !isset($guid))
                   || (($key === 'tag' || $key === '!tag') && !isset($tags))
                   || (
@@ -232,15 +232,15 @@ trait DriverTrait {
                       || $key === 'data'
                       || $key === '!data'
                     )
-                    && in_array($cur_value[1], $dataValsAreadyChecked, true)
+                    && in_array($curValue[1], $dataValsAreadyChecked, true)
                   )) {
                 // Skip because it has already been checked (by the query).
                 $pass = true;
               } else {
                 // Unserialize the data for this variable.
-                if (isset($sdata[$cur_value[0]])) {
-                  $data[$cur_value[0]] = unserialize($sdata[$cur_value[0]]);
-                  unset($sdata[$cur_value[0]]);
+                if (isset($sdata[$curValue[0]])) {
+                  $data[$curValue[0]] = unserialize($sdata[$curValue[0]]);
+                  unset($sdata[$curValue[0]]);
                 }
                 if ($key !== 'guid'
                     // && $key !== '!guid'
@@ -249,54 +249,54 @@ trait DriverTrait {
                     && substr($key, 0, 1) !== '!'
                     && !(
                       ($key === 'equal' || $key === 'data')
-                      && $cur_value[1] == false
+                      && $curValue[1] == false
                     )
                     // && !(
                     //   ($key === '!equal' || $key === '!data')
-                    //   && $cur_value[1] == true
+                    //   && $curValue[1] == true
                     // )
-                    && !key_exists($cur_value[0], $data)) {
+                    && !key_exists($curValue[0], $data)) {
                   $pass = false;
                 } else {
                   switch ($key) {
                     case 'guid':
                     case '!guid':
                       $pass = ( // <-- The outside parens are necessary!
-                          ($guid == $cur_value[0])
-                          xor ($type_is_not xor $clause_not));
+                          ($guid == $curValue[0])
+                          xor ($typeIsNot xor $clauseNot));
                       break;
                     case 'tag':
                     case '!tag':
                       $pass = (
-                          in_array($cur_value[0], $tags)
-                          xor ($type_is_not xor $clause_not));
+                          in_array($curValue[0], $tags)
+                          xor ($typeIsNot xor $clauseNot));
                       break;
                     case 'isset':
                     case '!isset':
                       $pass = (
-                          isset($data[$cur_value[0]])
-                          xor ($type_is_not xor $clause_not));
+                          isset($data[$curValue[0]])
+                          xor ($typeIsNot xor $clauseNot));
                       break;
                     case 'ref':
                     case '!ref':
                       $pass = (
                           (
-                            isset($data[$cur_value[0]])
+                            isset($data[$curValue[0]])
                             && $this->entityReferenceSearch(
-                                $data[$cur_value[0]],
-                                $cur_value[1]
+                                $data[$curValue[0]],
+                                $curValue[1]
                             )
                           )
-                          xor ($type_is_not xor $clause_not));
+                          xor ($typeIsNot xor $clauseNot));
                       break;
                     case 'strict':
                     case '!strict':
                       $pass = (
                           (
-                            isset($data[$cur_value[0]])
-                            && $data[$cur_value[0]] === $cur_value[1]
+                            isset($data[$curValue[0]])
+                            && $data[$curValue[0]] === $curValue[1]
                           )
-                          xor ($type_is_not xor $clause_not));
+                          xor ($typeIsNot xor $clauseNot));
                       break;
                     case 'equal':
                     case '!equal':
@@ -305,114 +305,114 @@ trait DriverTrait {
                       $pass = (
                           (
                             (
-                              !isset($data[$cur_value[0]])
-                              && $cur_value[1] == null
+                              !isset($data[$curValue[0]])
+                              && $curValue[1] == null
                             )
                             || (
-                              isset($data[$cur_value[0]])
-                              && $data[$cur_value[0]] == $cur_value[1]
+                              isset($data[$curValue[0]])
+                              && $data[$curValue[0]] == $curValue[1]
                             )
                           )
-                          xor ($type_is_not xor $clause_not));
+                          xor ($typeIsNot xor $clauseNot));
                       break;
                     case 'like':
                     case '!like':
                       $pass = (
                           (
-                              isset($data[$cur_value[0]])
+                              isset($data[$curValue[0]])
                               && preg_match(
                                   '/^' . str_replace(
                                       ['%', '_'],
                                       ['.*?', '.'],
                                       preg_quote(
-                                          $cur_value[1],
+                                          $curValue[1],
                                           '/'
                                       )
                                   ) . '$/',
-                                  $data[$cur_value[0]]
+                                  $data[$curValue[0]]
                               )
                           )
-                          xor ($type_is_not xor $clause_not));
+                          xor ($typeIsNot xor $clauseNot));
                       break;
                     case 'pmatch':
                     case '!pmatch':
                       // Convert a POSIX regex to a PCRE regex.
                       $pass = (
                           (
-                            isset($data[$cur_value[0]])
+                            isset($data[$curValue[0]])
                             && $this->posixRegexMatch(
-                                $cur_value[1],
-                                $data[$cur_value[0]]
+                                $curValue[1],
+                                $data[$curValue[0]]
                             )
                           )
-                          xor ($type_is_not xor $clause_not));
+                          xor ($typeIsNot xor $clauseNot));
                       break;
                     case 'match':
                     case '!match':
                       $pass = (
                           (
-                            isset($data[$cur_value[0]])
-                            && preg_match($cur_value[1], $data[$cur_value[0]])
+                            isset($data[$curValue[0]])
+                            && preg_match($curValue[1], $data[$curValue[0]])
                           )
-                          xor ($type_is_not xor $clause_not));
+                          xor ($typeIsNot xor $clauseNot));
                       break;
                     case 'gt':
                     case '!gt':
                       $pass = (
                           (
-                            isset($data[$cur_value[0]])
-                            && $data[$cur_value[0]] > $cur_value[1]
+                            isset($data[$curValue[0]])
+                            && $data[$curValue[0]] > $curValue[1]
                           )
-                          xor ($type_is_not xor $clause_not));
+                          xor ($typeIsNot xor $clauseNot));
                       break;
                     case 'gte':
                     case '!gte':
                       $pass = (
                           (
-                            isset($data[$cur_value[0]])
-                            && $data[$cur_value[0]] >= $cur_value[1]
+                            isset($data[$curValue[0]])
+                            && $data[$curValue[0]] >= $curValue[1]
                           )
-                          xor ($type_is_not xor $clause_not));
+                          xor ($typeIsNot xor $clauseNot));
                       break;
                     case 'lt':
                     case '!lt':
                       $pass = (
                           (
-                            isset($data[$cur_value[0]])
-                            && $data[$cur_value[0]] < $cur_value[1]
+                            isset($data[$curValue[0]])
+                            && $data[$curValue[0]] < $curValue[1]
                           )
-                          xor ($type_is_not xor $clause_not));
+                          xor ($typeIsNot xor $clauseNot));
                       break;
                     case 'lte':
                     case '!lte':
                       $pass = (
                           (
-                            isset($data[$cur_value[0]])
-                            && $data[$cur_value[0]] <= $cur_value[1]
+                            isset($data[$curValue[0]])
+                            && $data[$curValue[0]] <= $curValue[1]
                           )
-                          xor ($type_is_not xor $clause_not));
+                          xor ($typeIsNot xor $clauseNot));
                       break;
                     case 'array':
                     case '!array':
                       $pass = (
                           (
-                            isset($data[$cur_value[0]])
-                            && (array) $data[$cur_value[0]] ===
-                                $data[$cur_value[0]]
-                            && in_array($cur_value[1], $data[$cur_value[0]])
+                            isset($data[$curValue[0]])
+                            && (array) $data[$curValue[0]] ===
+                                $data[$curValue[0]]
+                            && in_array($curValue[1], $data[$curValue[0]])
                           )
-                          xor ($type_is_not xor $clause_not));
+                          xor ($typeIsNot xor $clauseNot));
                       break;
                   }
                 }
               }
-              if (!($type_is_or xor $pass)) {
+              if (!($typeIsOr xor $pass)) {
                 break;
               }
             }
           }
         }
-        if (!($type_is_or xor $pass)) {
+        if (!($typeIsOr xor $pass)) {
           break;
         }
       }
@@ -434,12 +434,12 @@ trait DriverTrait {
   }
 
   public function deleteEntity(&$entity) {
-    $class = get_class($entity);
-    $return = $this->deleteEntityByID($entity->guid, $class::ETYPE);
-    if ($return) {
+    $className = get_class($entity);
+    $ret = $this->deleteEntityByID($entity->guid, $className::ETYPE);
+    if ($ret) {
       $entity->guid = null;
     }
-    return $return;
+    return $ret;
   }
 
   /**
@@ -452,21 +452,21 @@ trait DriverTrait {
    * @access protected
    */
   protected function entityReferenceSearch($value, $entity) {
-    if ((array) $value !== $value && !$value instanceof Traversable) {
+    if (!is_array($value) && !($value instanceof Traversable)) {
       return false;
     }
     if (!isset($entity)) {
       throw new Exceptions\InvalidParametersException();
     }
     // Get the GUID, if the passed $entity is an object.
-    if ((array) $entity === $entity) {
-      foreach ($entity as &$cur_entity) {
-        if ((object) $cur_entity === $cur_entity) {
-          $cur_entity = $cur_entity->guid;
+    if (is_array($entity)) {
+      foreach ($entity as &$curEntity) {
+        if (is_object($curEntity)) {
+          $curEntity = $curEntity->guid;
         }
       }
-      unset($cur_entity);
-    } elseif ((object) $entity === $entity) {
+      unset($curEntity);
+    } elseif (is_object($entity)) {
       $entity = [$entity->guid];
     } else {
       $entity = [(int) $entity];
@@ -475,8 +475,8 @@ trait DriverTrait {
       return in_array($value[1], $entity);
     } else {
       // Search through multidimensional arrays looking for the reference.
-      foreach ($value as $cur_value) {
-        if ($this->entityReferenceSearch($cur_value, $entity)) {
+      foreach ($value as $curValue) {
+        if ($this->entityReferenceSearch($curValue, $entity)) {
           return true;
         }
       }
@@ -485,8 +485,8 @@ trait DriverTrait {
   }
 
   public function formatSelectors(&$selectors) {
-    foreach ($selectors as &$cur_selector) {
-      foreach ($cur_selector as $key => &$value) {
+    foreach ($selectors as &$curSelector) {
+      foreach ($curSelector as $key => &$value) {
         if ($key === 0) {
           continue;
         }
@@ -495,65 +495,65 @@ trait DriverTrait {
           $this->formatSelectors($tmpArr);
           $value = $tmpArr[0];
         } else {
-          if ((array) $value !== $value) {
+          if (!is_array($value)) {
             $value = [[$value]];
-          } elseif ((array) $value[0] !== $value[0]) {
+          } elseif (!is_array($value[0])) {
             $value = [$value];
           }
-          foreach ($value as &$cur_value) {
+          foreach ($value as &$curValue) {
             if (
-                (array) $cur_value === $cur_value
-                && isset($cur_value[2])
-                && $cur_value[1] === null
-                && is_string($cur_value[2])
+                is_array($curValue)
+                && isset($curValue[2])
+                && $curValue[1] === null
+                && is_string($curValue[2])
               ) {
-              $timestamp = @strtotime($cur_value[2]);
+              $timestamp = @strtotime($curValue[2]);
               if ($timestamp !== false) {
-                $cur_value[1] = $timestamp;
+                $curValue[1] = $timestamp;
               }
             }
           }
-          unset($cur_value);
+          unset($curValue);
         }
       }
       unset($value);
     }
-    unset($cur_selector);
+    unset($curSelector);
   }
 
   private function iterateSelectorsForQuery($selectors, $recurseCallback, $callback) {
-    $query_parts = [];
-    foreach ($selectors as $cur_selector) {
-      $cur_selector_query = '';
-      foreach ($cur_selector as $key => $value) {
+    $queryParts = [];
+    foreach ($selectors as $curSelector) {
+      $curSelectorQuery = '';
+      foreach ($curSelector as $key => $value) {
         if ($key === 0) {
           $type = $value;
-          $type_is_not = ($type == '!&' || $type == '!|');
-          $type_is_or = ($type == '|' || $type == '!|');
+          $typeIsNot = ($type == '!&' || $type == '!|');
+          $typeIsOr = ($type == '|' || $type == '!|');
           continue;
         }
-        $cur_query = '';
+        $curQuery = '';
         if (is_numeric($key)) {
-          if ($cur_query) {
-            $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+          if ($curQuery) {
+            $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
           }
-          $cur_query .= $recurseCallback($value);
+          $curQuery .= $recurseCallback($value);
         } else {
-          $callback($cur_query, $key, $value, $type_is_or, $type_is_not);
+          $callback($curQuery, $key, $value, $typeIsOr, $typeIsNot);
         }
-        if ($cur_query) {
-          if ($cur_selector_query) {
-            $cur_selector_query .= $type_is_or ? ' OR ' : ' AND ';
+        if ($curQuery) {
+          if ($curSelectorQuery) {
+            $curSelectorQuery .= $typeIsOr ? ' OR ' : ' AND ';
           }
-          $cur_selector_query .= $cur_query;
+          $curSelectorQuery .= $curQuery;
         }
       }
-      if ($cur_selector_query) {
-        $query_parts[] = $cur_selector_query;
+      if ($curSelectorQuery) {
+        $queryParts[] = $curSelectorQuery;
       }
     }
 
-    return $query_parts;
+    return $queryParts;
   }
 
   private function getEntitesRowLike(
@@ -589,14 +589,14 @@ trait DriverTrait {
     }
 
     $entities = [];
-    $class = $options['class'] ?? '\\Nymph\\Entity';
-    if (!class_exists($class)) {
+    $className = $options['class'] ?? '\\Nymph\\Entity';
+    if (!class_exists($className)) {
       throw new Exceptions\EntityClassNotFoundException(
-          "Query requested using a class that can't be found: $class."
+          "Query requested using a class that can't be found: $className."
       );
     }
-    $etypeDirty = $options['etype'] ?? $class::ETYPE;
-    $return = $options['return'] ?? 'entity';
+    $etypeDirty = $options['etype'] ?? $className::ETYPE;
+    $ret = $options['return'] ?? 'entity';
 
     $count = $ocount = 0;
 
@@ -611,7 +611,7 @@ trait DriverTrait {
             (count($selectors[1]) == 3 && isset($selectors[1]['tag']))
           )
         ) {
-        $entity = $this->pullCache($selectors[1]['guid'], $class);
+        $entity = $this->pullCache($selectors[1]['guid'], $className);
         if (isset($entity)
             && (
               !isset($selectors[1]['tag'])
@@ -672,16 +672,16 @@ trait DriverTrait {
           $ocount++;
           continue;
         }
-        switch ($return) {
+        switch ($ret) {
           case 'entity':
           default:
             if ($this->config['cache']) {
-              $entity = $this->pullCache($guid, $class);
+              $entity = $this->pullCache($guid, $className);
             } else {
               $entity = null;
             }
             if (!isset($entity) || $data['mdate'] > $entity->mdate) {
-              $entity = call_user_func([$class, 'factory']);
+              $entity = call_user_func([$className, 'factory']);
               $entity->guid = $guid;
               $entity->cdate = $data['cdate'];
               unset($data['cdate']);
@@ -692,7 +692,7 @@ trait DriverTrait {
               }
               $entity->putData($data, $sdata);
               if ($this->config['cache']) {
-                $this->pushCache($entity, $class);
+                $this->pushCache($entity, $className);
               }
             }
             if (isset($options['skip_ac'])) {
@@ -720,7 +720,7 @@ trait DriverTrait {
 
   public function getEntity($options = [], ...$selectors) {
     // Set up options and selectors.
-    if ((int) $selectors[0] === $selectors[0] || is_numeric($selectors[0])) {
+    if (is_int($selectors[0]) || is_numeric($selectors[0])) {
       $selectors[0] = ['&', 'guid' => (int) $selectors[0]];
     }
     $options['limit'] = 1;
@@ -749,8 +749,8 @@ trait DriverTrait {
     $data = $entity->getData();
     $sdata = $entity->getSData();
     $varlist = array_merge(array_keys($data), array_keys($sdata));
-    $class = is_callable([$entity, '_hookObject']) ? get_class($entity->_hookObject()) : get_class($entity);
-    $etypeDirty = $class::ETYPE;
+    $className = is_callable([$entity, '_hookObject']) ? get_class($entity->_hookObject()) : get_class($entity);
+    $etypeDirty = $className::ETYPE;
     $etype = $formatEtypeCallback($etypeDirty);
     if ($startTransactionCallback) {
       $startTransactionCallback();
@@ -759,16 +759,16 @@ trait DriverTrait {
       while (true) {
         // 2^53 is the maximum number in JavaScript
         // (http://ecma262-5.com/ELS5_HTML.htm#Section_8.5)
-        $new_id = mt_rand(1, pow(2, 53));
+        $newId = mt_rand(1, pow(2, 53));
         // That number might be too big on some machines. :(
-        if ($new_id < 1) {
-          $new_id = rand(1, 0x7FFFFFFF);
+        if ($newId < 1) {
+          $newId = rand(1, 0x7FFFFFFF);
         }
-        if ($checkGUIDCallback($new_id)) {
+        if ($checkGUIDCallback($newId)) {
           break;
         }
       }
-      $entity->guid = $new_id;
+      $entity->guid = $newId;
       $saveNewEntityCallback($entity, $data, $sdata, $varlist, $etype, $etypeDirty);
     } else {
       // Removed any cached versions of this entity.
@@ -782,7 +782,7 @@ trait DriverTrait {
     }
     // Cache the entity.
     if ($this->config['cache']) {
-      $this->pushCache($entity, $class);
+      $this->pushCache($entity, $className);
     }
     return true;
   }
@@ -791,18 +791,18 @@ trait DriverTrait {
    * Pull an entity from the cache.
    *
    * @param int $guid The entity's GUID.
-   * @param string $class The entity's class.
+   * @param string $className The entity's class.
    * @return Entity|null The entity or null if it's not cached.
    * @access protected
    */
-  protected function pullCache($guid, $class) {
+  protected function pullCache($guid, $className) {
     // Increment the entity access count.
     if (!isset($this->entityCount[$guid])) {
       $this->entityCount[$guid] = 0;
     }
     $this->entityCount[$guid]++;
-    if (isset($this->entityCache[$guid][$class])) {
-      return (clone $this->entityCache[$guid][$class]);
+    if (isset($this->entityCache[$guid][$className])) {
+      return (clone $this->entityCache[$guid][$className]);
     }
     return null;
   }
@@ -811,10 +811,10 @@ trait DriverTrait {
    * Push an entity onto the cache.
    *
    * @param Entity &$entity The entity to push onto the cache.
-   * @param string $class The class of the entity.
+   * @param string $className The class of the entity.
    * @access protected
    */
-  protected function pushCache(&$entity, $class) {
+  protected function pushCache(&$entity, $className) {
     if (!isset($entity->guid)) {
       return;
     }
@@ -830,7 +830,7 @@ trait DriverTrait {
     // Cache the entity.
     if ((array) $this->entityCache[$entity->guid] ===
         $this->entityCache[$entity->guid]) {
-      $this->entityCache[$entity->guid][$class] = clone $entity;
+      $this->entityCache[$entity->guid][$className] = clone $entity;
     } else {
       while ($this->config['cache_limit']
           && count($this->entityCache) >= $this->config['cache_limit']) {
@@ -846,9 +846,9 @@ trait DriverTrait {
           unset($this->entityCache[$key]);
         }
       }
-      $this->entityCache[$entity->guid] = [$class => (clone $entity)];
+      $this->entityCache[$entity->guid] = [$className => (clone $entity)];
     }
-    $this->entityCache[$entity->guid][$class]->clearCache();
+    $this->entityCache[$entity->guid][$className]->clearCache();
   }
 
   public function hsort(
@@ -864,48 +864,48 @@ trait DriverTrait {
       return;
     }
     // Now sort by children.
-    $new_array = [];
+    $newArray = [];
     while ($array) {
       // Look for entities ready to go in order.
       $changed = false;
-      foreach ($array as $key => &$cur_entity) {
+      foreach ($array as $key => &$curEntity) {
         // Must break after adding one, so any following children don't go in
         // the wrong order.
-        if (!isset($cur_entity->$parentProperty)
-            || !$cur_entity->$parentProperty->inArray(
-                array_merge($new_array, $array)
+        if (!isset($curEntity->$parentProperty)
+            || !$curEntity->$parentProperty->inArray(
+                array_merge($newArray, $array)
             )) {
           // If they have no parent (or their parent isn't in the array), they
           // go on the end.
-          $new_array[] = $cur_entity;
+          $newArray[] = $curEntity;
           unset($array[$key]);
           $changed = true;
           break;
         } else {
           // Else find the parent.
-          $pkey = $cur_entity->$parentProperty->arraySearch($new_array);
+          $pkey = $curEntity->$parentProperty->arraySearch($newArray);
           if ($pkey !== false) {
             // And insert after the parent.
             // This makes entities go to the end of the child list.
             $ancestry = [$array[$key]->$parentProperty];
-            $new_key = $pkey;
-            while (isset($new_array[$new_key + 1])
-                && isset($new_array[$new_key + 1]->$parentProperty)
-                && $new_array[$new_key + 1]->$parentProperty->inArray(
+            $newKey = $pkey;
+            while (isset($newArray[$newKey + 1])
+                && isset($newArray[$newKey + 1]->$parentProperty)
+                && $newArray[$newKey + 1]->$parentProperty->inArray(
                     $ancestry
                 )) {
-              $ancestry[] = $new_array[$new_key + 1];
-              $new_key += 1;
+              $ancestry[] = $newArray[$newKey + 1];
+              $newKey += 1;
             }
             // Where to place the entity.
-            $new_key += 1;
-            if (isset($new_array[$new_key])) {
+            $newKey += 1;
+            if (isset($newArray[$newKey])) {
               // If it already exists, we have to splice it in.
-              array_splice($new_array, $new_key, 0, [$cur_entity]);
-              $new_array = array_values($new_array);
+              array_splice($newArray, $newKey, 0, [$curEntity]);
+              $newArray = array_values($newArray);
             } else {
               // Else just add it.
-              $new_array[$new_key] = $cur_entity;
+              $newArray[$newKey] = $curEntity;
             }
             unset($array[$key]);
             $changed = true;
@@ -913,16 +913,16 @@ trait DriverTrait {
           }
         }
       }
-      unset($cur_entity);
+      unset($curEntity);
       if (!$changed) {
         // If there are any unexpected errors and the array isn't changed, just
         // stick the rest on the end.
-        $entities_left = array_splice($array, 0);
-        $new_array = array_merge($new_array, $entities_left);
+        $entitiesLeft = array_splice($array, 0);
+        $newArray = array_merge($newArray, $entitiesLeft);
       }
     }
     // Now push the new array out.
-    $array = array_values($new_array);
+    $array = array_values($newArray);
   }
 
   public function psort(

@@ -131,21 +131,21 @@ class REST {
       $args = json_decode($data, true);
       array_walk($args['params'], [$this, 'referenceToEntity']);
       if (isset($args['static']) && $args['static']) {
-        $class = $args['class'];
-        if (!class_exists($class)
-            || !isset($class::$clientEnabledStaticMethods)) {
+        $className = $args['class'];
+        if (!class_exists($className)
+            || !isset($className::$clientEnabledStaticMethods)) {
           return $this->httpError(400, 'Bad Request');
         }
-        if (!in_array($args['method'], $class::$clientEnabledStaticMethods)) {
+        if (!in_array($args['method'], $className::$clientEnabledStaticMethods)) {
           return $this->httpError(403, 'Forbidden');
         }
         try {
-          $return = call_user_func_array(
-              [$class, $args['method']],
+          $ret = call_user_func_array(
+              [$className, $args['method']],
               $args['params']
           );
           header('Content-Type: application/json');
-          echo json_encode(['return' => $return]);
+          echo json_encode(['return' => $ret]);
         } catch (\Exception $e) {
           return $this->httpError(500, 'Internal Server Error', $e);
         }
@@ -160,12 +160,12 @@ class REST {
           return $this->httpError(403, 'Forbidden');
         }
         try {
-          $return = call_user_func_array(
+          $ret = call_user_func_array(
               [$entity, $args['method']],
               $args['params']
           );
           header('Content-Type: application/json');
-          echo json_encode(['entity' => $entity, 'return' => $return]);
+          echo json_encode(['entity' => $entity, 'return' => $ret]);
         } catch (\Exception $e) {
           return $this->httpError(500, 'Internal Server Error', $e);
         }
@@ -333,10 +333,10 @@ class REST {
    *
    * Also filter out clauses that use restricted properties.
    */
-  public static function translateSelector($class, $selector) {
+  public static function translateSelector($className, $selector) {
     $restricted = [];
-    if (isset($class::$searchRestrictedData)) {
-      $restricted = $class::$searchRestrictedData;
+    if (isset($className::$searchRestrictedData)) {
+      $restricted = $className::$searchRestrictedData;
     }
     // Filter clauses that are restricted for frontend searches.
     $filterClauses = function ($clause, $value) use ($restricted) {
@@ -374,7 +374,7 @@ class REST {
               isset($val[0])
               && in_array($val[0], ['&', '!&', '|', '!|'])
             )) {
-          $tmpSel = self::translateSelector($class, $val);
+          $tmpSel = self::translateSelector($className, $val);
           if ($tmpSel === false) {
             return false;
           }
@@ -468,13 +468,13 @@ class REST {
    * @access private
    */
   private function referenceToEntity(&$item, $key) {
-    if ((array) $item === $item) {
+    if (is_array($item)) {
       if (isset($item[0]) && $item[0] === 'nymph_entity_reference') {
         $item = call_user_func([$item[2], 'factoryReference'], $item);
       } else {
         array_walk($item, [$this, 'referenceToEntity']);
       }
-    } elseif ((object) $item === $item
+    } elseif (is_object($item)
               && !(
                 (
                   is_a($item, '\Nymph\Entity')
@@ -483,10 +483,10 @@ class REST {
                 && is_callable([$item, 'toReference'])
               )) {
       // Only do this for non-entity objects.
-      foreach ($item as &$cur_property) {
-        $this->referenceToEntity($cur_property, null);
+      foreach ($item as &$curProperty) {
+        $this->referenceToEntity($curProperty, null);
       }
-      unset($cur_property);
+      unset($curProperty);
     }
   }
 }

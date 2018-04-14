@@ -6,10 +6,10 @@ require file_exists(__DIR__.'/../vendor/autoload.php')
     ? __DIR__.'/../vendor/autoload.php'
     : __DIR__.'/../../autoload-dev.php';
 
-$nymph_config = [];
+$nymphConfig = [];
 if (getenv('DATABASE_MYSQL')) {
   $dbopts = parse_url(getenv('DATABASE_MYSQL'));
-  $nymph_config['MySQL'] = [
+  $nymphConfig['MySQL'] = [
     'database' => ltrim($dbopts["path"], '/'),
     'host' => $dbopts["host"],
     'port' => $dbopts["port"],
@@ -17,7 +17,7 @@ if (getenv('DATABASE_MYSQL')) {
     'password' => key_exists("pass", $dbopts) ? $dbopts["pass"] : ''
   ];
 } else {
-  $nymph_config['MySQL'] = [
+  $nymphConfig['MySQL'] = [
     'host' => '127.0.0.1',
     'database' => 'nymph_testing',
     'user' => 'nymph_testing',
@@ -25,9 +25,9 @@ if (getenv('DATABASE_MYSQL')) {
   ];
 }
 
-$nymph_config['pubsub'] = false;
+$nymphConfig['pubsub'] = false;
 
-\Nymph\Nymph::configure($nymph_config);
+\Nymph\Nymph::configure($nymphConfig);
 
 require_once 'TestModel.php';
 require_once 'TestBModel.php';

@@ -6,7 +6,7 @@ class ExportImportTest extends \PHPUnit\Framework\TestCase {
 
   public function testDeleteOldTestData() {
     $all = Nymph::getEntities(['class' => 'NymphTesting\TestModel']);
-    $this->assertTrue((array) $all === $all);
+    $this->assertTrue(is_array($all));
     foreach ($all as $cur) {
       $this->assertTrue($cur->delete());
     }
@@ -15,7 +15,7 @@ class ExportImportTest extends \PHPUnit\Framework\TestCase {
     $this->assertEmpty($all);
 
     $all = Nymph::getEntities(['class' => 'NymphTesting\TestBModel']);
-    $this->assertTrue((array) $all === $all);
+    $this->assertTrue(is_array($all));
     foreach ($all as $cur) {
       $this->assertTrue($cur->delete());
     }
@@ -44,17 +44,17 @@ class ExportImportTest extends \PHPUnit\Framework\TestCase {
       $testEntity->string = 'test';
       $testEntity->array = ['full', 'of', 'values', 500];
       $testEntity->number = 30;
-      $testEntity->number_float = 30.5;
+      $testEntity->numberFloat = 30.5;
       $testEntity->timestamp = time();
       $testEntity->index = $i.'a';
 
-      $entity_reference_test = new $class();
-      $entity_reference_test->string = 'another';
-      $entity_reference_test->index = $i.'b';
+      $entityReferenceTest = new $class();
+      $entityReferenceTest->string = 'another';
+      $entityReferenceTest->index = $i.'b';
 
-      $this->assertTrue($entity_reference_test->save());
-      $testEntity->reference = $entity_reference_test;
-      $testEntity->ref_array = [0 => ['entity' => $entity_reference_test]];
+      $this->assertTrue($entityReferenceTest->save());
+      $testEntity->reference = $entityReferenceTest;
+      $testEntity->refArray = [0 => ['entity' => $entityReferenceTest]];
 
       $this->assertTrue($testEntity->save());
     }
@@ -80,15 +80,15 @@ class ExportImportTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals('test', $model->string);
         $this->assertEquals(['full', 'of', 'values', 500], $model->array);
         $this->assertEquals(30, $model->number);
-        $this->assertEquals(30.5, $model->number_float);
+        $this->assertEquals(30.5, $model->numberFloat);
         $this->assertGreaterThanOrEqual(strtotime('-2 minutes'), $model->timestamp);
         $this->assertRegExp('/^\d+a$/', $model->index);
 
         $this->assertNotNull($model->reference->guid);
         $this->assertEquals('another', $model->reference->string);
         $this->assertRegExp('/^\d+b$/', $model->reference->index);
-        $this->assertNotNull($model->ref_array[0]['entity']->guid);
-        $this->assertEquals($model->reference->guid, $model->ref_array[0]['entity']->guid);
+        $this->assertNotNull($model->refArray[0]['entity']->guid);
+        $this->assertEquals($model->reference->guid, $model->refArray[0]['entity']->guid);
       }
     }
   }

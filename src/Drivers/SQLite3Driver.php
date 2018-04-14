@@ -53,15 +53,15 @@ class SQLite3Driver implements DriverInterface {
       );
     }
     $filename = $this->config['SQLite3']['filename'];
-    $busy_timeout = $this->config['SQLite3']['busy_timeout'];
-    $open_flags = $this->config['SQLite3']['open_flags'];
-    $encryption_key = $this->config['SQLite3']['encryption_key'];
+    $busyTimeout = $this->config['SQLite3']['busy_timeout'];
+    $openFlags = $this->config['SQLite3']['open_flags'];
+    $encryptionKey = $this->config['SQLite3']['encryption_key'];
     // Connecting
     if (!$this->connected) {
-      $this->link = new SQLite3($filename, $open_flags, $encryption_key);
+      $this->link = new SQLite3($filename, $openFlags, $encryptionKey);
       if ($this->link) {
         $this->connected = true;
-        $this->link->busyTimeout($busy_timeout);
+        $this->link->busyTimeout($busyTimeout);
         // Set database and connection options.
         $this->link->exec("PRAGMA encoding = \"UTF-8\";");
         $this->link->exec("PRAGMA foreign_keys = 1;");
@@ -294,7 +294,7 @@ class SQLite3Driver implements DriverInterface {
     $fullQueryCoverage = true;
     $sort = $options['sort'] ?? 'cdate';
     $etype = '_'.SQLite3::escapeString($etypeDirty);
-    $query_parts = $this->iterateSelectorsForQuery($selectors, function ($value) use ($options, $etypeDirty, &$fullQueryCoverage) {
+    $queryParts = $this->iterateSelectorsForQuery($selectors, function ($value) use ($options, $etypeDirty, &$fullQueryCoverage) {
       $subquery = $this->makeEntityQuery(
           $options,
           [$value],
@@ -303,131 +303,131 @@ class SQLite3Driver implements DriverInterface {
       );
       $fullQueryCoverage = $fullQueryCoverage && $subquery['fullCoverage'];
       return $subquery['query'];
-    }, function (&$cur_query, $key, $value, $type_is_or, $type_is_not) use ($etype, &$fullQueryCoverage) {
-      $clause_not = $key[0] === '!';
+    }, function (&$curQuery, $key, $value, $typeIsOr, $typeIsNot) use ($etype, &$fullQueryCoverage) {
+      $clauseNot = $key[0] === '!';
       // Any options having to do with data only return if the
       // entity has the specified variables.
-      foreach ($value as $cur_value) {
+      foreach ($value as $curValue) {
         switch ($key) {
           case 'guid':
           case '!guid':
-            foreach ($cur_value as $cur_guid) {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            foreach ($curValue as $curGuid) {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."guid"='.(int) $cur_guid;
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."guid"='.(int) $curGuid;
             }
             break;
           case 'tag':
           case '!tag':
-            foreach ($cur_value as $cur_tag) {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            foreach ($curValue as $curTag) {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."tags" LIKE \'%,' .
                   str_replace(
                       ['%', '_', ':'],
                       [':%', ':_', '::'],
-                      SQLite3::escapeString($cur_tag)
+                      SQLite3::escapeString($curTag)
                   ) . ',%\' ESCAPE \':\'';
             }
             break;
           case 'isset':
           case '!isset':
-            foreach ($cur_value as $cur_var) {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            foreach ($curValue as $curVar) {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= '(' .
-                  (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= '(' .
+                  (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."varlist" LIKE \'%,' .
                   str_replace(
                       ['%', '_', ':'],
                       [':%', ':_', '::'],
-                      SQLite3::escapeString($cur_var)
+                      SQLite3::escapeString($curVar)
                   ) . ',%\' ESCAPE \':\'';
-              if ($type_is_not xor $clause_not) {
-                $cur_query .= ' OR ie."guid" IN (SELECT "guid" FROM "' .
+              if ($typeIsNot xor $clauseNot) {
+                $curQuery .= ' OR ie."guid" IN (SELECT "guid" FROM "' .
                     $this->prefix.'data'.$etype.'" WHERE "name"=\'' .
-                    SQLite3::escapeString($cur_var) .
+                    SQLite3::escapeString($curVar) .
                     '\' AND "value"=\'N;\')';
               }
-              $cur_query .= ')';
+              $curQuery .= ')';
             }
             break;
           case 'ref':
           case '!ref':
             $guids = [];
-            if ((array) $cur_value[1] === $cur_value[1]) {
-              if (key_exists('guid', $cur_value[1])) {
-                $guids[] = (int) $cur_value[1]['guid'];
+            if (is_array($curValue[1])) {
+              if (key_exists('guid', $curValue[1])) {
+                $guids[] = (int) $curValue[1]['guid'];
               } else {
-                foreach ($cur_value[1] as $cur_entity) {
-                  if ((object) $cur_entity === $cur_entity) {
-                    $guids[] = (int) $cur_entity->guid;
-                  } elseif ((array) $cur_entity === $cur_entity) {
-                    $guids[] = (int) $cur_entity['guid'];
+                foreach ($curValue[1] as $curEntity) {
+                  if (is_object($curEntity)) {
+                    $guids[] = (int) $curEntity->guid;
+                  } elseif (is_array($curEntity)) {
+                    $guids[] = (int) $curEntity['guid'];
                   } else {
-                    $guids[] = (int) $cur_entity;
+                    $guids[] = (int) $curEntity;
                   }
                 }
               }
-            } elseif ((object) $cur_value[1] === $cur_value[1]) {
-              $guids[] = (int) $cur_value[1]->guid;
+            } elseif (is_object($curValue[1])) {
+              $guids[] = (int) $curValue[1]->guid;
             } else {
-              $guids[] = (int) $cur_value[1];
+              $guids[] = (int) $curValue[1];
             }
             if ($guids) {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "' .
                   $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
-                  SQLite3::escapeString($cur_value[0]).'\' AND (';
-              $cur_query .= '"references" LIKE \'%,';
-              $cur_query .=
+                  SQLite3::escapeString($curValue[0]).'\' AND (';
+              $curQuery .= '"references" LIKE \'%,';
+              $curQuery .=
                   implode(
                       ',%\' ESCAPE \':\'' .
-                          ($type_is_or ? ' OR ' : ' AND ') .
+                          ($typeIsOr ? ' OR ' : ' AND ') .
                           '"references" LIKE \'%,',
                       $guids
                   );
-              $cur_query .= ',%\' ESCAPE \':\'';
-              $cur_query .= '))';
+              $curQuery .= ',%\' ESCAPE \':\'';
+              $curQuery .= '))';
             }
             break;
           case 'strict':
           case '!strict':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."cdate"='.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."cdate"='.((float) $curValue[1]);
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."mdate"='.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."mdate"='.((float) $curValue[1]);
               break;
             } else {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              if (is_callable([$cur_value[1], 'toReference'])) {
-                $svalue = serialize($cur_value[1]->toReference());
+              if (is_callable([$curValue[1], 'toReference'])) {
+                $svalue = serialize($curValue[1]->toReference());
               } else {
-                $svalue = serialize($cur_value[1]);
+                $svalue = serialize($curValue[1]);
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "'.$this->prefix.'data' .
                   $etype.'" WHERE "name"=\'' .
-                  SQLite3::escapeString($cur_value[0]) .
+                  SQLite3::escapeString($curValue[0]) .
                   '\' AND "value"=\'' .
                   SQLite3::escapeString(
                       (
@@ -440,287 +440,287 @@ class SQLite3Driver implements DriverInterface {
             break;
           case 'like':
           case '!like':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   '(ie."cdate" LIKE \'' .
-                  SQLite3::escapeString($cur_value[1]) .
+                  SQLite3::escapeString($curValue[1]) .
                   '\' ESCAPE \'\\\')';
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   '(ie."mdate" LIKE \'' .
-                  SQLite3::escapeString($cur_value[1]) .
+                  SQLite3::escapeString($curValue[1]) .
                   '\' ESCAPE \'\\\')';
               break;
             } else {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "' .
                   $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
-                  SQLite3::escapeString($cur_value[0]) .
+                  SQLite3::escapeString($curValue[0]) .
                   '\' AND "string" LIKE \'' .
-                  SQLite3::escapeString($cur_value[1]) .
+                  SQLite3::escapeString($curValue[1]) .
                   '\' ESCAPE \'\\\')';
             }
             break;
           case 'ilike':
           case '!ilike':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   '(ie."cdate" LIKE \'' .
-                  SQLite3::escapeString($cur_value[1]) .
+                  SQLite3::escapeString($curValue[1]) .
                   '\' ESCAPE \'\\\')';
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   '(ie."mdate" LIKE \'' .
-                  SQLite3::escapeString($cur_value[1]) .
+                  SQLite3::escapeString($curValue[1]) .
                   '\' ESCAPE \'\\\')';
               break;
             } else {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "' .
                   $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
-                  SQLite3::escapeString($cur_value[0]) .
+                  SQLite3::escapeString($curValue[0]) .
                   '\' AND lower("string") LIKE lower(\'' .
-                  SQLite3::escapeString($cur_value[1]) .
+                  SQLite3::escapeString($curValue[1]) .
                   '\') ESCAPE \'\\\')';
             }
             break;
           case 'pmatch':
           case '!pmatch':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   '(ie."cdate" REGEXP \'' .
-                  SQLite3::escapeString($cur_value[1]).'\')';
+                  SQLite3::escapeString($curValue[1]).'\')';
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   '(ie."mdate" REGEXP \'' .
-                  SQLite3::escapeString($cur_value[1]).'\')';
+                  SQLite3::escapeString($curValue[1]).'\')';
               break;
             } else {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "' .
                   $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
-                  SQLite3::escapeString($cur_value[0]) .
+                  SQLite3::escapeString($curValue[0]) .
                   '\' AND "string" REGEXP \'' .
-                  SQLite3::escapeString($cur_value[1]).'\')';
+                  SQLite3::escapeString($curValue[1]).'\')';
             }
             break;
           case 'ipmatch':
           case '!ipmatch':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   '(ie."cdate" REGEXP \'' .
-                  SQLite3::escapeString($cur_value[1]).'\')';
+                  SQLite3::escapeString($curValue[1]).'\')';
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   '(ie."mdate" REGEXP \'' .
-                  SQLite3::escapeString($cur_value[1]).'\')';
+                  SQLite3::escapeString($curValue[1]).'\')';
               break;
             } else {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "' .
                   $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
-                  SQLite3::escapeString($cur_value[0]) .
+                  SQLite3::escapeString($curValue[0]) .
                   '\' AND lower("string") REGEXP lower(\'' .
-                  SQLite3::escapeString($cur_value[1]).'\'))';
+                  SQLite3::escapeString($curValue[1]).'\'))';
             }
             break;
           case 'match':
           case '!match':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .=
-                  (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'preg_match(\'' . SQLite3::escapeString($cur_value[1]) .
+              $curQuery .=
+                  (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'preg_match(\'' . SQLite3::escapeString($curValue[1]) .
                   '\', ie."cdate")';
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .=
-                  (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'preg_match(\'' . SQLite3::escapeString($cur_value[1]) .
+              $curQuery .=
+                  (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'preg_match(\'' . SQLite3::escapeString($curValue[1]) .
                   '\', ie."mdate")';
               break;
             } else {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .=
-                  (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .=
+                  (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "' .
                   $this->prefix.'comparisons'.$etype .
                   '" WHERE "name"=\'' .
-                  SQLite3::escapeString($cur_value[0]) .
+                  SQLite3::escapeString($curValue[0]) .
                   '\' AND "string" IS NOT NULL AND ' .
-                  'preg_match(\'' . SQLite3::escapeString($cur_value[1]) .
+                  'preg_match(\'' . SQLite3::escapeString($curValue[1]) .
                   '\', "string"))';
             }
             break;
           case 'gt':
           case '!gt':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."cdate">'.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."cdate">'.((float) $curValue[1]);
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."mdate">'.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."mdate">'.((float) $curValue[1]);
               break;
             } else {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .=
-                  (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .=
+                  (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "' .
                   $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
-                  SQLite3::escapeString($cur_value[0]) . '\' AND ' .
+                  SQLite3::escapeString($curValue[0]) . '\' AND ' .
                   '(("is_int"=\'1\' AND "int" IS NOT NULL AND "int" > ' .
-                  ((int) $cur_value[1]) . ') OR (' .
+                  ((int) $curValue[1]) . ') OR (' .
                   'NOT "is_int"=\'1\' AND "float" IS NOT NULL AND "float" > ' .
-                  ((float) $cur_value[1]) . ')))';
+                  ((float) $curValue[1]) . ')))';
             }
             break;
           case 'gte':
           case '!gte':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."cdate">='.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."cdate">='.((float) $curValue[1]);
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."mdate">='.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."mdate">='.((float) $curValue[1]);
               break;
             } else {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .=
-                  (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .=
+                  (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "' .
                   $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
-                  SQLite3::escapeString($cur_value[0]) . '\' AND ' .
+                  SQLite3::escapeString($curValue[0]) . '\' AND ' .
                   '(("is_int"=\'1\' AND "int" IS NOT NULL AND "int" >= ' .
-                  ((int) $cur_value[1]) . ') OR (' .
+                  ((int) $curValue[1]) . ') OR (' .
                   'NOT "is_int"=\'1\' AND "float" IS NOT NULL AND "float" >= ' .
-                  ((float) $cur_value[1]) . ')))';
+                  ((float) $curValue[1]) . ')))';
             }
             break;
           case 'lt':
           case '!lt':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."cdate"<'.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."cdate"<'.((float) $curValue[1]);
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."mdate"<'.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."mdate"<'.((float) $curValue[1]);
               break;
             } else {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .=
-                  (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .=
+                  (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "' .
                   $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
-                  SQLite3::escapeString($cur_value[0]) . '\' AND ' .
+                  SQLite3::escapeString($curValue[0]) . '\' AND ' .
                   '(("is_int"=\'1\' AND "int" IS NOT NULL AND "int" < ' .
-                  ((int) $cur_value[1]) . ') OR (' .
+                  ((int) $curValue[1]) . ') OR (' .
                   'NOT "is_int"=\'1\' AND "float" IS NOT NULL AND "float" < ' .
-                  ((float) $cur_value[1]) . ')))';
+                  ((float) $curValue[1]) . ')))';
             }
             break;
           case 'lte':
           case '!lte':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."cdate"<='.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."cdate"<='.((float) $curValue[1]);
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."mdate"<='.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."mdate"<='.((float) $curValue[1]);
               break;
             } else {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .=
-                  (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .=
+                  (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "' .
                   $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
-                  SQLite3::escapeString($cur_value[0]) . '\' AND ' .
+                  SQLite3::escapeString($curValue[0]) . '\' AND ' .
                   '(("is_int"=\'1\' AND "int" IS NOT NULL AND "int" <= ' .
-                  ((int) $cur_value[1]) . ') OR (' .
+                  ((int) $curValue[1]) . ') OR (' .
                   'NOT "is_int"=\'1\' AND "float" IS NOT NULL AND "float" <= ' .
-                  ((float) $cur_value[1]) . ')))';
+                  ((float) $curValue[1]) . ')))';
             }
             break;
           // Cases after this point contains special values where
@@ -730,84 +730,84 @@ class SQLite3Driver implements DriverInterface {
           case '!equal':
           case 'data':
           case '!data':
-            if ($cur_value[0] == 'cdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if ($curValue[0] == 'cdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."cdate"='.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."cdate"='.((float) $curValue[1]);
               break;
-            } elseif ($cur_value[0] == 'mdate') {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            } elseif ($curValue[0] == 'mdate') {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
-                  'ie."mdate"='.((float) $cur_value[1]);
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
+                  'ie."mdate"='.((float) $curValue[1]);
               break;
-            } elseif ($cur_value[1] === true || $cur_value[1] === false) {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+            } elseif ($curValue[1] === true || $curValue[1] === false) {
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "' .
                   $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
-                  SQLite3::escapeString($cur_value[0]) .
+                  SQLite3::escapeString($curValue[0]) .
                   '\' AND "eq_true"=' .
-                  ($cur_value[1] ? '1' : '0').')';
+                  ($curValue[1] ? '1' : '0').')';
               break;
-            } elseif ($cur_value[1] === 1) {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+            } elseif ($curValue[1] === 1) {
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "' .
                   $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
-                  SQLite3::escapeString($cur_value[0]) .
+                  SQLite3::escapeString($curValue[0]) .
                   '\' AND "eq_one"=1)';
               break;
-            } elseif ($cur_value[1] === 0) {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+            } elseif ($curValue[1] === 0) {
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "' .
                   $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
-                  SQLite3::escapeString($cur_value[0]) .
+                  SQLite3::escapeString($curValue[0]) .
                   '\' AND "eq_zero"=1)';
               break;
-            } elseif ($cur_value[1] === -1) {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+            } elseif ($curValue[1] === -1) {
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "' .
                   $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
-                  SQLite3::escapeString($cur_value[0]) .
+                  SQLite3::escapeString($curValue[0]) .
                   '\' AND "eq_negone"=1)';
               break;
-            } elseif ($cur_value[1] === []) {
-              if ($cur_query) {
-                $cur_query .= ($type_is_or ? ' OR ' : ' AND ');
+            } elseif ($curValue[1] === []) {
+              if ($curQuery) {
+                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
               }
-              $cur_query .= (($type_is_not xor $clause_not) ? 'NOT ' : '') .
+              $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '') .
                   'ie."guid" IN (SELECT "guid" FROM "' .
                   $this->prefix.'comparisons'.$etype.'" WHERE "name"=\'' .
-                  SQLite3::escapeString($cur_value[0]) .
+                  SQLite3::escapeString($curValue[0]) .
                   '\' AND "eq_emptyarray"=1)';
               break;
             }
             // Fall through.
           case 'array':
           case '!array':
-            if (!($type_is_not xor $clause_not)) {
-              if ($cur_query) {
-                $cur_query .= $type_is_or ? ' OR ' : ' AND ';
+            if (!($typeIsNot xor $clauseNot)) {
+              if ($curQuery) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $cur_query .= 'ie."varlist" LIKE \'%,' .
+              $curQuery .= 'ie."varlist" LIKE \'%,' .
                   str_replace(
                       ['%', '_', ':'],
                       [':%', ':_', '::'],
-                      SQLite3::escapeString($cur_value[0])
+                      SQLite3::escapeString($curValue[0])
                   ) . ',%\' ESCAPE \':\'';
             }
             $fullQueryCoverage = false;
@@ -828,9 +828,9 @@ class SQLite3Driver implements DriverInterface {
         $sort = '"cdate"';
         break;
     }
-    if ($query_parts) {
+    if ($queryParts) {
       if ($subquery) {
-        $query = "((".implode(') AND (', $query_parts)."))";
+        $query = "((".implode(') AND (', $queryParts)."))";
       } else {
         $limit = "";
         if ($fullQueryCoverage && key_exists('limit', $options)) {
@@ -840,7 +840,7 @@ class SQLite3Driver implements DriverInterface {
         if ($fullQueryCoverage && key_exists('offset', $options)) {
           $offset = " OFFSET ".((int) $options['offset']);
         }
-        $query = "SELECT e.\"guid\", e.\"tags\", e.\"cdate\", e.\"mdate\", d.\"name\", d.\"value\" FROM \"{$this->prefix}entities{$etype}\" e LEFT JOIN \"{$this->prefix}data{$etype}\" d USING (\"guid\") INNER JOIN (SELECT \"guid\" FROM \"{$this->prefix}entities{$etype}\" ie WHERE (".implode(') AND (', $query_parts).") ORDER BY ie.".(isset($options['reverse']) && $options['reverse'] ? $sort.' DESC' : $sort)."{$limit}{$offset}) f USING (\"guid\");";
+        $query = "SELECT e.\"guid\", e.\"tags\", e.\"cdate\", e.\"mdate\", d.\"name\", d.\"value\" FROM \"{$this->prefix}entities{$etype}\" e LEFT JOIN \"{$this->prefix}data{$etype}\" d USING (\"guid\") INNER JOIN (SELECT \"guid\" FROM \"{$this->prefix}entities{$etype}\" ie WHERE (".implode(') AND (', $queryParts).") ORDER BY ie.".(isset($options['reverse']) && $options['reverse'] ? $sort.' DESC' : $sort)."{$limit}{$offset}) f USING (\"guid\");";
       }
     } else {
       if ($subquery) {
@@ -952,9 +952,9 @@ class SQLite3Driver implements DriverInterface {
           );
         }
       }
-    }, function ($name, $cur_uid) {
+    }, function ($name, $curUid) {
       $this->query("DELETE FROM \"{$this->prefix}uids\" WHERE \"name\"='".SQLite3::escapeString($name)."';");
-      $this->query("INSERT INTO \"{$this->prefix}uids\" (\"name\", \"cur_uid\") VALUES ('".SQLite3::escapeString($name)."', ".((int) $cur_uid).");");
+      $this->query("INSERT INTO \"{$this->prefix}uids\" (\"name\", \"cur_uid\") VALUES ('".SQLite3::escapeString($name)."', ".((int) $curUid).");");
     }, function () {
       $this->query("SAVEPOINT 'import';");
     }, function () {
@@ -971,17 +971,17 @@ class SQLite3Driver implements DriverInterface {
     $this->query("SAVEPOINT 'newuid';");
     $result = $this->query("SELECT \"cur_uid\" FROM \"{$this->prefix}uids\" WHERE \"name\"='".SQLite3::escapeString($name)."';");
     $row = $result->fetchArray(SQLITE3_NUM);
-    $cur_uid = is_numeric($row[0]) ? (int) $row[0] : null;
+    $curUid = is_numeric($row[0]) ? (int) $row[0] : null;
     $result->finalize();
-    if (!is_int($cur_uid)) {
-      $cur_uid = 1;
-      $this->query("INSERT INTO \"{$this->prefix}uids\" (\"name\", \"cur_uid\") VALUES ('".SQLite3::escapeString($name)."', {$cur_uid});");
+    if (!is_int($curUid)) {
+      $curUid = 1;
+      $this->query("INSERT INTO \"{$this->prefix}uids\" (\"name\", \"cur_uid\") VALUES ('".SQLite3::escapeString($name)."', {$curUid});");
     } else {
-      $cur_uid++;
-      $this->query("UPDATE \"{$this->prefix}uids\" SET \"cur_uid\"={$cur_uid} WHERE \"name\"='".SQLite3::escapeString($name)."';");
+      $curUid++;
+      $this->query("UPDATE \"{$this->prefix}uids\" SET \"cur_uid\"={$curUid} WHERE \"name\"='".SQLite3::escapeString($name)."';");
     }
     $this->query("RELEASE 'newuid';");
-    return $cur_uid;
+    return $curUid;
   }
 
   public function renameUID($oldName, $newName) {

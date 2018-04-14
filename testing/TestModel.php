@@ -12,8 +12,8 @@
  * @property integer $number A number.
  * @property bool $boolean A boolean.
  * @property TestModel $reference A TestModel.
- * @property array $ref_array An array.
- * @property stdClass $ref_object An object.
+ * @property array $refArray An array.
+ * @property stdClass $refObject An object.
  * @property TestModel $parent A parent entity.
  */
 class TestModel extends \Nymph\Entity {
