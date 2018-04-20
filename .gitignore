@@ -2,3 +2,4 @@ composer.phar
 vendor
 testing/logs
 testing/test.db
+node_modules
