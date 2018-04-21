@@ -196,7 +196,10 @@ return [
      * The flags used to open the SQLite3 db. (Can be used to programmatically
      * open for readonly, which is needed for PubSub.)
      */
-    'open_flags' => defined('\SQLITE3_OPEN_READWRITE') ? \SQLITE3_OPEN_READWRITE | \SQLITE3_OPEN_CREATE : null,
+    'open_flags' =>
+      defined('\SQLITE3_OPEN_READWRITE')
+        ? \SQLITE3_OPEN_READWRITE | \SQLITE3_OPEN_CREATE
+        : null,
     /*
      * Encryption Key
      * The encryption key to use to open the database.
