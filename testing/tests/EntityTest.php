@@ -1,5 +1,7 @@
 <?php namespace NymphTesting;
 
+// phpcs:disable Generic.Files.LineLength.TooLong
+
 class EntityTest extends \PHPUnit\Framework\TestCase {
   public function testHookPHP() {
     $this->assertTrue(

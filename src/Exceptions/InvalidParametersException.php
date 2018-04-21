@@ -11,4 +11,5 @@
  * @copyright SciActive.com
  * @link http://nymph.io/
  */
-class InvalidParametersException extends \InvalidArgumentException {}
+class InvalidParametersException extends \InvalidArgumentException {
+}

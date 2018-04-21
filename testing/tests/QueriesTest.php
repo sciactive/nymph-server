@@ -2,13 +2,15 @@
 
 use Nymph\Nymph;
 
+// phpcs:disable Generic.Files.LineLength.TooLong
+
 class QueriesTest extends \PHPUnit\Framework\TestCase {
   public function testInstantiate() {
     $driver = Nymph::$driver;
     if (class_exists('\SciActive\Hook')) {
       if (getenv('DB') === 'pgsql') {
         $this->assertInstanceOf('\SciActive\HookOverride_Nymph_Drivers_PostgreSQLDriver', $driver);
-      } else if (getenv('DB') === 'sqlite') {
+      } elseif (getenv('DB') === 'sqlite') {
         $this->assertInstanceOf('\SciActive\HookOverride_Nymph_Drivers_SQLite3Driver', $driver);
       } else {
         $this->assertInstanceOf('\SciActive\HookOverride_Nymph_Drivers_MySQLDriver', $driver);

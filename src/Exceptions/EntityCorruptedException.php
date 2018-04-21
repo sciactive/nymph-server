@@ -13,4 +13,5 @@
  * @copyright SciActive.com
  * @link http://nymph.io/
  */
-class EntityCorruptedException extends \Exception {}
+class EntityCorruptedException extends \Exception {
+}

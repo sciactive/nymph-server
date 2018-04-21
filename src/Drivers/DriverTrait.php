@@ -92,7 +92,9 @@ trait DriverTrait {
               '[A-Za-z]',
               '[\x00-\x7F]',
               '\s',
-              '[\000\001\002\003\004\005\006\007\008\009\010\011\012\013\014\015\016\017\018\019\020\021\022\023\024\025\026\027\028\029\030\031\032\033\034\035\036\037\177]',
+              '[\000\001\002\003\004\005\006\007\008\009\010\011\012\013\014'.
+                '\015\016\017\018\019\020\021\022\023\024\025\026\027\028\029'.
+                '\030\031\032\033\034\035\036\037\177]',
               '\d',
               '[A-Za-z0-9!"#$%&\'()*+,\-./:;<=>?@[\\\]^_`{|}\~]',
               '[a-z]',
@@ -135,7 +137,13 @@ trait DriverTrait {
     return true;
   }
 
-  private function importFromFile($filename, $saveEntityCallback, $saveUIDCallback, $startTransactionCallback = null, $commitTransactionCallback = null) {
+  private function importFromFile(
+      $filename,
+      $saveEntityCallback,
+      $saveUIDCallback,
+      $startTransactionCallback = null,
+      $commitTransactionCallback = null
+  ) {
     if (!$fhandle = fopen($filename, 'r')) {
       throw new Exceptions\InvalidParametersException(
           'Provided filename is unreadable.'
@@ -157,7 +165,11 @@ trait DriverTrait {
         continue;
       }
       $matches = [];
-      if (preg_match('/^\s*{(\d+)}<([\w-_]+)>\[([\w,]*)\]\s*$/S', $line, $matches)) {
+      if (preg_match(
+          '/^\s*{(\d+)}<([\w-_]+)>\[([\w,]*)\]\s*$/S',
+          $line,
+          $matches
+      )) {
         // Save the current entity.
         if ($guid) {
           $saveEntityCallback($guid, explode(',', $tags), $data, $etype);
@@ -169,7 +181,11 @@ trait DriverTrait {
         $guid = (int) $matches[1];
         $etype = $matches[2];
         $tags = $matches[3];
-      } elseif (preg_match('/^\s*([\w,]+)\s*=\s*(\S.*\S)\s*$/S', $line, $matches)) {
+      } elseif (preg_match(
+          '/^\s*([\w,]+)\s*=\s*(\S.*\S)\s*$/S',
+          $line,
+          $matches
+      )) {
         // Add the variable to the new entity.
         if ($guid) {
           $data[$matches[1]] = json_decode($matches[2]);
@@ -501,13 +517,12 @@ trait DriverTrait {
             $value = [$value];
           }
           foreach ($value as &$curValue) {
-            if (
-                is_array($curValue)
+            if (is_array($curValue)
                 && isset($curValue[2])
                 && $curValue[1] === null
                 && is_string($curValue[2])
               ) {
-              $timestamp = @strtotime($curValue[2]);
+              $timestamp = strtotime($curValue[2]);
               if ($timestamp !== false) {
                 $curValue[1] = $timestamp;
               }
@@ -521,7 +536,11 @@ trait DriverTrait {
     unset($curSelector);
   }
 
-  private function iterateSelectorsForQuery($selectors, $recurseCallback, $callback) {
+  private function iterateSelectorsForQuery(
+      $selectors,
+      $recurseCallback,
+      $callback
+  ) {
     $queryParts = [];
     foreach ($selectors as $curSelector) {
       $curSelectorQuery = '';
@@ -557,15 +576,15 @@ trait DriverTrait {
   }
 
   private function getEntitesRowLike(
-    $options,
-    $selectors,
-    $typesAlreadyChecked,
-    $dataValsAreadyChecked,
-    $rowFetchCallback,
-    $freeResultCallback,
-    $getGUIDCallback,
-    $getTagsAndDatesCallback,
-    $getDataNameAndSValueCallback
+      $options,
+      $selectors,
+      $typesAlreadyChecked,
+      $dataValsAreadyChecked,
+      $rowFetchCallback,
+      $freeResultCallback,
+      $getGUIDCallback,
+      $getTagsAndDatesCallback,
+      $getDataNameAndSValueCallback
   ) {
     if (!$this->connected) {
       throw new Exceptions\UnableToConnectException();
@@ -663,10 +682,21 @@ trait DriverTrait {
       if ($query['fullCoverage']) {
         $passed = true;
       } else {
-        $passed = $this->checkData($data, $sdata, $selectors, null, null, $typesAlreadyChecked, $dataValsAreadyChecked);
+        $passed = $this->checkData(
+            $data,
+            $sdata,
+            $selectors,
+            null,
+            null,
+            $typesAlreadyChecked,
+            $dataValsAreadyChecked
+        );
       }
       if ($passed) {
-        if (isset($options['offset']) && !$query['limitOffsetCoverage'] && ($ocount < $options['offset'])) {
+        if (isset($options['offset'])
+            && !$query['limitOffsetCoverage']
+            && ($ocount < $options['offset'])
+          ) {
           // We must be sure this entity is actually a match before
           // incrementing the offset.
           $ocount++;
@@ -732,13 +762,13 @@ trait DriverTrait {
   }
 
   private function saveEntityRowLike(
-    &$entity,
-    $formatEtypeCallback,
-    $checkGUIDCallback,
-    $saveNewEntityCallback,
-    $saveExistingEntityCallback,
-    $startTransactionCallback = null,
-    $commitTransactionCallback = null
+      &$entity,
+      $formatEtypeCallback,
+      $checkGUIDCallback,
+      $saveNewEntityCallback,
+      $saveExistingEntityCallback,
+      $startTransactionCallback = null,
+      $commitTransactionCallback = null
   ) {
     // Save the created date.
     if (!isset($entity->guid)) {
@@ -749,7 +779,9 @@ trait DriverTrait {
     $data = $entity->getData();
     $sdata = $entity->getSData();
     $varlist = array_merge(array_keys($data), array_keys($sdata));
-    $className = is_callable([$entity, '_hookObject']) ? get_class($entity->_hookObject()) : get_class($entity);
+    $className = is_callable([$entity, '_hookObject'])
+        ? get_class($entity->_hookObject())
+        : get_class($entity);
     $etypeDirty = $className::ETYPE;
     $etype = $formatEtypeCallback($etypeDirty);
     if ($startTransactionCallback) {
@@ -769,13 +801,27 @@ trait DriverTrait {
         }
       }
       $entity->guid = $newId;
-      $saveNewEntityCallback($entity, $data, $sdata, $varlist, $etype, $etypeDirty);
+      $saveNewEntityCallback(
+          $entity,
+          $data,
+          $sdata,
+          $varlist,
+          $etype,
+          $etypeDirty
+      );
     } else {
       // Removed any cached versions of this entity.
       if ($this->config['cache']) {
         $this->cleanCache($entity->guid);
       }
-      $saveExistingEntityCallback($entity, $data, $sdata, $varlist, $etype, $etypeDirty);
+      $saveExistingEntityCallback(
+          $entity,
+          $data,
+          $sdata,
+          $varlist,
+          $etype,
+          $etypeDirty
+      );
     }
     if ($commitTransactionCallback) {
       $commitTransactionCallback();

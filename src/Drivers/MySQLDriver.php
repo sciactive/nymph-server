@@ -2,6 +2,8 @@
 
 use Nymph\Exceptions;
 
+// phpcs:disable Generic.Files.LineLength.TooLong
+
 /**
  * MySQL based Nymph driver.
  *
@@ -122,16 +124,69 @@ class MySQLDriver implements DriverInterface {
     if (isset($etype)) {
       $etype = '_'.mysqli_real_escape_string($this->link, $etype);
       // Create the entity table.
-      $this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}entities{$etype}` (`guid` BIGINT(20) UNSIGNED NOT NULL{$foreignKeyEntityTableGuid}, `tags` LONGTEXT, `varlist` LONGTEXT, `cdate` DECIMAL(18,6) NOT NULL, `mdate` DECIMAL(18,6) NOT NULL, PRIMARY KEY (`guid`), INDEX `id_cdate` USING BTREE (`cdate`), INDEX `id_mdate` USING BTREE (`mdate`), FULLTEXT `id_tags` (`tags`), FULLTEXT `id_varlist` (`varlist`)) ENGINE {$this->config['MySQL']['engine']} CHARACTER SET utf8 COLLATE utf8_bin;");
+      $this->query(
+          "CREATE TABLE IF NOT EXISTS `{$this->prefix}entities{$etype}` (".
+            "`guid` BIGINT(20) UNSIGNED NOT NULL{$foreignKeyEntityTableGuid}, ".
+            "`tags` LONGTEXT, `varlist` LONGTEXT, ".
+            "`cdate` DECIMAL(18,6) NOT NULL, ".
+            "`mdate` DECIMAL(18,6) NOT NULL, ".
+            "PRIMARY KEY (`guid`), ".
+            "INDEX `id_cdate` USING BTREE (`cdate`), ".
+            "INDEX `id_mdate` USING BTREE (`mdate`), ".
+            "FULLTEXT `id_tags` (`tags`), ".
+            "FULLTEXT `id_varlist` (`varlist`)".
+          ") ENGINE {$this->config['MySQL']['engine']} ".
+          "CHARACTER SET utf8 COLLATE utf8_bin;"
+      );
       // Create the data table.
-      $this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}data{$etype}` (`guid` BIGINT(20) UNSIGNED NOT NULL{$foreignKeyDataTableGuid}, `name` TEXT NOT NULL, `value` LONGTEXT NOT NULL, PRIMARY KEY (`guid`,`name`(255))) ENGINE {$this->config['MySQL']['engine']} CHARACTER SET utf8 COLLATE utf8_bin;");
+      $this->query(
+          "CREATE TABLE IF NOT EXISTS `{$this->prefix}data{$etype}` (".
+            "`guid` BIGINT(20) UNSIGNED NOT NULL{$foreignKeyDataTableGuid}, ".
+            "`name` TEXT NOT NULL, ".
+            "`value` LONGTEXT NOT NULL, ".
+            "PRIMARY KEY (`guid`,`name`(255))".
+            ") ENGINE {$this->config['MySQL']['engine']} ".
+          "CHARACTER SET utf8 COLLATE utf8_bin;"
+      );
       // Create the data comparisons table.
-      $this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}comparisons{$etype}` (`guid` BIGINT(20) UNSIGNED NOT NULL{$foreignKeyDataComparisonsTableGuid}, `name` TEXT NOT NULL, `references` LONGTEXT, `eq_true` BOOLEAN, `eq_one` BOOLEAN, `eq_zero` BOOLEAN, `eq_negone` BOOLEAN, `eq_emptyarray` BOOLEAN, `string` LONGTEXT, `int` BIGINT, `float` DOUBLE, `is_int` BOOLEAN NOT NULL, PRIMARY KEY (`guid`, `name`(255)), FULLTEXT `id_references` (`references`)) ENGINE {$this->config['MySQL']['engine']} CHARACTER SET utf8 COLLATE utf8_bin;");
+      $this->query(
+          "CREATE TABLE IF NOT EXISTS `{$this->prefix}comparisons{$etype}` (".
+            "`guid` BIGINT(20) UNSIGNED NOT NULL".
+              "{$foreignKeyDataComparisonsTableGuid}, ".
+            "`name` TEXT NOT NULL, ".
+            "`references` LONGTEXT, ".
+            "`eq_true` BOOLEAN, ".
+            "`eq_one` BOOLEAN, ".
+            "`eq_zero` BOOLEAN, ".
+            "`eq_negone` BOOLEAN, ".
+            "`eq_emptyarray` BOOLEAN, ".
+            "`string` LONGTEXT, ".
+            "`int` BIGINT, ".
+            "`float` DOUBLE, ".
+            "`is_int` BOOLEAN NOT NULL, ".
+            "PRIMARY KEY (`guid`, `name`(255)), ".
+            "FULLTEXT `id_references` (`references`)".
+          ") ENGINE {$this->config['MySQL']['engine']} ".
+          "CHARACTER SET utf8 COLLATE utf8_bin;"
+      );
     } else {
       // Create the GUID table.
-      $this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}guids` (`guid` BIGINT(20) UNSIGNED NOT NULL, PRIMARY KEY (`guid`)) ENGINE {$this->config['MySQL']['engine']} CHARACTER SET utf8 COLLATE utf8_bin;");
+      $this->query(
+          "CREATE TABLE IF NOT EXISTS `{$this->prefix}guids` (".
+            "`guid` BIGINT(20) UNSIGNED NOT NULL, ".
+            "PRIMARY KEY (`guid`)".
+          ") ENGINE {$this->config['MySQL']['engine']} ".
+          "CHARACTER SET utf8 COLLATE utf8_bin;"
+      );
       // Create the UID table.
-      $this->query("CREATE TABLE IF NOT EXISTS `{$this->prefix}uids` (`name` TEXT NOT NULL, `cur_uid` BIGINT(20) UNSIGNED NOT NULL, PRIMARY KEY (`name`(100))) ENGINE {$this->config['MySQL']['engine']} CHARACTER SET utf8 COLLATE utf8_bin;");
+      $this->query(
+          "CREATE TABLE IF NOT EXISTS `{$this->prefix}uids` (".
+            "`name` TEXT NOT NULL, ".
+            "`cur_uid` BIGINT(20) UNSIGNED NOT NULL, ".
+            "PRIMARY KEY (`name`(100))".
+          ") ENGINE {$this->config['MySQL']['engine']} ".
+          "CHARACTER SET utf8 COLLATE utf8_bin;"
+      );
     }
     return true;
   }
@@ -169,7 +224,9 @@ class MySQLDriver implements DriverInterface {
   }
 
   public function deleteEntityByID($guid, $etypeDirty = null) {
-    $etype = isset($etypeDirty) ? '_'.mysqli_real_escape_string($this->link, $etypeDirty) : '';
+    $etype = isset($etypeDirty)
+      ? '_'.mysqli_real_escape_string($this->link, $etypeDirty)
+      : '';
     if ($this->config['MySQL']['transactions']) {
       $this->query("BEGIN;");
     }
@@ -234,7 +291,12 @@ class MySQLDriver implements DriverInterface {
 
     foreach ($etypes as $etype) {
       // Export entities.
-      $result = $this->query("SELECT e.*, d.`name` AS `dname`, d.`value` AS `dvalue` FROM `{$this->prefix}entities_{$etype}` e LEFT JOIN `{$this->prefix}data_{$etype}` d ON e.`guid`=d.`guid` ORDER BY e.`guid`;");
+      $result = $this->query(
+          "SELECT e.*, d.`name` AS `dname`, d.`value` AS `dvalue` ".
+          "FROM `{$this->prefix}entities_{$etype}` e ".
+          "LEFT JOIN `{$this->prefix}data_{$etype}` d ON e.`guid`=d.`guid` ".
+          "ORDER BY e.`guid`;"
+      );
       $row = mysqli_fetch_assoc($result);
       while ($row) {
         $guid = (int) $row['guid'];
@@ -1026,7 +1088,22 @@ class MySQLDriver implements DriverInterface {
         if ($fullQueryCoverage && key_exists('offset', $options)) {
           $offset = " OFFSET ".((int) $options['offset']);
         }
-        $query = "SELECT e.`guid`, e.`tags`, e.`cdate`, e.`mdate`, d.`name`, d.`value` FROM `{$this->prefix}entities{$etype}` e LEFT JOIN `{$this->prefix}data{$etype}` d ON e.`guid`=d.`guid` INNER JOIN (SELECT ie.`guid` FROM `{$this->prefix}entities{$etype}` ie WHERE (".implode(') AND (', $queryParts).") ORDER BY ie.".(isset($options['reverse']) && $options['reverse'] ? $sort.' DESC' : $sort)."{$limit}{$offset}) f ON e.`guid`=f.`guid`;";
+        $query =
+          "SELECT e.`guid`, e.`tags`, e.`cdate`, e.`mdate`, ".
+            "d.`name`, d.`value` ".
+          "FROM `{$this->prefix}entities{$etype}` e ".
+          "LEFT JOIN `{$this->prefix}data{$etype}` d ON e.`guid`=d.`guid` ".
+          "INNER JOIN (".
+            "SELECT ie.`guid` FROM `{$this->prefix}entities{$etype}` ie ".
+            "WHERE (".
+            implode(') AND (', $queryParts).
+            ") ".
+            "ORDER BY ie.".(
+              isset($options['reverse']) && $options['reverse']
+                ? $sort.' DESC'
+                : $sort
+            )."{$limit}{$offset}".
+          ") f ON e.`guid`=f.`guid`;";
       }
     } else {
       if ($subquery) {
@@ -1041,9 +1118,31 @@ class MySQLDriver implements DriverInterface {
           $offset = " OFFSET ".((int) $options['offset']);
         }
         if ($limit || $offset) {
-          $query = "SELECT e.`guid`, e.`tags`, e.`cdate`, e.`mdate`, d.`name`, d.`value` FROM `{$this->prefix}entities{$etype}` e LEFT JOIN `{$this->prefix}data{$etype}` d ON e.`guid`=d.`guid` INNER JOIN (SELECT ie.`guid` FROM `{$this->prefix}entities{$etype}` ie ORDER BY ie.".(isset($options['reverse']) && $options['reverse'] ? $sort.' DESC' : $sort)."{$limit}{$offset}) f ON e.`guid`=f.`guid`;";
+          $query =
+            "SELECT e.`guid`, e.`tags`, e.`cdate`, e.`mdate`, ".
+              "d.`name`, d.`value` ".
+            "FROM `{$this->prefix}entities{$etype}` e ".
+            "LEFT JOIN `{$this->prefix}data{$etype}` d ON e.`guid`=d.`guid` ".
+            "INNER JOIN (".
+              "SELECT ie.`guid` ".
+              "FROM `{$this->prefix}entities{$etype}` ie ".
+              "ORDER BY ie.".(
+                isset($options['reverse']) && $options['reverse']
+                  ? $sort.' DESC'
+                  : $sort
+              )."{$limit}{$offset}".
+            ") f ON e.`guid`=f.`guid`;";
         } else {
-          $query = "SELECT e.`guid`, e.`tags`, e.`cdate`, e.`mdate`, d.`name`, d.`value` FROM `{$this->prefix}entities{$etype}` e LEFT JOIN `{$this->prefix}data{$etype}` d ON e.`guid`=d.`guid` ORDER BY e.".(isset($options['reverse']) && $options['reverse'] ? $sort.' DESC' : $sort).";";
+          $query =
+            "SELECT e.`guid`, e.`tags`, e.`cdate`, e.`mdate`, ".
+              "d.`name`, d.`value` ".
+            "FROM `{$this->prefix}entities{$etype}` e ".
+            "LEFT JOIN `{$this->prefix}data{$etype}` d ON e.`guid`=d.`guid` ".
+            "ORDER BY e.".(
+              isset($options['reverse']) && $options['reverse']
+                ? $sort.' DESC'
+                : $sort
+            ).";";
         }
       }
     }

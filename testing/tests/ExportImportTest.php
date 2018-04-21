@@ -2,6 +2,8 @@
 
 use Nymph\Nymph;
 
+// phpcs:disable Generic.Files.LineLength.TooLong
+
 class ExportImportTest extends \PHPUnit\Framework\TestCase {
 
   public function testDeleteOldTestData() {

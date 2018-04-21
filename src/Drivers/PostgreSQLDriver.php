@@ -2,6 +2,8 @@
 
 use Nymph\Exceptions;
 
+// phpcs:disable Generic.Files.LineLength.TooLong
+
 /**
  * PostgreSQL based Nymph driver.
  *

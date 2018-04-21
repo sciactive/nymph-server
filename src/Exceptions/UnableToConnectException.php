@@ -12,4 +12,5 @@
  * @copyright SciActive.com
  * @link http://nymph.io/
  */
-class UnableToConnectException extends \Exception {}
+class UnableToConnectException extends \Exception {
+}

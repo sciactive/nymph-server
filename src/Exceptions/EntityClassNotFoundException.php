@@ -12,4 +12,5 @@
  * @copyright SciActive.com
  * @link http://nymph.io/
  */
-class EntityClassNotFoundException extends \Exception {}
+class EntityClassNotFoundException extends \Exception {
+}

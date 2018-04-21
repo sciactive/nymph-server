@@ -12,4 +12,5 @@
  * @copyright SciActive.com
  * @link http://nymph.io/
  */
-class NotConfiguredException extends \Exception {}
+class NotConfiguredException extends \Exception {
+}

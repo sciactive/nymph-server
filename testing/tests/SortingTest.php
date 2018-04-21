@@ -2,6 +2,8 @@
 
 use Nymph\Nymph;
 
+// phpcs:disable Generic.Files.LineLength.TooLong
+
 class SortingTest extends \PHPUnit\Framework\TestCase {
   public function testSort() {
     $first = new TestModel();

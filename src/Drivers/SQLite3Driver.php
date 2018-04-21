@@ -3,6 +3,8 @@
 use Nymph\Exceptions;
 use SQLite3;
 
+// phpcs:disable Generic.Files.LineLength.TooLong
+
 /**
  * SQLite3 based Nymph driver.
  *

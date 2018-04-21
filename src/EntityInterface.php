@@ -82,7 +82,7 @@ interface EntityInterface extends DataObjectInterface, \JsonSerializable {
    * A validator that uses the reflection API would not be able to validate an
    * entity. This provides an object that can be validated.
    *
-   * @return \stdClass A pure object representation of the entity. 
+   * @return \stdClass A pure object representation of the entity.
    */
   public function getValidatable();
   /**

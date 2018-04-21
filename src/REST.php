@@ -136,7 +136,10 @@ class REST {
             || !isset($className::$clientEnabledStaticMethods)) {
           return $this->httpError(400, 'Bad Request');
         }
-        if (!in_array($args['method'], $className::$clientEnabledStaticMethods)) {
+        if (!in_array(
+            $args['method'],
+            $className::$clientEnabledStaticMethods
+        )) {
           return $this->httpError(403, 'Forbidden');
         }
         try {
@@ -355,9 +358,14 @@ class REST {
       } else {
         // Each entry is an array of property name, value.
         if (is_array($value[0])) {
-          return array_values(array_filter($value, function ($arr) use ($restricted) {
-            return !in_array($arr[0], $restricted);
-          }));
+          return array_values(
+              array_filter(
+                  $value,
+                  function ($arr) use ($restricted) {
+                    return !in_array($arr[0], $restricted);
+                  }
+              )
+          );
         } else {
           return in_array($value[0], $restricted) ? null : $value;
         }
@@ -404,8 +412,11 @@ class REST {
   }
 
   protected function loadEntity($entityData) {
-    if (!class_exists($entityData['class']) || $entityData['class'] === 'Entity') {
-      // Don't let clients use the `Entity` class, since it has no validity/AC checks.
+    if (!class_exists($entityData['class'])
+        || $entityData['class'] === 'Entity'
+      ) {
+      // Don't let clients use the `Entity` class, since it has no validity/AC
+      // checks.
       return false;
     }
     if ((int) $entityData['guid'] > 0) {

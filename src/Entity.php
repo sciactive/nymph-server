@@ -70,8 +70,12 @@
  * @copyright SciActive.com
  * @link http://nymph.io/
  * @property int $guid The entity's Globally Unique ID.
- * @property int $cdate The entity's creation date, as a high precision Unix timestamp. The value is rounded to the ten thousandths digit.
- * @property int $mdate The entity's modification date, as a high precision Unix timestamp. The value is rounded to the ten thousandths digit.
+ * @property int $cdate The entity's creation date, as a high precision Unix
+ *                      timestamp. The value is rounded to the ten thousandths
+ *                      digit.
+ * @property int $mdate The entity's modification date, as a high precision Unix
+ *                      timestamp. The value is rounded to the ten thousandths
+ *                      digit.
  */
 class Entity implements EntityInterface {
   const ETYPE = 'entity';
@@ -319,7 +323,11 @@ class Entity implements EntityInterface {
     if ($this->isASleepingReference) {
       $this->referenceWake();
     }
-    if ($name === 'guid' || $name === 'cdate' || $name === 'mdate' || $name === 'tags') {
+    if ($name === 'guid'
+        || $name === 'cdate'
+        || $name === 'mdate'
+        || $name === 'tags'
+      ) {
       return $this->$name;
     }
     // Unserialize.
@@ -406,7 +414,11 @@ class Entity implements EntityInterface {
     if ($this->isASleepingReference) {
       $this->referenceWake();
     }
-    if ($name === 'guid' || $name === 'cdate' || $name === 'mdate' || $name === 'tags') {
+    if ($name === 'guid'
+        || $name === 'cdate'
+        || $name === 'mdate'
+        || $name === 'tags'
+      ) {
       return isset($this->$name);
     }
     // Unserialize.
