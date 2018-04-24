@@ -300,7 +300,7 @@ class MySQLDriver implements DriverInterface {
       $row = mysqli_fetch_assoc($result);
       while ($row) {
         $guid = (int) $row['guid'];
-        $tags = $row['tags'] === '' ? [] : explode(' ', $row['tags']);
+        $tags = $row['tags'] === '' ? [] : explode(' ', trim($row['tags']));
         $cdate = (float) $row['cdate'];
         $mdate = (float) $row['mdate'];
         $writeCallback("{{$guid}}<{$etype}>[".implode(',', $tags)."]\n");
@@ -373,16 +373,16 @@ class MySQLDriver implements DriverInterface {
                   if ($curQuery) {
                     $curQuery .= ' OR ';
                   }
-                  $curQuery .= 'ie.`tags` NOT REGEXP \'[[:<:]]' .
+                  $curQuery .= 'ie.`tags` NOT REGEXP \' ' .
                       mysqli_real_escape_string($this->link, $curTag) .
-                      '[[:>:]]\'';
+                      ' \'';
                 }
               } else {
-                $curQuery .= 'ie.`tags` NOT REGEXP \'[[:<:]](' .
+                $curQuery .= 'ie.`tags` NOT REGEXP \' (' .
                     mysqli_real_escape_string(
                         $this->link,
                         implode('|', $curValue)
-                    ).')[[:>:]]\'';
+                    ).') \'';
               }
             } else {
               if ($curQuery) {
@@ -404,9 +404,9 @@ class MySQLDriver implements DriverInterface {
                 if ($curQuery) {
                   $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
                 }
-                $curQuery .= '(ie.`varlist` NOT REGEXP \'[[:<:]]' .
+                $curQuery .= '(ie.`varlist` NOT REGEXP \' ' .
                     mysqli_real_escape_string($this->link, $curVar) .
-                    '[[:>:]]\'';
+                    ' \'';
                 $curQuery .= ' OR ' .
                     $this->makeDataPart(
                         'data',
@@ -455,9 +455,9 @@ class MySQLDriver implements DriverInterface {
               $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
             }
             if ($typeIsNot xor $clauseNot) {
-              $curQuery .= '(ie.`varlist` NOT REGEXP \'[[:<:]]' .
+              $curQuery .= '(ie.`varlist` NOT REGEXP \' ' .
                   mysqli_real_escape_string($this->link, $curValue[0]) .
-                  '[[:>:]]\' OR (';
+                  ' \' OR (';
               $noPrepend = true;
               foreach ($guids as $curQguid) {
                 if (!$noPrepend) {
@@ -470,9 +470,9 @@ class MySQLDriver implements DriverInterface {
                     $etype,
                     '`name`=\'' .
                         mysqli_real_escape_string($this->link, $curValue[0]) .
-                        '\' AND `references` NOT REGEXP \'[[:<:]]' .
+                        '\' AND `references` NOT REGEXP \' ' .
                         mysqli_real_escape_string($this->link, $curQguid) .
-                        '[[:>:]]\''
+                        ' \''
                 );
               }
               $curQuery .= '))';
@@ -520,11 +520,11 @@ class MySQLDriver implements DriverInterface {
               $curQuery .= '(' .
                   (
                     ($typeIsNot xor $clauseNot)
-                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \' ' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $curValue[0]
-                            ).'[[:>:]]\' OR '
+                            ).' \' OR '
                         : ''
                   ) .
                   $this->makeDataPart(
@@ -566,11 +566,11 @@ class MySQLDriver implements DriverInterface {
               $curQuery .= '(' .
                   (
                     ($typeIsNot xor $clauseNot)
-                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \' ' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $curValue[0]
-                            ).'[[:>:]]\' OR '
+                            ).' \' OR '
                         : ''
                   ) .
                   $this->makeDataPart(
@@ -613,11 +613,11 @@ class MySQLDriver implements DriverInterface {
               $curQuery .= '(' .
                   (
                     ($typeIsNot xor $clauseNot)
-                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \' ' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $curValue[0]
-                            ).'[[:>:]]\' OR '
+                            ).' \' OR '
                         : ''
                   ) .
                   $this->makeDataPart(
@@ -660,11 +660,11 @@ class MySQLDriver implements DriverInterface {
               $curQuery .= '(' .
                   (
                     ($typeIsNot xor $clauseNot)
-                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \' ' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $curValue[0]
-                            ).'[[:>:]]\' OR '
+                            ).' \' OR '
                         : ''
                   ) .
                   $this->makeDataPart(
@@ -707,11 +707,11 @@ class MySQLDriver implements DriverInterface {
               $curQuery .= '(' .
                   (
                     ($typeIsNot xor $clauseNot)
-                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \' ' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $curValue[0]
-                            ).'[[:>:]]\' OR '
+                            ).' \' OR '
                         : ''
                   ) .
                   $this->makeDataPart(
@@ -750,11 +750,11 @@ class MySQLDriver implements DriverInterface {
               $curQuery .= '(' .
                   (
                     ($typeIsNot xor $clauseNot)
-                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \' ' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $curValue[0]
-                            ).'[[:>:]]\' OR '
+                            ).' \' OR '
                         : ''
                   ) .
                   $this->makeDataPart(
@@ -794,11 +794,11 @@ class MySQLDriver implements DriverInterface {
               $curQuery .= '(' .
                   (
                     ($typeIsNot xor $clauseNot)
-                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \' ' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $curValue[0]
-                            ).'[[:>:]]\' OR '
+                            ).' \' OR '
                         : ''
                   ) .
                   $this->makeDataPart(
@@ -838,11 +838,11 @@ class MySQLDriver implements DriverInterface {
               $curQuery .= '(' .
                   (
                     ($typeIsNot xor $clauseNot)
-                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \' ' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $curValue[0]
-                            ).'[[:>:]]\' OR '
+                            ).' \' OR '
                         : ''
                   ) .
                   $this->makeDataPart(
@@ -882,11 +882,11 @@ class MySQLDriver implements DriverInterface {
               $curQuery .= '(' .
                   (
                     ($typeIsNot xor $clauseNot)
-                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \' ' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $curValue[0]
-                            ).'[[:>:]]\' OR '
+                            ).' \' OR '
                         : ''
                   ) .
                   $this->makeDataPart(
@@ -931,11 +931,11 @@ class MySQLDriver implements DriverInterface {
               $curQuery .= '(' .
                   (
                     ($typeIsNot xor $clauseNot)
-                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \' ' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $curValue[0]
-                            ).'[[:>:]]\' OR '
+                            ).' \' OR '
                         : ''
                   ) .
                   $this->makeDataPart(
@@ -955,11 +955,11 @@ class MySQLDriver implements DriverInterface {
               $curQuery .= '(' .
                   (
                     ($typeIsNot xor $clauseNot)
-                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \' ' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $curValue[0]
-                            ).'[[:>:]]\' OR '
+                            ).' \' OR '
                         : ''
                   ) .
                   $this->makeDataPart(
@@ -979,11 +979,11 @@ class MySQLDriver implements DriverInterface {
               $curQuery .= '(' .
                   (
                     ($typeIsNot xor $clauseNot)
-                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \' ' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $curValue[0]
-                            ).'[[:>:]]\' OR '
+                            ).' \' OR '
                         : ''
                   ) .
                   $this->makeDataPart(
@@ -1003,11 +1003,11 @@ class MySQLDriver implements DriverInterface {
               $curQuery .= '(' .
                   (
                     ($typeIsNot xor $clauseNot)
-                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \' ' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $curValue[0]
-                            ).'[[:>:]]\' OR '
+                            ).' \' OR '
                         : ''
                   ) .
                   $this->makeDataPart(
@@ -1027,11 +1027,11 @@ class MySQLDriver implements DriverInterface {
               $curQuery .= '(' .
                   (
                     ($typeIsNot xor $clauseNot)
-                        ? 'ie.`varlist` NOT REGEXP \'[[:<:]]' .
+                        ? 'ie.`varlist` NOT REGEXP \' ' .
                             mysqli_real_escape_string(
                                 $this->link,
                                 $curValue[0]
-                            ).'[[:>:]]\' OR '
+                            ).' \' OR '
                         : ''
                   ) .
                   $this->makeDataPart(
@@ -1181,7 +1181,7 @@ class MySQLDriver implements DriverInterface {
         },
         function ($row) {
           return [
-            'tags' => $row[1] !== '' ? explode(' ', $row[1]) : [],
+            'tags' => $row[1] !== '' ? explode(' ', trim($row[1])) : [],
             'cdate' => (float) $row[2],
             'mdate' => (float) $row[3]
           ];
@@ -1210,7 +1210,7 @@ class MySQLDriver implements DriverInterface {
   public function import($filename) {
     return $this->importFromFile($filename, function ($guid, $tags, $data, $etype) {
       $this->query("REPLACE INTO `{$this->prefix}guids` (`guid`) VALUES ({$guid});");
-      $this->query("REPLACE INTO `{$this->prefix}entities_{$etype}` (`guid`, `tags`, `varlist`, `cdate`, `mdate`) VALUES ({$guid}, '".mysqli_real_escape_string($this->link, implode(' ', $tags))."', '".mysqli_real_escape_string($this->link, implode(' ', array_keys($data)))."', ".unserialize($data['cdate']).", ".unserialize($data['mdate']).");", $etype);
+      $this->query("REPLACE INTO `{$this->prefix}entities_{$etype}` (`guid`, `tags`, `varlist`, `cdate`, `mdate`) VALUES ({$guid}, ' ".mysqli_real_escape_string($this->link, implode(' ', $tags))." ', ' ".mysqli_real_escape_string($this->link, implode(' ', array_keys($data)))." ', ".unserialize($data['cdate']).", ".unserialize($data['mdate']).");", $etype);
       $this->query("DELETE FROM `{$this->prefix}data_{$etype}` WHERE `guid`='{$guid}';");
       $this->query("DELETE FROM `{$this->prefix}comparisons_{$etype}` WHERE `guid`='{$guid}';");
       unset($data['cdate'], $data['mdate']);
@@ -1291,7 +1291,7 @@ class MySQLDriver implements DriverInterface {
       return !isset($row[0]);
     }, function ($entity, $data, $sdata, $varlist, $etype, $etypeDirty) use ($insertData) {
       $this->query("INSERT INTO `{$this->prefix}guids` (`guid`) VALUES ({$entity->guid});");
-      $this->query("INSERT INTO `{$this->prefix}entities{$etype}` (`guid`, `tags`, `varlist`, `cdate`, `mdate`) VALUES ({$entity->guid}, '".mysqli_real_escape_string($this->link, implode(' ', array_diff($entity->tags, [''])))."', '".mysqli_real_escape_string($this->link, implode(' ', $varlist))."', ".((float) $entity->cdate).", ".((float) $entity->mdate).");", $etypeDirty);
+      $this->query("INSERT INTO `{$this->prefix}entities{$etype}` (`guid`, `tags`, `varlist`, `cdate`, `mdate`) VALUES ({$entity->guid}, ' ".mysqli_real_escape_string($this->link, implode(' ', array_diff($entity->tags, [''])))." ', ' ".mysqli_real_escape_string($this->link, implode(' ', $varlist))." ', ".((float) $entity->cdate).", ".((float) $entity->mdate).");", $etypeDirty);
       $insertData($entity, $data, $sdata, $etype, $etypeDirty);
     }, function ($entity, $data, $sdata, $varlist, $etype, $etypeDirty) use ($insertData) {
       if ($this->config['MySQL']['row_locking']) {
@@ -1302,7 +1302,7 @@ class MySQLDriver implements DriverInterface {
       if ($this->config['MySQL']['table_locking']) {
         $this->query("LOCK TABLES `{$this->prefix}entities{$etype}` WRITE, `{$this->prefix}data{$etype}` WRITE, `{$this->prefix}comparisons{$etype}` WRITE;");
       }
-      $this->query("UPDATE `{$this->prefix}entities{$etype}` SET `tags`='".mysqli_real_escape_string($this->link, implode(' ', array_diff($entity->tags, [''])))."', `varlist`='".mysqli_real_escape_string($this->link, implode(' ', $varlist))."', `mdate`=".((float) $entity->mdate)." WHERE `guid`='".((int) $entity->guid)."';", $etypeDirty);
+      $this->query("UPDATE `{$this->prefix}entities{$etype}` SET `tags`=' ".mysqli_real_escape_string($this->link, implode(' ', array_diff($entity->tags, [''])))." ', `varlist`=' ".mysqli_real_escape_string($this->link, implode(' ', $varlist))." ', `mdate`=".((float) $entity->mdate)." WHERE `guid`='".((int) $entity->guid)."';", $etypeDirty);
       $this->query("DELETE FROM `{$this->prefix}data{$etype}` WHERE `guid`='".((int) $entity->guid)."';");
       $this->query("DELETE FROM `{$this->prefix}comparisons{$etype}` WHERE `guid`='".((int) $entity->guid)."';");
       $insertData($entity, $data, $sdata, $etype, $etypeDirty);
@@ -1338,7 +1338,7 @@ class MySQLDriver implements DriverInterface {
         PREG_PATTERN_ORDER
     );
     return sprintf(
-        "(%u, '%s', '%s', %s, %s, %s, %s, %s, %s, %d, %f, %s)",
+        "(%u, '%s', ' %s ', %s, %s, %s, %s, %s, %s, %d, %f, %s)",
         (int) $guid,
         mysqli_real_escape_string($this->link, $name),
         mysqli_real_escape_string(
