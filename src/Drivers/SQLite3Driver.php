@@ -104,12 +104,24 @@ class SQLite3Driver implements DriverInterface {
   }
 
   /**
+   * Check if SQLite3 DB is read only and throw error if so.
+   */
+  private function checkReadOnlyMode() {
+    if ($this->config['SQLite3']['open_flags'] & \SQLITE3_OPEN_READONLY) {
+      throw new Exceptions\InvalidParametersException(
+          'Attempt to write to SQLite3 DB in read only mode.'
+      );
+    }
+  }
+
+  /**
    * Create entity tables in the database.
    *
    * @param string $etype The entity type to create a table for. If this is
    *                      blank, the default tables are created.
    */
   private function createTables($etype = null) {
+    $this->checkReadOnlyMode();
     $this->query("SAVEPOINT 'tablecreation';");
     try {
       if (isset($etype)) {
@@ -187,6 +199,7 @@ class SQLite3Driver implements DriverInterface {
   }
 
   public function deleteEntityByID($guid, $etypeDirty = null) {
+    $this->checkReadOnlyMode();
     $guid = (int) $guid;
     $etype = isset($etypeDirty) ? '_'.SQLite3::escapeString($etypeDirty) : '';
     $this->query("SAVEPOINT 'deleteentity';");
@@ -206,6 +219,7 @@ class SQLite3Driver implements DriverInterface {
     if (!$name) {
       throw new Exceptions\InvalidParametersException('Name not given for UID');
     }
+    $this->checkReadOnlyMode();
     $this->query("DELETE FROM \"{$this->prefix}uids\" WHERE \"name\"='".SQLite3::escapeString($name)."';");
     return true;
   }
@@ -932,6 +946,7 @@ class SQLite3Driver implements DriverInterface {
   }
 
   public function import($filename) {
+    $this->checkReadOnlyMode();
     return $this->importFromFile($filename, function ($guid, $tags, $data, $etype) {
       $this->query("DELETE FROM \"{$this->prefix}guids\" WHERE \"guid\"={$guid};");
       $this->query("DELETE FROM \"{$this->prefix}entities_{$etype}\" WHERE \"guid\"={$guid};");
@@ -970,6 +985,7 @@ class SQLite3Driver implements DriverInterface {
           'Name not given for UID.'
       );
     }
+    $this->checkReadOnlyMode();
     $this->query("SAVEPOINT 'newuid';");
     $result = $this->query("SELECT \"cur_uid\" FROM \"{$this->prefix}uids\" WHERE \"name\"='".SQLite3::escapeString($name)."';");
     $row = $result->fetchArray(SQLITE3_NUM);
@@ -992,11 +1008,13 @@ class SQLite3Driver implements DriverInterface {
           'Name not given for UID.'
       );
     }
+    $this->checkReadOnlyMode();
     $this->query("UPDATE \"{$this->prefix}uids\" SET \"name\"='".SQLite3::escapeString($newName)."' WHERE \"name\"='".SQLite3::escapeString($oldName)."';");
     return true;
   }
 
   public function saveEntity(&$entity) {
+    $this->checkReadOnlyMode();
     $insertData = function ($entity, $data, $sdata, $etype, $etypeDirty) {
       $runInsertQuery = function ($name, $value, $svalue) use ($entity, $etype, $etypeDirty) {
         $this->query(
@@ -1046,6 +1064,7 @@ class SQLite3Driver implements DriverInterface {
           'Name not given for UID.'
       );
     }
+    $this->checkReadOnlyMode();
     $this->query("DELETE FROM \"{$this->prefix}uids\" WHERE \"name\"='".SQLite3::escapeString($name)."';");
     $this->query("INSERT INTO \"{$this->prefix}uids\" (\"name\", \"cur_uid\") VALUES ('".SQLite3::escapeString($name)."', ".((int) $value).");");
     return true;
