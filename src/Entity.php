@@ -632,17 +632,17 @@ class Entity implements EntityInterface {
       return false;
     }
     if (isset($this->guid) || isset($testObject->guid)) {
-      if ($this->guid != $testObject->guid) {
+      if ($this->guid !== $testObject->guid) {
         return false;
       }
     }
-    if (get_class($testObject) != get_class($this)) {
+    if (get_class($testObject) !== get_class($this)) {
       return false;
     }
-    if ($testObject->cdate != $this->cdate) {
+    if ($testObject->cdate !== $this->cdate) {
       return false;
     }
-    if ($testObject->mdate != $this->mdate) {
+    if ($testObject->mdate !== $this->mdate) {
       return false;
     }
     $obData = $testObject->getData(true);
@@ -768,7 +768,7 @@ class Entity implements EntityInterface {
       return false;
     }
     if (isset($this->guid) || isset($testObject->guid)) {
-      return ($this->guid == $testObject->guid);
+      return ($this->guid === $testObject->guid);
     } elseif (!is_callable([$testObject, 'getData'])) {
       return false;
     } else {
