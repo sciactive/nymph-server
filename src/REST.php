@@ -45,9 +45,9 @@ class REST {
       $deleted = [];
       $failures = false;
       foreach ($ents as $delEnt) {
-        $guid = (int) $delEnt['guid'];
-        $etype = $delEnt['etype'];
         try {
+          $guid = (int) $delEnt['guid'];
+          $etype = $delEnt['class']::ETYPE;
           if (Nymph::deleteEntityByID($guid, $etype)) {
             $deleted[] = $guid;
           } else {
@@ -414,6 +414,7 @@ class REST {
   protected function loadEntity($entityData) {
     if (!class_exists($entityData['class'])
         || $entityData['class'] === 'Entity'
+        || $entityData['class'] === '\Nymph\Entity'
       ) {
       // Don't let clients use the `Entity` class, since it has no validity/AC
       // checks.

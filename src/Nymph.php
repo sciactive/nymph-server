@@ -371,39 +371,39 @@ class Nymph {
    *
    * - guid - A GUID. True if the entity's GUID is equal.
    * - tag - A tag. True if the entity has the tag.
-   * - isset - A name. True if the named variable exists and is not null.
-   * - equal - An array with a name, then value. True if the named variable is
+   * - isset - A name. True if the named property exists and is not null.
+   * - equal - An array with a name, then value. True if the named property is
    *   defined and equal.
    * - data (deprecated) - An alias for equal.
-   * - strict - An array with a name, then value. True if the named variable
+   * - strict - An array with a name, then value. True if the named property
    *   is defined and identical.
-   * - array - An array with a name, then value. True if the named variable is
+   * - array - An array with a name, then value. True if the named property is
    *   an array containing the value. Uses in_array().
    * - match - An array with a name, then regular expression. True if the
-   *   named variable matches. Uses preg_match(). More powerful than "pmatch"
-   *   but slower. Must be surrounded by "/" delimiters.
+   *   named property matches. Uses preg_match(). More powerful than "pmatch"
+   *   but much slower. Must be surrounded by "/" delimiters.
    * - pmatch - An array with a name, then regular expression. True if the
-   *   named variable matches. Uses POSIX RegExp. Case sensitive. Faster than
+   *   named property matches. Uses POSIX RegExp. Case sensitive. Faster than
    *   "match". Must *not* be surrounded by any delimiters.
    * - ipmatch - An array with a name, then regular expression. True if the
-   *   named variable matches. Uses POSIX RegExp. Case insensitive. Faster
+   *   named property matches. Uses POSIX RegExp. Case insensitive. Faster
    *   than "match". Must *not* be surrounded by any delimiters.
-   * - like - An array with a name, then pattern. True if the named variable
+   * - like - An array with a name, then pattern. True if the named property
    *   matches. Uses % for variable length wildcard and _ for single character
    *   wildcard. Case sensitive.
-   * - ilike - An array with a name, then pattern. True if the named variable
+   * - ilike - An array with a name, then pattern. True if the named property
    *   matches. Uses % for variable length wildcard and _ for single character
    *   wildcard. Case insensitive.
-   * - gt - An array with a name, then value. True if the named variable is
+   * - gt - An array with a name, then value. True if the named property is
    *   greater than the value.
-   * - gte - An array with a name, then value. True if the named variable is
+   * - gte - An array with a name, then value. True if the named property is
    *   greater than or equal to the value.
-   * - lt - An array with a name, then value. True if the named variable is
+   * - lt - An array with a name, then value. True if the named property is
    *   less than the value.
-   * - lte - An array with a name, then value. True if the named variable is
+   * - lte - An array with a name, then value. True if the named property is
    *   less than or equal to the value.
    * - ref - An array with a name, then either an entity, or a GUID. True if
-   *   the named variable is the entity or an array containing the entity.
+   *   the named property is the entity or an array containing the entity.
    *
    * These clauses can all be negated, by prefixing them with an exclamation
    * point, such as "!isset".
