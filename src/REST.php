@@ -46,8 +46,7 @@ class REST {
       foreach ($ents as $delEnt) {
         try {
           $guid = (int) $delEnt['guid'];
-          $etype = $delEnt['class']::ETYPE;
-          if (Nymph::deleteEntityByID($guid, $etype)) {
+          if (Nymph::deleteEntityByID($guid, $delEnt['class'])) {
             $deleted[] = $guid;
           } else {
             $failures = true;

@@ -258,7 +258,8 @@ class PostgreSQLDriver implements DriverInterface {
     return $result;
   }
 
-  public function deleteEntityByID($guid, $etypeDirty = null) {
+  public function deleteEntityByID($guid, $className = null) {
+    $etypeDirty = isset($className) ? $className::ETYPE : null;
     $guid = (int) $guid;
     $etype = isset($etypeDirty) ? '_'.pg_escape_string($this->link, $etypeDirty) : '';
     $this->query("DELETE FROM \"{$this->prefix}entities{$etype}\" WHERE \"guid\"={$guid}; DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$guid}; DELETE FROM \"{$this->prefix}comparisons{$etype}\" WHERE \"guid\"={$guid};", $etypeDirty);

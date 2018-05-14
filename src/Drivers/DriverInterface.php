@@ -11,7 +11,7 @@
 interface DriverInterface {
   public function connect();
   public function deleteEntity(&$entity);
-  public function deleteEntityByID($guid);
+  public function deleteEntityByID($guid, $className = null);
   public function deleteUID($name);
   public function disconnect();
   public function export($filename);

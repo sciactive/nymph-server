@@ -197,7 +197,8 @@ class SQLite3Driver implements DriverInterface {
     return $result;
   }
 
-  public function deleteEntityByID($guid, $etypeDirty = null) {
+  public function deleteEntityByID($guid, $className = null) {
+    $etypeDirty = isset($className) ? $className::ETYPE : null;
     $this->checkReadOnlyMode();
     $guid = (int) $guid;
     $etype = isset($etypeDirty) ? '_'.SQLite3::escapeString($etypeDirty) : '';

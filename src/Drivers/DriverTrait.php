@@ -450,7 +450,7 @@ trait DriverTrait {
 
   public function deleteEntity(&$entity) {
     $className = get_class($entity);
-    $ret = $this->deleteEntityByID($entity->guid, $className::ETYPE);
+    $ret = $this->deleteEntityByID($entity->guid, $className);
     if ($ret) {
       $entity->guid = null;
     }

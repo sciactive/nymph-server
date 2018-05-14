@@ -263,9 +263,10 @@ class Nymph {
    * Delete an entity by its GUID.
    *
    * @param int $guid The GUID of the entity.
+   * @param string $className The class of the entity.
    * @return bool True on success, false on failure.
    */
-  public static function deleteEntityByID($guid) {
+  public static function deleteEntityByID($guid, $className = null) {
     return self::__callStatic(__FUNCTION__, func_get_args());
   }
   /**
