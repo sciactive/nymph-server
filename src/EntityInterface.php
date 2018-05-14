@@ -3,17 +3,11 @@
 /**
  * Entity interface.
  *
- * @package Nymph
  * @license https://www.apache.org/licenses/LICENSE-2.0
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
  * @link http://nymph.io/
- */
-
-/**
- * Entity interface.
  *
- * @package Nymph
  * @property int $guid The GUID of the entity.
  * @property array $tags Array of the entity's tags.
  */

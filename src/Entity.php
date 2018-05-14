@@ -64,11 +64,11 @@
  * later in the code execution (after some other processing occurs), it's
  * recommended to call clearCache().
  *
- * @package Nymph
  * @license https://www.apache.org/licenses/LICENSE-2.0
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
  * @link http://nymph.io/
+ *
  * @property int $guid The entity's Globally Unique ID.
  * @property int $cdate The entity's creation date, as a high precision Unix
  *                      timestamp. The value is rounded to the ten thousandths

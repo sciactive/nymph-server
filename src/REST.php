@@ -6,7 +6,6 @@
  * Provides Nymph functionality compatible with a REST API. Allows the developer
  * to design their own API, or just use the reference implementation.
  *
- * @package Nymph
  * @license https://www.apache.org/licenses/LICENSE-2.0
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com

@@ -5,7 +5,6 @@
  *
  * Objects which hold data from some type of storage.
  *
- * @package Nymph
  * @license https://www.apache.org/licenses/LICENSE-2.0
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com

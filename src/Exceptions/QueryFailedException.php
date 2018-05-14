@@ -5,7 +5,6 @@
  *
  * This exception is thrown when a query to the database returns an error.
  *
- * @package Nymph
  * @license https://www.apache.org/licenses/LICENSE-2.0
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
