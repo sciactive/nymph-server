@@ -252,6 +252,13 @@ class Entity implements EntityInterface {
    * @access private
    */
   private $useSkipAc = false;
+  /**
+   * The AC properties' values when the entity was loaded.
+   *
+   * @var array
+   * @access private
+   */
+  private $originalAcValues = [];
 
   /**
    * Load an entity.
@@ -698,6 +705,10 @@ class Entity implements EntityInterface {
     return $this->sdata;
   }
 
+  public function getOriginalAcValues() {
+    return $this->originalAcValues;
+  }
+
   public function getValidatable() {
     if ($this->isASleepingReference) {
       $this->referenceWake();
@@ -892,6 +903,15 @@ class Entity implements EntityInterface {
     }
     $this->data = $data;
     $this->sdata = $sdata;
+
+    $this->originalAcValues['user'] = $this->user;
+    $this->originalAcValues['group'] = $this->group;
+    $this->originalAcValues['acUser'] = $this->acUser;
+    $this->originalAcValues['acGroup'] = $this->acGroup;
+    $this->originalAcValues['acOther'] = $this->acOther;
+    $this->originalAcValues['acRead'] = $this->acRead;
+    $this->originalAcValues['acWrite'] = $this->acWrite;
+    $this->originalAcValues['acFull'] = $this->acFull;
   }
 
   /**

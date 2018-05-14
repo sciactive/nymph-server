@@ -71,6 +71,12 @@ interface EntityInterface extends DataObjectInterface, \JsonSerializable {
    */
   public function getSData();
   /**
+   * Get the original values of the AC properties.
+   *
+   * @return array An associative array of AC properties.
+   */
+  public function getOriginalAcValues();
+  /**
    * Get a stdClass object that holds the same data as the entity.
    *
    * A validator that uses the reflection API would not be able to validate an
