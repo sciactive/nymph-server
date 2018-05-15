@@ -14,7 +14,7 @@ use Nymph\Drivers\DriverInterface;
  * @link http://nymph.io/
  */
 class Nymph {
-  const VERSION = '3.0.0-beta.12';
+  const VERSION = '3.0.0-beta.13';
 
   /**
    * The Nymph config array.
