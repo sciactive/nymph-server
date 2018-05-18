@@ -324,7 +324,7 @@ class Entity implements EntityInterface {
    * you access the variable normally.
    *
    * @param string $name The name of the variable.
-   * @return mixed The value of the variable or nothing if it doesn't exist.
+   * @return mixed The value of the variable or null if it doesn't exist.
    */
   public function &__get($name) {
     if ($this->isASleepingReference) {
@@ -341,14 +341,6 @@ class Entity implements EntityInterface {
     if (isset($this->sdata[$name])) {
       $this->data[$name] = unserialize($this->sdata[$name]);
       unset($this->sdata[$name]);
-    }
-    // Check for peditor sources.
-    if (substr($name, -9) === '_pesource'
-        && !isset($this->sdata[$name])
-        && isset($this->sdata[substr($name, 0, -9)])) {
-      $this->data[substr($name, 0, -9)] =
-          unserialize($this->sdata[substr($name, 0, -9)]);
-      unset($this->sdata[substr($name, 0, -9)]);
     }
     // Check for an entity first.
     if (isset($this->entityCache[$name])) {
@@ -399,10 +391,6 @@ class Entity implements EntityInterface {
       }
     } catch (Exceptions\EntityClassNotFoundException $e) {
       throw new Exceptions\EntityCorruptedException($e->getMessage());
-    }
-    // Check for peditor sources.
-    if (substr($name, -9) === '_pesource' && !isset($this->data[$name])) {
-      return $this->data[substr($name, 0, -9)];
     }
     return $this->data[$name];
   }
@@ -904,14 +892,22 @@ class Entity implements EntityInterface {
     $this->data = $data;
     $this->sdata = $sdata;
 
-    $this->originalAcValues['user'] = $this->user;
-    $this->originalAcValues['group'] = $this->group;
-    $this->originalAcValues['acUser'] = $this->acUser;
-    $this->originalAcValues['acGroup'] = $this->acGroup;
-    $this->originalAcValues['acOther'] = $this->acOther;
-    $this->originalAcValues['acRead'] = $this->acRead;
-    $this->originalAcValues['acWrite'] = $this->acWrite;
-    $this->originalAcValues['acFull'] = $this->acFull;
+    $this->originalAcValues['user'] =
+      isset($this->user) ? $this->user : null;
+    $this->originalAcValues['group'] =
+      isset($this->group) ? $this->group : null;
+    $this->originalAcValues['acUser'] =
+      isset($this->acUser) ? $this->acUser : null;
+    $this->originalAcValues['acGroup'] =
+      isset($this->acGroup) ? $this->acGroup : null;
+    $this->originalAcValues['acOther'] =
+      isset($this->acOther) ? $this->acOther : null;
+    $this->originalAcValues['acRead'] =
+      isset($this->acRead) ? $this->acRead : null;
+    $this->originalAcValues['acWrite'] =
+      isset($this->acWrite) ? $this->acWrite : null;
+    $this->originalAcValues['acFull'] =
+      isset($this->acFull) ? $this->acFull : null;
   }
 
   /**
