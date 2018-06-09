@@ -23,6 +23,9 @@ if (getenv('DATABASE_MYSQL')) {
     'user' => 'nymph_testing',
     'password' => 'password'
   ];
+  // $nymphConfig['MySQL'] = [
+  //   'link' => mysqli_connect('127.0.0.1', 'nymph_testing', 'password', 'nymph_testing')
+  // ];
 }
 
 $nymphConfig['pubsub'] = false;

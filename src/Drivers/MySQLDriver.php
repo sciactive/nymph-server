@@ -56,9 +56,10 @@ class MySQLDriver implements DriverInterface {
     $password = $this->config['MySQL']['password'];
     $database = $this->config['MySQL']['database'];
     $port = $this->config['MySQL']['port'];
+    $link = $this->config['MySQL']['link'];
     // Connecting, selecting database
     if (!$this->connected) {
-      if ($this->link =
+      if ($this->link = $link ??
           mysqli_connect(
               $host,
               $user,
@@ -69,10 +70,11 @@ class MySQLDriver implements DriverInterface {
         $this->connected = true;
       } else {
         $this->connected = false;
-        if ($host == 'localhost'
-            && $user == 'nymph'
-            && $password == 'password'
-            && $database == 'nymph') {
+        if ($host === 'localhost'
+            && $user === 'nymph'
+            && $password === 'password'
+            && $database === 'nymph'
+            && $link === null) {
           throw new Exceptions\NotConfiguredException();
         } else {
           throw new Exceptions\UnableToConnectException(

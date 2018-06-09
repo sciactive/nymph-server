@@ -74,6 +74,12 @@ return [
      */
     'database' => 'nymph',
     /*
+     * MySQLi Link
+     * If you need to use custom options, like SSL, you can create a MySQLi
+     * resource yourself, and provide it here.
+     */
+    'link' => null,
+    /*
      * Table Prefix
      * The MySQL table name prefix.
      */
