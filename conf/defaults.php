@@ -75,8 +75,8 @@ return [
     'database' => 'nymph',
     /*
      * MySQLi Link
-     * If you need to use custom options, like SSL, you can create a MySQLi
-     * resource yourself, and provide it here.
+     * If you need to use custom options, like SSL, you can provide a function
+     * here to create a MySQLi resource and return it.
      */
     'link' => null,
     /*

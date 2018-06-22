@@ -56,9 +56,18 @@ class MySQLDriver implements DriverInterface {
     $password = $this->config['MySQL']['password'];
     $database = $this->config['MySQL']['database'];
     $port = $this->config['MySQL']['port'];
-    $link = $this->config['MySQL']['link'];
+
+    // If we think we're connected, try pinging the server.
+    if ($this->connected && !mysqli_ping($this->link)) {
+      $this->connected = false;
+    }
+
     // Connecting, selecting database
     if (!$this->connected) {
+      $link = is_callable($this->config['MySQL']['link'])
+        ? $this->config['MySQL']['link']()
+        : null;
+
       if ($this->link = $link ??
           mysqli_connect(
               $host,
@@ -193,32 +202,38 @@ class MySQLDriver implements DriverInterface {
   }
 
   private function query($query, $etypeDirty = null) {
+    $newQueryFailedException = function () use ($query) {
+      return new Exceptions\QueryFailedException(
+          'Query failed: ' .
+              mysqli_errno($this->link) . ': ' .
+              mysqli_error($this->link),
+          0,
+          null,
+          $query
+      );
+    };
+
     // error_log("\n\nQuery: ".$query);
     if (!($result = mysqli_query($this->link, $query))) {
-      // If the tables don't exist yet, create them.
-      if (mysqli_errno($this->link) == 1146 && $this->createTables()) {
+      $errNo = mysqli_errno($this->link);
+      if ($errNo == 1146 && $this->createTables()) {
+        // If the tables don't exist yet, create them.
         if (isset($etypeDirty)) {
           $this->createTables($etypeDirty);
         }
         if (!($result = mysqli_query($this->link, $query))) {
-          throw new Exceptions\QueryFailedException(
-              'Query failed: ' .
-                  mysqli_errno($this->link) . ': ' .
-                  mysqli_error($this->link),
-              0,
-              null,
-              $query
-          );
+          throw $newQueryFailedException();
+        }
+      } elseif ($errNo == 2006) {
+        // If the MySQL server disconnected, reconnect to it.
+        if (!$this->connect()) {
+          throw $newQueryFailedException();
+        }
+        if (!($result = mysqli_query($this->link, $query))) {
+          throw $newQueryFailedException();
         }
       } else {
-        throw new Exceptions\QueryFailedException(
-            'Query failed: ' .
-                mysqli_errno($this->link) . ': ' .
-                mysqli_error($this->link),
-            0,
-            null,
-            $query
-        );
+        throw $newQueryFailedException();
       }
     }
     return $result;
