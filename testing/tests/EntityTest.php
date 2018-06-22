@@ -221,6 +221,10 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
         ['nymph_entity_reference', $testEntity->guid, 'NymphTesting\TestModel']
     );
 
+    $this->assertSame($testEntity->guid, $entity->guid);
+    $this->assertSame($testEntity->cdate, $entity->cdate);
+    $this->assertSame($testEntity->mdate, $entity->mdate);
+    $this->assertSame($testEntity->tags, $entity->tags);
     $this->assertSame('Entity Test', $entity->name);
     $this->assertNull($entity->null);
     $this->assertSame('test', $entity->string);

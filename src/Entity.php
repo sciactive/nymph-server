@@ -1008,6 +1008,8 @@ class Entity implements EntityInterface {
     $this->sleepingReference = null;
     $this->guid = $entity->guid;
     $this->tags = $entity->tags;
+    $this->cdate = $entity->cdate;
+    $this->mdate = $entity->mdate;
     $this->putData($entity->getData(), $entity->getSData());
     return true;
   }
