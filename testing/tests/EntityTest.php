@@ -268,6 +268,19 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
   public function testAcceptJSON($arr) {
     $testEntity = $arr['entity'];
 
+    // Test that a property can be deleted.
+    $json = json_encode($testEntity);
+
+    $entityDataDelete = json_decode($json, true);
+
+    unset($entityDataDelete['data']['string']);
+    $testEntity->jsonAcceptData($entityDataDelete['data']);
+
+    $this->assertNull($testEntity->string);
+
+    $this->assertTrue($testEntity->refresh());
+
+    // Test whitelisted data.
     $json = json_encode($testEntity);
 
     $entityData = json_decode($json, true);
@@ -306,6 +319,8 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     );
 
     $this->assertTrue($testEntity->refresh());
+
+    // Test no whitelist, but protected data instead.
     $testEntity->useProtectedData();
 
     $testEntity->cdate = "13";

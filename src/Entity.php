@@ -163,8 +163,8 @@ class Entity implements EntityInterface {
    * can also be considered a blacklist, because these properties will not be
    * set with incoming JSON.
    *
-   * You should be aware that the user can still conceivably determine what is
-   * in these properties, unless they are listed in searchRestrictedData.
+   * You should be aware that clients can still determine what is in these
+   * properties, unless they are also listed in searchRestrictedData.
    *
    * @var array
    * @access protected
@@ -849,6 +849,9 @@ class Entity implements EntityInterface {
     $nonWhitelistData = [];
     if ($this->whitelistData !== false) {
       $nonWhitelistData = $this->getData(true);
+      foreach ($this->whitelistData as $name) {
+        unset($nonWhitelistData[$name]);
+      }
       foreach ($data as $name => $val) {
         if (!in_array($name, $this->whitelistData)) {
           unset($data[$name]);
