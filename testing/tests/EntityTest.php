@@ -181,6 +181,16 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $testEntity->removeTag(['test5', 'test6']);
     $this->assertFalse($testEntity->hasTag(['test5', 'test6']));
     $this->assertEquals(['test'], $testEntity->getTags());
+
+    // Remove all tags.
+    $testEntity->removeTag('test');
+    $this->assertTrue($testEntity->save());
+    $this->assertTrue($testEntity->refresh());
+    $this->assertFalse($testEntity->hasTag('test'));
+    $this->assertEquals([], $testEntity->getTags());
+    $testEntity->addTag('test');
+    $this->assertTrue($testEntity->save());
+    $this->assertTrue($testEntity->hasTag('test'));
   }
 
   /**

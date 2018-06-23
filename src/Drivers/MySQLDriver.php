@@ -1198,7 +1198,7 @@ class MySQLDriver implements DriverInterface {
         },
         function ($row) {
           return [
-            'tags' => $row[1] !== '' ? explode(' ', trim($row[1])) : [],
+            'tags' => $row[1] !== '  ' ? explode(' ', trim($row[1])) : [],
             'cdate' => (float) $row[2],
             'mdate' => (float) $row[3]
           ];

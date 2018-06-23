@@ -716,9 +716,7 @@ trait DriverTrait {
               unset($data['cdate']);
               $entity->mdate = $data['mdate'];
               unset($data['mdate']);
-              if ($tags) {
-                $entity->tags = $tags;
-              }
+              $entity->tags = $tags;
               $entity->putData($data, $sdata);
               if ($this->config['cache']) {
                 $this->pushCache($entity, $className);
