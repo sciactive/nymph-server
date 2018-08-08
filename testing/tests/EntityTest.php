@@ -257,16 +257,16 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $json = json_encode($testEntity);
 
     $this->assertJsonStringEqualsJsonString(
-        '{"guid":' . $testEntity->guid.',"cdate":' .
-            json_encode($testEntity->cdate) . ',"mdate":' .
-            json_encode($testEntity->mdate) . ',"tags":["test"],"data":' .
-            '{"reference":["nymph_entity_reference",' .
-            $arr['refGuid'] . ',"NymphTesting\\\\TestModel"],"refArray":[{"entity":' .
-            '["nymph_entity_reference",' .
-            $arr['refGuid'] . ',"NymphTesting\\\\TestModel"]}],"refObject":{"thing":' .
-            '{"entity":["nymph_entity_reference",' . $arr['refGuid'] .
-            ',"NymphTesting\\\\TestModel"]}},"name":"Entity Test","number":30,"array":' .
-            '["full","of","values",500],"string":"test","null":null},' .
+        '{"guid":'.$testEntity->guid.',"cdate":'.
+            json_encode($testEntity->cdate).',"mdate":'.
+            json_encode($testEntity->mdate).',"tags":["test"],"data":'.
+            '{"reference":["nymph_entity_reference",'.
+            $arr['refGuid'].',"NymphTesting\\\\TestModel"],"refArray":[{"entity":'.
+            '["nymph_entity_reference",'.
+            $arr['refGuid'].',"NymphTesting\\\\TestModel"]}],"refObject":{"thing":'.
+            '{"entity":["nymph_entity_reference",'.$arr['refGuid'].
+            ',"NymphTesting\\\\TestModel"]}},"name":"Entity Test","number":30,"array":'.
+            '["full","of","values",500],"string":"test","null":null},'.
             '"class":"NymphTesting\\\\TestModel"}',
         $json
     );

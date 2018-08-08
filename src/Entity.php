@@ -350,7 +350,7 @@ class Entity implements EntityInterface {
           $className = $this->data[$name][2];
           if (!class_exists($className)) {
             throw new Exceptions\EntityCorruptedException(
-                "Entity reference refers to a class that can't be found, " .
+                "Entity reference refers to a class that can't be found, ".
                 "$className."
             );
           }
@@ -923,14 +923,14 @@ class Entity implements EntityInterface {
         || !is_int($reference[1])
         || !is_string($reference[2])) {
       throw new Exceptions\InvalidParametersException(
-          'referenceSleep expects parameter 1 to be a valid Nymph entity ' .
+          'referenceSleep expects parameter 1 to be a valid Nymph entity '.
           'reference.'
       );
     }
     $thisClass = get_class($this);
     if ($reference[2] !== $thisClass) {
       throw new Exceptions\InvalidParametersException(
-          "referenceSleep can only be called with an entity reference of the " .
+          "referenceSleep can only be called with an entity reference of the ".
           "same class. Given class: {$reference[2]}; this class: $thisClass."
       );
     }
@@ -958,7 +958,7 @@ class Entity implements EntityInterface {
         if (!isset($this->entityCache["referenceGuid__{$item[1]}"])) {
           if (!class_exists($item[2])) {
             throw new Exceptions\EntityClassNotFoundException(
-                "Tried to load entity reference that refers to a class that " .
+                "Tried to load entity reference that refers to a class that ".
                 "can't be found, {$item[2]}."
             );
           }
@@ -996,7 +996,7 @@ class Entity implements EntityInterface {
     }
     if (!class_exists($this->sleepingReference[2])) {
       throw new Exceptions\EntityClassNotFoundException(
-          "Tried to wake sleeping reference entity that refers to a class " .
+          "Tried to wake sleeping reference entity that refers to a class ".
           "that can't be found, {$this->sleepingReference[2]}."
       );
     }

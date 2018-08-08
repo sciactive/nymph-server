@@ -63,7 +63,7 @@ trait DriverTrait {
 
   private function posixRegexMatch($pattern, $subject) {
     return preg_match(
-        '~' . str_replace(
+        '~'.str_replace(
             [
               '~',
               '[[:<:]]',
@@ -105,7 +105,7 @@ trait DriverTrait {
               '[0-9A-Fa-f]',
             ],
             $pattern
-        ) . '~',
+        ).'~',
         $subject
     );
   }
@@ -336,14 +336,14 @@ trait DriverTrait {
                           (
                               isset($data[$curValue[0]])
                               && preg_match(
-                                  '/^' . str_replace(
+                                  '/^'.str_replace(
                                       ['%', '_'],
                                       ['.*?', '.'],
                                       preg_quote(
                                           $curValue[1],
                                           '/'
                                       )
-                                  ) . '$/',
+                                  ).'$/',
                                   $data[$curValue[0]]
                               )
                           )
