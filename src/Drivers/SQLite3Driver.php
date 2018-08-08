@@ -844,6 +844,10 @@ class SQLite3Driver implements DriverInterface {
         $sort = '"cdate"';
         break;
     }
+    if (isset($options['reverse']) && $options['reverse']) {
+      $sort .= ' DESC';
+    }
+
     if ($queryParts) {
       if ($subquery) {
         $query = "((".implode(') AND (', $queryParts)."))";
@@ -856,7 +860,20 @@ class SQLite3Driver implements DriverInterface {
         if ($fullQueryCoverage && key_exists('offset', $options)) {
           $offset = " OFFSET ".((int) $options['offset']);
         }
-        $query = "SELECT e.\"guid\", e.\"tags\", e.\"cdate\", e.\"mdate\", d.\"name\", d.\"value\" FROM \"{$this->prefix}entities{$etype}\" e LEFT JOIN \"{$this->prefix}data{$etype}\" d USING (\"guid\") INNER JOIN (SELECT \"guid\" FROM \"{$this->prefix}entities{$etype}\" ie WHERE (".implode(') AND (', $queryParts).") ORDER BY ie.".(isset($options['reverse']) && $options['reverse'] ? $sort.' DESC' : $sort)."{$limit}{$offset}) f USING (\"guid\");";
+        $query =
+            "SELECT e.\"guid\", e.\"tags\", e.\"cdate\", e.\"mdate\", ".
+              "d.\"name\", d.\"value\" ".
+            "FROM \"{$this->prefix}entities{$etype}\" e ".
+            "LEFT JOIN \"{$this->prefix}data{$etype}\" d USING (\"guid\") ".
+            "INNER JOIN (".
+              "SELECT \"guid\" ".
+              "FROM \"{$this->prefix}entities{$etype}\" ie ".
+              "WHERE (".
+                implode(') AND (', $queryParts).
+              ") ".
+              "ORDER BY ie.{$sort}{$limit}{$offset}".
+            ") f USING (\"guid\") ".
+            "ORDER BY {$sort};";
       }
     } else {
       if ($subquery) {
@@ -871,9 +888,24 @@ class SQLite3Driver implements DriverInterface {
           $offset = " OFFSET ".((int) $options['offset']);
         }
         if ($limit || $offset) {
-          $query = "SELECT e.\"guid\", e.\"tags\", e.\"cdate\", e.\"mdate\", d.\"name\", d.\"value\" FROM \"{$this->prefix}entities{$etype}\" e LEFT JOIN \"{$this->prefix}data{$etype}\" d USING (\"guid\") INNER JOIN (SELECT \"guid\" FROM \"{$this->prefix}entities{$etype}\" ie ORDER BY ie.".(isset($options['reverse']) && $options['reverse'] ? $sort.' DESC' : $sort)."{$limit}{$offset}) f USING (\"guid\");";
+          $query =
+              "SELECT e.\"guid\", e.\"tags\", e.\"cdate\", e.\"mdate\", ".
+                "d.\"name\", d.\"value\" ".
+              "FROM \"{$this->prefix}entities{$etype}\" e ".
+              "LEFT JOIN \"{$this->prefix}data{$etype}\" d USING (\"guid\") ".
+              "INNER JOIN (".
+                "SELECT \"guid\" ".
+                "FROM \"{$this->prefix}entities{$etype}\" ie ".
+                "ORDER BY ie.{$sort}{$limit}{$offset}".
+              ") f USING (\"guid\") ".
+              "ORDER BY {$sort};";
         } else {
-          $query = "SELECT e.\"guid\", e.\"tags\", e.\"cdate\", e.\"mdate\", d.\"name\", d.\"value\" FROM \"{$this->prefix}entities{$etype}\" e LEFT JOIN \"{$this->prefix}data{$etype}\" d USING (\"guid\") ORDER BY ".(isset($options['reverse']) && $options['reverse'] ? $sort.' DESC' : $sort).";";
+          $query =
+              "SELECT e.\"guid\", e.\"tags\", e.\"cdate\", e.\"mdate\", ".
+                "d.\"name\", d.\"value\" ".
+              "FROM \"{$this->prefix}entities{$etype}\" e ".
+              "LEFT JOIN \"{$this->prefix}data{$etype}\" d USING (\"guid\") ".
+              "ORDER BY {$sort};";
         }
       }
     }

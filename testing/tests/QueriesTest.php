@@ -175,6 +175,21 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
   /**
    * @depends testCreateEntity
    */
+  public function testCreateMultiEntities() {
+    // Creating 100 entities...
+    for ($i = 0; $i < 100; $i++) {
+      $testEntity = TestModel::factory();
+      $testEntity->name = "Multi Test {$i}";
+      $testEntity->removeTag('test');
+      $testEntity->addTag('multiTest');
+      $this->assertTrue($testEntity->save());
+      usleep(20);
+    }
+  }
+
+  /**
+   * @depends testCreateEntity
+   */
   public function testByGuid($arr) {
     $testEntity = $arr['entity'];
 
@@ -208,7 +223,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
     $testEntity = $arr['entity'];
 
     // Testing entity order, offset, limit...
-    $resultEntity = Nymph::getEntities(
+    $resultEntities = Nymph::getEntities(
         [
           'class' => 'NymphTesting\TestModel',
           'reverse' => true,
@@ -218,7 +233,8 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
         ],
         ['&', 'tag' => 'test']
     );
-    $this->assertTrue($testEntity->is($resultEntity[0]));
+    $this->assertEquals(1, count($resultEntities));
+    $this->assertTrue($testEntity->is($resultEntities[0]));
   }
 
   /**
@@ -1846,6 +1862,56 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
         ]
     );
     $this->assertFalse($testEntity->inArray($resultEntity));
+  }
+
+  /**
+   * @depends testCreateMultiEntities
+   */
+  public function testSort($arr) {
+    foreach (['guid', 'cdate', 'mdate'] as $sort) {
+      // Retrieving entities sorted...
+      $resultEntities = Nymph::getEntities(
+          ['class' => 'NymphTesting\TestModel', 'sort' => $sort]
+      );
+      $this->assertNotEmpty($resultEntities);
+      $this->assertGreaterThan(100, count($resultEntities));
+      for ($i = 0; isset($resultEntities[$i+1]); $i++) {
+        $this->assertLessThan($resultEntities[$i+1]->$sort, $resultEntities[$i]->$sort);
+      }
+
+      // Retrieving entities reverse sorted...
+      $resultEntities = Nymph::getEntities(
+          ['class' => 'NymphTesting\TestModel', 'sort' => $sort, 'reverse' => true]
+      );
+      $this->assertNotEmpty($resultEntities);
+      $this->assertGreaterThan(100, count($resultEntities));
+      for ($i = 0; isset($resultEntities[$i+1]); $i++) {
+        $this->assertGreaterThan($resultEntities[$i+1]->$sort, $resultEntities[$i]->$sort);
+      }
+
+      // And again with other selectors.
+      // Retrieving entities sorted...
+      $resultEntities = Nymph::getEntities(
+          ['class' => 'NymphTesting\TestModel', 'sort' => $sort],
+          ['&', 'pmatch' => ['name', '^Multi Test ']]
+      );
+      $this->assertNotEmpty($resultEntities);
+      $this->assertEquals(100, count($resultEntities));
+      for ($i = 0; isset($resultEntities[$i+1]); $i++) {
+        $this->assertLessThan($resultEntities[$i+1]->$sort, $resultEntities[$i]->$sort);
+      }
+
+      // Retrieving entities reverse sorted...
+      $resultEntities = Nymph::getEntities(
+          ['class' => 'NymphTesting\TestModel', 'sort' => $sort, 'reverse' => true],
+          ['&', 'pmatch' => ['name', '^Multi Test ']]
+      );
+      $this->assertNotEmpty($resultEntities);
+      $this->assertEquals(100, count($resultEntities));
+      for ($i = 0; isset($resultEntities[$i+1]); $i++) {
+        $this->assertGreaterThan($resultEntities[$i+1]->$sort, $resultEntities[$i]->$sort);
+      }
+    }
   }
 
   /**

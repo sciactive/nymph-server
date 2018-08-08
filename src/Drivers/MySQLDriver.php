@@ -407,11 +407,11 @@ class MySQLDriver implements DriverInterface {
               }
               $groupQuery = '';
               foreach ($curValue as $curTag) {
-                $groupQuery .= ($typeIsOr ? ' ' : ' +').$curTag;
+                $groupQuery .= ($typeIsOr ? ' ' : ' +') .
+                    '"'.mysqli_real_escape_string($this->link, $curTag).'"';
               }
               $curQuery .= 'MATCH (ie.`tags`) AGAINST (\'' .
-                  mysqli_real_escape_string($this->link, $groupQuery) .
-                  '\' IN BOOLEAN MODE)';
+                  $groupQuery.'\' IN BOOLEAN MODE)';
             }
             break;
           case 'isset':
@@ -439,11 +439,11 @@ class MySQLDriver implements DriverInterface {
               }
               $groupQuery = '';
               foreach ($curValue as $curVar) {
-                $groupQuery .= ($typeIsOr ? ' ' : ' +').$curVar;
+                $groupQuery .= ($typeIsOr ? ' ' : ' +') .
+                    '"'.mysqli_real_escape_string($this->link, $curVar).'"';
               }
               $curQuery .= 'MATCH (ie.`varlist`) AGAINST (\'' .
-                  mysqli_real_escape_string($this->link, $groupQuery) .
-                  '\' IN BOOLEAN MODE)';
+                  $groupQuery.'\' IN BOOLEAN MODE)';
             }
             break;
           case 'ref':
@@ -1071,9 +1071,9 @@ class MySQLDriver implements DriverInterface {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $curQuery .= 'MATCH (ie.`varlist`) AGAINST (\'+' .
+              $curQuery .= 'MATCH (ie.`varlist`) AGAINST (\'+"' .
                   mysqli_real_escape_string($this->link, $curValue[0]) .
-                  '\' IN BOOLEAN MODE)';
+                  '"\' IN BOOLEAN MODE)';
             }
             $fullQueryCoverage = false;
             break;
@@ -1093,6 +1093,10 @@ class MySQLDriver implements DriverInterface {
         $sort = '`cdate`';
         break;
     }
+    if (isset($options['reverse']) && $options['reverse']) {
+      $sort .= ' DESC';
+    }
+
     if ($queryParts) {
       if ($subquery) {
         $query = "((".implode(') AND (', $queryParts)."))";
@@ -1113,14 +1117,11 @@ class MySQLDriver implements DriverInterface {
           "INNER JOIN (".
             "SELECT ie.`guid` FROM `{$this->prefix}entities{$etype}` ie ".
             "WHERE (".
-            implode(') AND (', $queryParts).
+              implode(') AND (', $queryParts).
             ") ".
-            "ORDER BY ie.".(
-              isset($options['reverse']) && $options['reverse']
-                ? $sort.' DESC'
-                : $sort
-            )."{$limit}{$offset}".
-          ") f ON e.`guid`=f.`guid`;";
+            "ORDER BY ie.{$sort}{$limit}{$offset}".
+          ") f ON e.`guid`=f.`guid` ".
+          "ORDER BY e.{$sort};";
       }
     } else {
       if ($subquery) {
@@ -1143,23 +1144,16 @@ class MySQLDriver implements DriverInterface {
             "INNER JOIN (".
               "SELECT ie.`guid` ".
               "FROM `{$this->prefix}entities{$etype}` ie ".
-              "ORDER BY ie.".(
-                isset($options['reverse']) && $options['reverse']
-                  ? $sort.' DESC'
-                  : $sort
-              )."{$limit}{$offset}".
-            ") f ON e.`guid`=f.`guid`;";
+              "ORDER BY ie.{$sort}{$limit}{$offset}".
+            ") f ON e.`guid`=f.`guid` ".
+            "ORDER BY e.{$sort};";
         } else {
           $query =
             "SELECT e.`guid`, e.`tags`, e.`cdate`, e.`mdate`, ".
               "d.`name`, d.`value` ".
             "FROM `{$this->prefix}entities{$etype}` e ".
             "LEFT JOIN `{$this->prefix}data{$etype}` d ON e.`guid`=d.`guid` ".
-            "ORDER BY e.".(
-              isset($options['reverse']) && $options['reverse']
-                ? $sort.' DESC'
-                : $sort
-            ).";";
+            "ORDER BY e.{$sort};";
         }
       }
     }
