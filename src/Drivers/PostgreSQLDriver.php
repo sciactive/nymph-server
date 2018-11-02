@@ -68,7 +68,7 @@ class PostgreSQLDriver implements DriverInterface {
     $database = $this->config['PostgreSQL']['database'];
     // Connecting, selecting database
     if (!$this->connected) {
-      if ($connectionType == 'host') {
+      if ($connectionType === 'host') {
         $connectString = 'host=\''.addslashes($host).
             '\' port=\''.addslashes($port).
             '\' dbname=\''.addslashes($database).
@@ -99,11 +99,11 @@ class PostgreSQLDriver implements DriverInterface {
         $this->connected = true;
       } else {
         $this->connected = false;
-        if ($host == 'localhost'
-            && $user == 'nymph'
-            && $password == 'password'
-            && $database == 'nymph'
-            && $connectionType == 'host') {
+        if ($host === 'localhost'
+            && $user === 'nymph'
+            && $password === 'password'
+            && $database === 'nymph'
+            && $connectionType === 'host') {
           throw new Exceptions\NotConfiguredException();
         } else {
           throw new Exceptions\UnableToConnectException(
@@ -234,7 +234,7 @@ class PostgreSQLDriver implements DriverInterface {
     }
     if ($error = pg_result_error_field($result, PGSQL_DIAG_SQLSTATE)) {
       // If the tables don't exist yet, create them.
-      if ($error == '42P01' && $this->createTables()) {
+      if ($error === '42P01' && $this->createTables()) {
         if (isset($etypeDirty)) {
           $this->createTables($etypeDirty);
         }
@@ -463,14 +463,14 @@ class PostgreSQLDriver implements DriverInterface {
             break;
           case 'strict':
           case '!strict':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."cdate"='.((float) $curValue[1]);
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -503,7 +503,7 @@ class PostgreSQLDriver implements DriverInterface {
             break;
           case 'like':
           case '!like':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -511,7 +511,7 @@ class PostgreSQLDriver implements DriverInterface {
                   '(ie."cdate" LIKE \''.
                   pg_escape_string($this->link, $curValue[1]).'\')';
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -533,7 +533,7 @@ class PostgreSQLDriver implements DriverInterface {
             break;
           case 'ilike':
           case '!ilike':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -541,7 +541,7 @@ class PostgreSQLDriver implements DriverInterface {
                   '(ie."cdate" ILIKE \''.
                   pg_escape_string($this->link, $curValue[1]).'\')';
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -563,7 +563,7 @@ class PostgreSQLDriver implements DriverInterface {
             break;
           case 'pmatch':
           case '!pmatch':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -571,7 +571,7 @@ class PostgreSQLDriver implements DriverInterface {
                   '(ie."cdate" ~ \''.
                   pg_escape_string($this->link, $curValue[1]).'\')';
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -593,7 +593,7 @@ class PostgreSQLDriver implements DriverInterface {
             break;
           case 'ipmatch':
           case '!ipmatch':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -601,7 +601,7 @@ class PostgreSQLDriver implements DriverInterface {
                   '(ie."cdate" ~* \''.
                   pg_escape_string($this->link, $curValue[1]).'\')';
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -627,7 +627,7 @@ class PostgreSQLDriver implements DriverInterface {
               $lastslashpos = strrpos($curValue[1], '/');
               $regex = substr($curValue[1], 1, $lastslashpos - 1);
               $mods = substr($curValue[1], $lastslashpos + 1) ?: '';
-              if ($curValue[0] == 'cdate') {
+              if ($curValue[0] === 'cdate') {
                 if ($curQuery) {
                   $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
                 }
@@ -637,7 +637,7 @@ class PostgreSQLDriver implements DriverInterface {
                     pg_escape_string($this->link, $regex).
                     '\', \''.pg_escape_string($this->link, $mods).'\')';
                 break;
-              } elseif ($curValue[0] == 'mdate') {
+              } elseif ($curValue[0] === 'mdate') {
                 if ($curQuery) {
                   $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
                 }
@@ -678,14 +678,14 @@ class PostgreSQLDriver implements DriverInterface {
             break;
           case 'gt':
           case '!gt':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."cdate">'.((float) $curValue[1]);
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -710,14 +710,14 @@ class PostgreSQLDriver implements DriverInterface {
             break;
           case 'gte':
           case '!gte':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."cdate">='.((float) $curValue[1]);
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -742,14 +742,14 @@ class PostgreSQLDriver implements DriverInterface {
             break;
           case 'lt':
           case '!lt':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."cdate"<'.((float) $curValue[1]);
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -774,14 +774,14 @@ class PostgreSQLDriver implements DriverInterface {
             break;
           case 'lte':
           case '!lte':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."cdate"<='.((float) $curValue[1]);
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -811,14 +811,14 @@ class PostgreSQLDriver implements DriverInterface {
           case '!equal':
           case 'data':
           case '!data':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."cdate"='.((float) $curValue[1]);
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }

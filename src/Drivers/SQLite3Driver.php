@@ -75,7 +75,7 @@ class SQLite3Driver implements DriverInterface {
         }, 2, SQLITE3_DETERMINISTIC);
       } else {
         $this->connected = false;
-        if ($filename == ':memory:') {
+        if ($filename === ':memory:') {
           throw new Exceptions\NotConfiguredException();
         } else {
           throw new Exceptions\UnableToConnectException('Could not connect.');
@@ -417,14 +417,14 @@ class SQLite3Driver implements DriverInterface {
             break;
           case 'strict':
           case '!strict':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."cdate"='.((float) $curValue[1]);
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -456,7 +456,7 @@ class SQLite3Driver implements DriverInterface {
             break;
           case 'like':
           case '!like':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -465,7 +465,7 @@ class SQLite3Driver implements DriverInterface {
                   SQLite3::escapeString($curValue[1]).
                   '\' ESCAPE \'\\\')';
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -489,7 +489,7 @@ class SQLite3Driver implements DriverInterface {
             break;
           case 'ilike':
           case '!ilike':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -498,7 +498,7 @@ class SQLite3Driver implements DriverInterface {
                   SQLite3::escapeString($curValue[1]).
                   '\' ESCAPE \'\\\')';
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -522,7 +522,7 @@ class SQLite3Driver implements DriverInterface {
             break;
           case 'pmatch':
           case '!pmatch':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -530,7 +530,7 @@ class SQLite3Driver implements DriverInterface {
                   '(ie."cdate" REGEXP \''.
                   SQLite3::escapeString($curValue[1]).'\')';
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -552,7 +552,7 @@ class SQLite3Driver implements DriverInterface {
             break;
           case 'ipmatch':
           case '!ipmatch':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -560,7 +560,7 @@ class SQLite3Driver implements DriverInterface {
                   '(ie."cdate" REGEXP \''.
                   SQLite3::escapeString($curValue[1]).'\')';
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -582,7 +582,7 @@ class SQLite3Driver implements DriverInterface {
             break;
           case 'match':
           case '!match':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -591,7 +591,7 @@ class SQLite3Driver implements DriverInterface {
                   'preg_match(\''.SQLite3::escapeString($curValue[1]).
                   '\', ie."cdate")';
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -617,14 +617,14 @@ class SQLite3Driver implements DriverInterface {
             break;
           case 'gt':
           case '!gt':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."cdate">'.((float) $curValue[1]);
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -648,14 +648,14 @@ class SQLite3Driver implements DriverInterface {
             break;
           case 'gte':
           case '!gte':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."cdate">='.((float) $curValue[1]);
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -679,14 +679,14 @@ class SQLite3Driver implements DriverInterface {
             break;
           case 'lt':
           case '!lt':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."cdate"<'.((float) $curValue[1]);
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -710,14 +710,14 @@ class SQLite3Driver implements DriverInterface {
             break;
           case 'lte':
           case '!lte':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."cdate"<='.((float) $curValue[1]);
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
@@ -746,14 +746,14 @@ class SQLite3Driver implements DriverInterface {
           case '!equal':
           case 'data':
           case '!data':
-            if ($curValue[0] == 'cdate') {
+            if ($curValue[0] === 'cdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."cdate"='.((float) $curValue[1]);
               break;
-            } elseif ($curValue[0] == 'mdate') {
+            } elseif ($curValue[0] === 'mdate') {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }

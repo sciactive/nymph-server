@@ -221,8 +221,8 @@ trait DriverTrait {
       foreach ($curSelector as $key => $value) {
         if ($key === 0) {
           $type = $value;
-          $typeIsNot = ($type == '!&' || $type == '!|');
-          $typeIsOr = ($type == '|' || $type == '!|');
+          $typeIsNot = ($type === '!&' || $type === '!|');
+          $typeIsOr = ($type === '|' || $type === '!|');
           $pass = !$typeIsOr;
           continue;
         }
@@ -486,7 +486,7 @@ trait DriverTrait {
     } else {
       $entity = [(int) $entity];
     }
-    if (isset($value[0]) && $value[0] == 'nymph_entity_reference') {
+    if (isset($value[0]) && $value[0] === 'nymph_entity_reference') {
       return in_array($value[1], $entity);
     } else {
       // Search through multidimensional arrays looking for the reference.
@@ -546,8 +546,8 @@ trait DriverTrait {
       foreach ($curSelector as $key => $value) {
         if ($key === 0) {
           $type = $value;
-          $typeIsNot = ($type == '!&' || $type == '!|');
-          $typeIsOr = ($type == '|' || $type == '!|');
+          $typeIsNot = ($type === '!&' || $type === '!|');
+          $typeIsOr = ($type === '|' || $type === '!|');
           continue;
         }
         $curQuery = '';
@@ -622,11 +622,11 @@ trait DriverTrait {
     if ($this->config['cache'] && is_int($selectors[1]['guid'])) {
       // Only safe to use the cache option with no other selectors than a GUID
       // and tags.
-      if (count($selectors) == 1 &&
-          $selectors[1][0] == '&' &&
+      if (count($selectors) === 1 &&
+          $selectors[1][0] === '&' &&
           (
-            (count($selectors[1]) == 2) ||
-            (count($selectors[1]) == 3 && isset($selectors[1]['tag']))
+            (count($selectors[1]) === 2) ||
+            (count($selectors[1]) === 3 && isset($selectors[1]['tag']))
           )
         ) {
         $entity = $this->pullCache($selectors[1]['guid'], $className);

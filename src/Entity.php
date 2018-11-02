@@ -344,7 +344,7 @@ class Entity implements EntityInterface {
     }
     // Check for an entity first.
     if (isset($this->entityCache[$name])) {
-      if ($this->data[$name][0] == 'nymph_entity_reference') {
+      if ($this->data[$name][0] === 'nymph_entity_reference') {
         if ($this->entityCache[$name] === 0) {
           // The entity hasn't been loaded yet, so load it now.
           $className = $this->data[$name][2];
