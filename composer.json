@@ -1,8 +1,8 @@
 {
   "name": "sciactive/nymph-server",
   "description": "Powerful object data storage and querying for collaborative web apps.",
-  "version": "3.0.0-beta.18",
-  "time": "2018-08-07",
+  "version": "3.0.0-beta.19",
+  "time": "2018-11-02",
   "homepage": "http://nymph.io/",
   "type": "library",
   "authors": [
