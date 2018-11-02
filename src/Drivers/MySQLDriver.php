@@ -126,10 +126,14 @@ class MySQLDriver implements DriverInterface {
       $foreignKeyEntityTableGuid = " REFERENCES `{$this->prefix}guids`(`guid`) ON DELETE CASCADE";
       $foreignKeyDataTableGuid = " REFERENCES `{$this->prefix}entities{$etype}`(`guid`) ON DELETE CASCADE";
       $foreignKeyDataComparisonsTableGuid = " REFERENCES `{$this->prefix}entities{$etype}`(`guid`) ON DELETE CASCADE";
+      $foreignKeyReferencesTableGuid = " REFERENCES `{$this->prefix}entities{$etype}`(`guid`) ON DELETE CASCADE";
+      $foreignKeyDataComparisonsTableReference = " REFERENCES `{$this->prefix}entities{$etype}`(`guid`) ON DELETE NO ACTION";
     } else {
       $foreignKeyEntityTableGuid = '';
       $foreignKeyDataTableGuid = '';
       $foreignKeyDataComparisonsTableGuid = '';
+      $foreignKeyReferencesTableGuid = '';
+      $foreignKeyDataComparisonsTableReference = '';
     }
     if (isset($etype)) {
       $etype = '_'.mysqli_real_escape_string($this->link, $etype);
@@ -154,7 +158,9 @@ class MySQLDriver implements DriverInterface {
             "`guid` BIGINT(20) UNSIGNED NOT NULL{$foreignKeyDataTableGuid}, ".
             "`name` TEXT NOT NULL, ".
             "`value` LONGTEXT NOT NULL, ".
-            "PRIMARY KEY (`guid`,`name`(255))".
+            "PRIMARY KEY (`guid`,`name`(255)), ".
+            "INDEX `id_name` USING HASH (`name`(255)), ".
+            "INDEX `id_name_value` USING BTREE (`name`(255), `value`(512))".
             ") ENGINE {$this->config['MySQL']['engine']} ".
           "CHARACTER SET utf8 COLLATE utf8_bin;"
       );
@@ -164,7 +170,6 @@ class MySQLDriver implements DriverInterface {
             "`guid` BIGINT(20) UNSIGNED NOT NULL".
               "{$foreignKeyDataComparisonsTableGuid}, ".
             "`name` TEXT NOT NULL, ".
-            "`references` LONGTEXT, ".
             "`eq_true` BOOLEAN, ".
             "`eq_one` BOOLEAN, ".
             "`eq_zero` BOOLEAN, ".
@@ -175,7 +180,19 @@ class MySQLDriver implements DriverInterface {
             "`float` DOUBLE, ".
             "`is_int` BOOLEAN NOT NULL, ".
             "PRIMARY KEY (`guid`, `name`(255)), ".
-            "FULLTEXT `id_references` (`references`)".
+            "INDEX `id_name` USING HASH (`name`(255))".
+          ") ENGINE {$this->config['MySQL']['engine']} ".
+          "CHARACTER SET utf8 COLLATE utf8_bin;"
+      );
+      // Create the references table.
+      $this->query(
+          "CREATE TABLE IF NOT EXISTS `{$this->prefix}references{$etype}` (".
+            "`guid` BIGINT(20) UNSIGNED NOT NULL".
+              "{$foreignKeyDataComparisonsTableGuid}, ".
+            "`name` TEXT NOT NULL, ".
+            "`reference` BIGINT(20) UNSIGNED NOT NULL".
+              "{$foreignKeyDataComparisonsTableReference}, ".
+            "PRIMARY KEY (`guid`, `name`(255), `reference`)".
           ") ENGINE {$this->config['MySQL']['engine']} ".
           "CHARACTER SET utf8 COLLATE utf8_bin;"
       );
@@ -251,6 +268,7 @@ class MySQLDriver implements DriverInterface {
     $this->query("DELETE FROM `{$this->prefix}entities{$etype}` WHERE `guid`='".((int) $guid)."';", $etypeDirty);
     $this->query("DELETE FROM `{$this->prefix}data{$etype}` WHERE `guid`='".((int) $guid)."';", $etypeDirty);
     $this->query("DELETE FROM `{$this->prefix}comparisons{$etype}` WHERE `guid`='".((int) $guid)."';", $etypeDirty);
+    $this->query("DELETE FROM `{$this->prefix}references{$etype}` WHERE `guid`='".((int) $guid)."';", $etypeDirty);
     if ($this->config['MySQL']['transactions']) {
       $this->query("COMMIT;");
     }
@@ -475,38 +493,26 @@ class MySQLDriver implements DriverInterface {
               $curQuery .= '(ie.`varlist` NOT REGEXP \' '.
                   mysqli_real_escape_string($this->link, $curValue[0]).
                   ' \' OR (';
-              $noPrepend = true;
-              foreach ($guids as $curQguid) {
-                if (!$noPrepend) {
-                  $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
-                } else {
-                  $noPrepend = false;
-                }
-                $curQuery .= $this->makeDataPart(
-                    'comparisons',
-                    $etype,
-                    '`name`=\''.
-                        mysqli_real_escape_string($this->link, $curValue[0]).
-                        '\' AND `references` NOT REGEXP \' '.
-                        mysqli_real_escape_string($this->link, $curQguid).
-                        ' \''
-                );
-              }
-              $curQuery .= '))';
-            } else {
-              $groupQuery = '';
-              foreach ($guids as $curQguid) {
-                $groupQuery .= ($typeIsOr ? ' ' : ' +').$curQguid;
+            }
+            $noPrepend = true;
+            foreach ($guids as $curQguid) {
+              if (!$noPrepend) {
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
+              } else {
+                $noPrepend = false;
               }
               $curQuery .= $this->makeDataPart(
-                  'comparisons',
+                  'references',
                   $etype,
                   '`name`=\''.
                       mysqli_real_escape_string($this->link, $curValue[0]).
-                      '\' AND MATCH (`references`) AGAINST (\''.
-                      mysqli_real_escape_string($this->link, $groupQuery).
-                      '\' IN BOOLEAN MODE)'
+                      '\' AND `reference`='.
+                      mysqli_real_escape_string($this->link, (int) $curQguid),
+                  $typeIsNot xor $clauseNot
               );
+            }
+            if ($typeIsNot xor $clauseNot) {
+              $curQuery .= '))';
             }
             break;
           case 'strict':
@@ -549,10 +555,9 @@ class MySQLDriver implements DriverInterface {
                       $etype,
                       '`name`=\''.
                           mysqli_real_escape_string($this->link, $curValue[0]).
-                          '\' AND '.
-                          (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
-                          '`value`=\''.
-                          mysqli_real_escape_string($this->link, $svalue).'\''
+                          '\' AND `value`=\''.
+                          mysqli_real_escape_string($this->link, $svalue).'\'',
+                      $typeIsNot xor $clauseNot
                   ).')';
             }
             break;
@@ -595,11 +600,10 @@ class MySQLDriver implements DriverInterface {
                       $etype,
                       '`name`=\''.
                           mysqli_real_escape_string($this->link, $curValue[0]).
-                          '\' AND '.
-                          (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
-                          '`string` LIKE \''.
+                          '\' AND `string` LIKE \''.
                           mysqli_real_escape_string($this->link, $curValue[1]).
-                          '\''
+                          '\'',
+                      $typeIsNot xor $clauseNot
                   ).')';
             }
             break;
@@ -642,11 +646,10 @@ class MySQLDriver implements DriverInterface {
                       $etype,
                       '`name`=\''.
                           mysqli_real_escape_string($this->link, $curValue[0]).
-                          '\' AND '.
-                          (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
-                          'LOWER(`string`) LIKE LOWER(\''.
+                          '\' AND LOWER(`string`) LIKE LOWER(\''.
                           mysqli_real_escape_string($this->link, $curValue[1]).
-                          '\')'
+                          '\')',
+                      $typeIsNot xor $clauseNot
                   ).')';
             }
             break;
@@ -689,11 +692,10 @@ class MySQLDriver implements DriverInterface {
                       $etype,
                       '`name`=\''.
                           mysqli_real_escape_string($this->link, $curValue[0]).
-                          '\' AND '.
-                          (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
-                          '`string` REGEXP \''.
+                          '\' AND `string` REGEXP \''.
                           mysqli_real_escape_string($this->link, $curValue[1]).
-                          '\''
+                          '\'',
+                      $typeIsNot xor $clauseNot
                   ).')';
             }
             break;
@@ -736,11 +738,10 @@ class MySQLDriver implements DriverInterface {
                       $etype,
                       '`name`=\''.
                           mysqli_real_escape_string($this->link, $curValue[0]).
-                          '\' AND '.
-                          (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
-                          'LOWER(`string`) REGEXP LOWER(\''.
+                          '\' AND LOWER(`string`) REGEXP LOWER(\''.
                           mysqli_real_escape_string($this->link, $curValue[1]).
-                          '\')'
+                          '\')',
+                      $typeIsNot xor $clauseNot
                   ).')';
             }
             break;
@@ -779,12 +780,11 @@ class MySQLDriver implements DriverInterface {
                       $etype,
                       '`name`=\''.
                           mysqli_real_escape_string($this->link, $curValue[0]).
-                          '\' AND '.
-                          (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
-                          '((`is_int`=TRUE AND `int` > '.
+                          '\' AND ((`is_int`=TRUE AND `int` > '.
                           ((int) $curValue[1]).') OR ('.
                           '`is_int`=FALSE AND `float` > '.
-                          ((float) $curValue[1]).'))'
+                          ((float) $curValue[1]).'))',
+                      $typeIsNot xor $clauseNot
                   ).')';
             }
             break;
@@ -823,12 +823,11 @@ class MySQLDriver implements DriverInterface {
                       $etype,
                       '`name`=\''.
                           mysqli_real_escape_string($this->link, $curValue[0]).
-                          '\' AND '.
-                          (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
-                          '((`is_int`=TRUE AND `int` >= '.
+                          '\' AND ((`is_int`=TRUE AND `int` >= '.
                           ((int) $curValue[1]).') OR ('.
                           '`is_int`=FALSE AND `float` >= '.
-                          ((float) $curValue[1]).'))'
+                          ((float) $curValue[1]).'))',
+                      $typeIsNot xor $clauseNot
                   ).')';
             }
             break;
@@ -867,12 +866,11 @@ class MySQLDriver implements DriverInterface {
                       $etype,
                       '`name`=\''.
                           mysqli_real_escape_string($this->link, $curValue[0]).
-                          '\' AND '.
-                          (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
-                          '((`is_int`=TRUE AND `int` < '.
+                          '\' AND ((`is_int`=TRUE AND `int` < '.
                           ((int) $curValue[1]).') OR ('.
                           '`is_int`=FALSE AND `float` < '.
-                          ((float) $curValue[1]).'))'
+                          ((float) $curValue[1]).'))',
+                      $typeIsNot xor $clauseNot
                   ).')';
             }
             break;
@@ -911,12 +909,11 @@ class MySQLDriver implements DriverInterface {
                       $etype,
                       '`name`=\''.
                           mysqli_real_escape_string($this->link, $curValue[0]).
-                          '\' AND '.
-                          (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
-                          '((`is_int`=TRUE AND `int` <= '.
+                          '\' AND ((`is_int`=TRUE AND `int` <= '.
                           ((int) $curValue[1]).') OR ('.
                           '`is_int`=FALSE AND `float` <= '.
-                          ((float) $curValue[1]).'))'
+                          ((float) $curValue[1]).'))',
+                      $typeIsNot xor $clauseNot
                   ).')';
             }
             break;
@@ -960,9 +957,8 @@ class MySQLDriver implements DriverInterface {
                       $etype,
                       '`name`=\''.
                           mysqli_real_escape_string($this->link, $curValue[0]).
-                          '\' AND '.
-                          (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
-                          '`eq_true`='.($curValue[1] ? 'TRUE' : 'FALSE')
+                          '\' AND `eq_true`='.($curValue[1] ? 'TRUE' : 'FALSE'),
+                      $typeIsNot xor $clauseNot
                   ).')';
               break;
             } elseif ($curValue[1] === 1) {
@@ -984,9 +980,8 @@ class MySQLDriver implements DriverInterface {
                       $etype,
                       '`name`=\''.
                           mysqli_real_escape_string($this->link, $curValue[0]).
-                          '\' AND '.
-                          (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
-                          '`eq_one`=TRUE'
+                          '\' AND `eq_one`=TRUE',
+                      $typeIsNot xor $clauseNot
                   ).')';
               break;
             } elseif ($curValue[1] === 0) {
@@ -1008,9 +1003,8 @@ class MySQLDriver implements DriverInterface {
                       $etype,
                       '`name`=\''.
                           mysqli_real_escape_string($this->link, $curValue[0]).
-                          '\' AND '.
-                          (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
-                          '`eq_zero`=TRUE'
+                          '\' AND `eq_zero`=TRUE',
+                      $typeIsNot xor $clauseNot
                   ).')';
               break;
             } elseif ($curValue[1] === -1) {
@@ -1032,9 +1026,8 @@ class MySQLDriver implements DriverInterface {
                       $etype,
                       '`name`=\''.
                           mysqli_real_escape_string($this->link, $curValue[0]).
-                          '\' AND '.
-                          (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
-                          '`eq_negone`=TRUE'
+                          '\' AND `eq_negone`=TRUE',
+                      $typeIsNot xor $clauseNot
                   ).')';
               break;
             } elseif ($curValue[1] === []) {
@@ -1056,9 +1049,8 @@ class MySQLDriver implements DriverInterface {
                       $etype,
                       '`name`=\''.
                           mysqli_real_escape_string($this->link, $curValue[0]).
-                          '\' AND '.
-                          (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
-                          '`eq_emptyarray`=TRUE'
+                          '\' AND `eq_emptyarray`=TRUE',
+                      $typeIsNot xor $clauseNot
                   ).')';
               break;
             }
@@ -1224,13 +1216,21 @@ class MySQLDriver implements DriverInterface {
       $this->query("REPLACE INTO `{$this->prefix}entities_{$etype}` (`guid`, `tags`, `varlist`, `cdate`, `mdate`) VALUES ({$guid}, ' ".mysqli_real_escape_string($this->link, implode(' ', $tags))." ', ' ".mysqli_real_escape_string($this->link, implode(' ', array_keys($data)))." ', ".unserialize($data['cdate']).", ".unserialize($data['mdate']).");", $etype);
       $this->query("DELETE FROM `{$this->prefix}data_{$etype}` WHERE `guid`='{$guid}';");
       $this->query("DELETE FROM `{$this->prefix}comparisons_{$etype}` WHERE `guid`='{$guid}';");
+      $this->query("DELETE FROM `{$this->prefix}references_{$etype}` WHERE `guid`='{$guid}';");
       unset($data['cdate'], $data['mdate']);
       if ($data) {
         foreach ($data as $name => $value) {
           $this->query("INSERT INTO `{$this->prefix}data_{$etype}` (`guid`, `name`, `value`) VALUES ({$guid}, '".mysqli_real_escape_string($this->link, $name)."', '".mysqli_real_escape_string($this->link, $value)."');", $etype);
-          $query = "INSERT INTO `{$this->prefix}comparisons_{$etype}` (`guid`, `name`, `references`, `eq_true`, `eq_one`, `eq_zero`, `eq_negone`, `eq_emptyarray`, `string`, `int`, `float`, `is_int`) VALUES ".
-            $this->makeInsertValuesSQL($guid, $name, $value, unserialize($value)).';';
+          $query = "INSERT INTO `{$this->prefix}comparisons_{$etype}` (`guid`, `name`, `eq_true`, `eq_one`, `eq_zero`, `eq_negone`, `eq_emptyarray`, `string`, `int`, `float`, `is_int`) VALUES ".
+            $this->makeInsertValuesComparisons($guid, $name, unserialize($value)).';';
           $this->query($query, $etype);
+          $referenceValues = $this->makeInsertValuesReferences($guid, $name, $value);
+          if ($referenceValues) {
+            $this->query(
+                "INSERT INTO `{$this->prefix}references_{$etype}` (`guid`, `name`, `reference`) VALUES {$referenceValues};",
+                $etype
+            );
+          }
         }
       }
     }, function ($name, $curUid) {
@@ -1281,10 +1281,17 @@ class MySQLDriver implements DriverInterface {
       $runInsertQuery = function ($name, $value, $svalue) use ($entity, $etype, $etypeDirty) {
         $this->query("INSERT INTO `{$this->prefix}data{$etype}` (`guid`, `name`, `value`) VALUES (".((int) $entity->guid).", '".mysqli_real_escape_string($this->link, $name)."', '".mysqli_real_escape_string($this->link, $svalue)."');", $etypeDirty);
         $this->query(
-            "INSERT INTO `{$this->prefix}comparisons{$etype}` (`guid`, `name`, `references`, `eq_true`, `eq_one`, `eq_zero`, `eq_negone`, `eq_emptyarray`, `string`, `int`, `float`, `is_int`) VALUES ".
-              $this->makeInsertValuesSQL($entity->guid, $name, $svalue, $value).';',
+            "INSERT INTO `{$this->prefix}comparisons{$etype}` (`guid`, `name`, `eq_true`, `eq_one`, `eq_zero`, `eq_negone`, `eq_emptyarray`, `string`, `int`, `float`, `is_int`) VALUES ".
+              $this->makeInsertValuesComparisons($entity->guid, $name, $value).';',
             $etypeDirty
         );
+        $referenceValues = $this->makeInsertValuesReferences($entity->guid, $name, $svalue);
+        if ($referenceValues) {
+          $this->query(
+              "INSERT INTO `{$this->prefix}references{$etype}` (`guid`, `name`, `reference`) VALUES {$referenceValues};",
+              $etypeDirty
+          );
+        }
       };
       foreach ($data as $name => $value) {
         $runInsertQuery($name, $value, serialize($value));
@@ -1309,13 +1316,15 @@ class MySQLDriver implements DriverInterface {
         $this->query("SELECT 1 FROM `{$this->prefix}entities{$etype}` WHERE `guid`='".((int) $entity->guid)."' GROUP BY 1 FOR UPDATE;");
         $this->query("SELECT 1 FROM `{$this->prefix}data{$etype}` WHERE `guid`='".((int) $entity->guid)."' GROUP BY 1 FOR UPDATE;");
         $this->query("SELECT 1 FROM `{$this->prefix}comparisons{$etype}` WHERE `guid`='".((int) $entity->guid)."' GROUP BY 1 FOR UPDATE;");
+        $this->query("SELECT 1 FROM `{$this->prefix}references{$etype}` WHERE `guid`='".((int) $entity->guid)."' GROUP BY 1 FOR UPDATE;");
       }
       if ($this->config['MySQL']['table_locking']) {
-        $this->query("LOCK TABLES `{$this->prefix}entities{$etype}` WRITE, `{$this->prefix}data{$etype}` WRITE, `{$this->prefix}comparisons{$etype}` WRITE;");
+        $this->query("LOCK TABLES `{$this->prefix}entities{$etype}` WRITE, `{$this->prefix}data{$etype}` WRITE, `{$this->prefix}comparisons{$etype}` WRITE, `{$this->prefix}references{$etype}` WRITE;");
       }
       $this->query("UPDATE `{$this->prefix}entities{$etype}` SET `tags`=' ".mysqli_real_escape_string($this->link, implode(' ', array_diff($entity->tags, [''])))." ', `varlist`=' ".mysqli_real_escape_string($this->link, implode(' ', $varlist))." ', `mdate`=".((float) $entity->mdate)." WHERE `guid`='".((int) $entity->guid)."';", $etypeDirty);
       $this->query("DELETE FROM `{$this->prefix}data{$etype}` WHERE `guid`='".((int) $entity->guid)."';");
       $this->query("DELETE FROM `{$this->prefix}comparisons{$etype}` WHERE `guid`='".((int) $entity->guid)."';");
+      $this->query("DELETE FROM `{$this->prefix}references{$etype}` WHERE `guid`='".((int) $entity->guid)."';");
       $insertData($entity, $data, $sdata, $etype, $etypeDirty);
       if ($this->config['MySQL']['table_locking']) {
         $this->query("UNLOCK TABLES;");
@@ -1337,25 +1346,16 @@ class MySQLDriver implements DriverInterface {
     return true;
   }
 
-  private function makeDataPart($table, $etype, $whereClause) {
-    return "ie.`guid` IN (SELECT `guid` FROM `{$this->prefix}{$table}{$etype}` WHERE {$whereClause})";
+  private function makeDataPart($table, $etype, $whereClause, $not = false) {
+    $notIn = $not ? 'NOT ' : '';
+    return "ie.`guid` {$notIn}IN (SELECT `guid` FROM `{$this->prefix}{$table}{$etype}` WHERE {$whereClause})";
   }
 
-  private function makeInsertValuesSQL($guid, $name, $svalue, $uvalue) {
-    preg_match_all(
-        '/a:3:\{i:0;s:22:"nymph_entity_reference";i:1;i:(\d+);/',
-        $svalue,
-        $references,
-        PREG_PATTERN_ORDER
-    );
+  private function makeInsertValuesComparisons($guid, $name, $uvalue) {
     return sprintf(
-        "(%u, '%s', ' %s ', %s, %s, %s, %s, %s, %s, %d, %f, %s)",
+        "(%u, '%s', %s, %s, %s, %s, %s, %s, %d, %f, %s)",
         (int) $guid,
         mysqli_real_escape_string($this->link, $name),
-        mysqli_real_escape_string(
-            $this->link,
-            implode(' ', $references[1])
-        ),
         $uvalue == true ? 'TRUE' : 'FALSE',
         (!is_object($uvalue) && $uvalue == 1) ? 'TRUE' : 'FALSE',
         (!is_object($uvalue) && $uvalue == 0) ? 'TRUE' : 'FALSE',
@@ -1368,5 +1368,24 @@ class MySQLDriver implements DriverInterface {
         is_object($uvalue) ? 1 : ((float) $uvalue),
         is_int($uvalue) ? 'TRUE' : 'FALSE'
     );
+  }
+
+  private function makeInsertValuesReferences($guid, $name, $svalue) {
+    preg_match_all(
+        '/a:3:\{i:0;s:22:"nymph_entity_reference";i:1;i:(\d+);/',
+        $svalue,
+        $references,
+        PREG_PATTERN_ORDER
+    );
+    $values = [];
+    foreach ($references[1] as $curRef) {
+      $values[] = sprintf(
+          "(%u, '%s', %u)",
+          (int) $guid,
+          mysqli_real_escape_string($this->link, $name),
+          (int) $curRef
+      );
+    }
+    return implode(', ', $values);
   }
 }
