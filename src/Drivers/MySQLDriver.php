@@ -1140,11 +1140,11 @@ class MySQLDriver implements DriverInterface {
       $row = mysqli_fetch_row($result);
       mysqli_free_result($result);
       return !isset($row[0]);
-    }, function ($entity, $data, $sdata, $varlist, $etype, $etypeDirty) use ($insertData) {
+    }, function ($entity, $data, $sdata, $etype, $etypeDirty) use ($insertData) {
       $this->query("INSERT INTO `{$this->prefix}guids` (`guid`) VALUES ({$entity->guid});");
       $this->query("INSERT INTO `{$this->prefix}entities{$etype}` (`guid`, `tags`, `cdate`, `mdate`) VALUES ({$entity->guid}, ' ".mysqli_real_escape_string($this->link, implode(' ', array_diff($entity->tags, [''])))." ', ".((float) $entity->cdate).", ".((float) $entity->mdate).");", $etypeDirty);
       $insertData($entity, $data, $sdata, $etype, $etypeDirty);
-    }, function ($entity, $data, $sdata, $varlist, $etype, $etypeDirty) use ($insertData) {
+    }, function ($entity, $data, $sdata, $etype, $etypeDirty) use ($insertData) {
       if ($this->config['MySQL']['row_locking']) {
         $this->query("SELECT 1 FROM `{$this->prefix}entities{$etype}` WHERE `guid`='".((int) $entity->guid)."' GROUP BY 1 FOR UPDATE;");
         $this->query("SELECT 1 FROM `{$this->prefix}data{$etype}` WHERE `guid`='".((int) $entity->guid)."' GROUP BY 1 FOR UPDATE;");

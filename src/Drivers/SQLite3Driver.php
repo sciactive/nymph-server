@@ -127,11 +127,10 @@ class SQLite3Driver implements DriverInterface {
         $etype = '_'.SQLite3::escapeString($etype);
 
         // Create the entity table.
-        $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}entities{$etype}\" (\"guid\" INTEGER PRIMARY KEY ASC NOT NULL REFERENCES \"{$this->prefix}guids\"(\"guid\") ON DELETE CASCADE, \"tags\" TEXT, \"varlist\" TEXT, \"cdate\" REAL NOT NULL, \"mdate\" REAL NOT NULL);");
+        $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}entities{$etype}\" (\"guid\" INTEGER PRIMARY KEY ASC NOT NULL REFERENCES \"{$this->prefix}guids\"(\"guid\") ON DELETE CASCADE, \"tags\" TEXT, \"cdate\" REAL NOT NULL, \"mdate\" REAL NOT NULL);");
         $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}entities{$etype}_id_cdate\" ON \"{$this->prefix}entities{$etype}\" (\"cdate\");");
         $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}entities{$etype}_id_mdate\" ON \"{$this->prefix}entities{$etype}\" (\"mdate\");");
         $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}entities{$etype}_id_tags\" ON \"{$this->prefix}entities{$etype}\" (\"tags\");");
-        $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}entities{$etype}_id_varlist\" ON \"{$this->prefix}entities{$etype}\" (\"varlist\");");
         // Create the data table.
         $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}data{$etype}\" (\"guid\" INTEGER NOT NULL REFERENCES \"{$this->prefix}entities{$etype}\"(\"guid\") ON DELETE CASCADE, \"name\" TEXT NOT NULL, \"value\" TEXT NOT NULL, PRIMARY KEY(\"guid\", \"name\"));");
         $this->query("CREATE INDEX IF NOT EXISTS \"{$this->prefix}data{$etype}_id_guid\" ON \"{$this->prefix}data{$etype}\" (\"guid\");");
@@ -356,21 +355,12 @@ class SQLite3Driver implements DriverInterface {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $curQuery .= '('.
+              $curQuery .= 'ie."guid" '.
                   (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
-                  'ie."varlist" LIKE \'%,'.
-                  str_replace(
-                      ['%', '_', ':'],
-                      [':%', ':_', '::'],
-                      SQLite3::escapeString($curVar)
-                  ).',%\' ESCAPE \':\'';
-              if ($typeIsNot xor $clauseNot) {
-                $curQuery .= ' OR ie."guid" IN (SELECT "guid" FROM "'.
-                    $this->prefix.'data'.$etype.'" WHERE "name"=\''.
-                    SQLite3::escapeString($curVar).
-                    '\' AND "value"=\'N;\')';
-              }
-              $curQuery .= ')';
+                  'IN (SELECT "guid" FROM "'.
+                  $this->prefix.'data'.$etype.'" WHERE "name"=\''.
+                  SQLite3::escapeString($curVar).
+                  '\' AND "value"!=\'N;\')';
             }
             break;
           case 'ref':
@@ -819,12 +809,9 @@ class SQLite3Driver implements DriverInterface {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $curQuery .= 'ie."varlist" LIKE \'%,'.
-                  str_replace(
-                      ['%', '_', ':'],
-                      [':%', ':_', '::'],
-                      SQLite3::escapeString($curValue[0])
-                  ).',%\' ESCAPE \':\'';
+              $curQuery .= 'ie."guid" IN (SELECT "guid" FROM "'.
+                  $this->prefix.'data'.$etype.'" WHERE "name"=\''.
+                  SQLite3::escapeString($curValue[0]).'\')';
             }
             $fullQueryCoverage = false;
             break;
@@ -985,7 +972,7 @@ class SQLite3Driver implements DriverInterface {
       $this->query("DELETE FROM \"{$this->prefix}data_{$etype}\" WHERE \"guid\"={$guid};", $etype);
       $this->query("DELETE FROM \"{$this->prefix}comparisons_{$etype}\" WHERE \"guid\"={$guid};", $etype);
       $this->query("INSERT INTO \"{$this->prefix}guids\" (\"guid\") VALUES ({$guid});");
-      $this->query("INSERT INTO \"{$this->prefix}entities_{$etype}\" (\"guid\", \"tags\", \"varlist\", \"cdate\", \"mdate\") VALUES ({$guid}, '".SQLite3::escapeString(','.implode(',', $tags).',')."', '".SQLite3::escapeString(','.implode(',', array_keys($data)).',')."', ".unserialize($data['cdate']).", ".unserialize($data['mdate']).");", $etype);
+      $this->query("INSERT INTO \"{$this->prefix}entities_{$etype}\" (\"guid\", \"tags\", \"cdate\", \"mdate\") VALUES ({$guid}, '".SQLite3::escapeString(','.implode(',', $tags).',')."', ".unserialize($data['cdate']).", ".unserialize($data['mdate']).");", $etype);
       unset($data['cdate'], $data['mdate']);
       if ($data) {
         foreach ($data as $name => $value) {
@@ -1074,12 +1061,12 @@ class SQLite3Driver implements DriverInterface {
       $row = $result->fetchArray(SQLITE3_NUM);
       $result->finalize();
       return !isset($row[0]);
-    }, function ($entity, $data, $sdata, $varlist, $etype, $etypeDirty) use ($insertData) {
+    }, function ($entity, $data, $sdata, $etype, $etypeDirty) use ($insertData) {
       $this->query("INSERT INTO \"{$this->prefix}guids\" (\"guid\") VALUES ({$entity->guid});");
-      $this->query("INSERT INTO \"{$this->prefix}entities{$etype}\" (\"guid\", \"tags\", \"varlist\", \"cdate\", \"mdate\") VALUES ({$entity->guid}, '".SQLite3::escapeString(','.implode(',', array_diff($entity->tags, [''])).',')."', '".SQLite3::escapeString(','.implode(',', $varlist).',')."', ".((float) $entity->cdate).", ".((float) $entity->mdate).");", $etypeDirty);
+      $this->query("INSERT INTO \"{$this->prefix}entities{$etype}\" (\"guid\", \"tags\", \"cdate\", \"mdate\") VALUES ({$entity->guid}, '".SQLite3::escapeString(','.implode(',', array_diff($entity->tags, [''])).',')."', ".((float) $entity->cdate).", ".((float) $entity->mdate).");", $etypeDirty);
       $insertData($entity, $data, $sdata, $etype, $etypeDirty);
-    }, function ($entity, $data, $sdata, $varlist, $etype, $etypeDirty) use ($insertData) {
-      $this->query("UPDATE \"{$this->prefix}entities{$etype}\" SET \"tags\"='".SQLite3::escapeString(','.implode(',', array_diff($entity->tags, [''])).',')."', \"varlist\"='".SQLite3::escapeString(','.implode(',', $varlist).',')."', \"cdate\"=".((float) $entity->cdate).", \"mdate\"=".((float) $entity->mdate)." WHERE \"guid\"={$entity->guid};", $etypeDirty);
+    }, function ($entity, $data, $sdata, $etype, $etypeDirty) use ($insertData) {
+      $this->query("UPDATE \"{$this->prefix}entities{$etype}\" SET \"tags\"='".SQLite3::escapeString(','.implode(',', array_diff($entity->tags, [''])).',')."', \"cdate\"=".((float) $entity->cdate).", \"mdate\"=".((float) $entity->mdate)." WHERE \"guid\"={$entity->guid};", $etypeDirty);
       $this->query("DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$entity->guid};");
       $this->query("DELETE FROM \"{$this->prefix}comparisons{$etype}\" WHERE \"guid\"={$entity->guid};");
       $insertData($entity, $data, $sdata, $etype, $etypeDirty);

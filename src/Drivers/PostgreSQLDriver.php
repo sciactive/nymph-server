@@ -143,16 +143,14 @@ class PostgreSQLDriver implements DriverInterface {
     if (isset($etype)) {
       $etype = '_'.pg_escape_string($this->link, $etype);
       // Create the entity table.
-      $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}entities{$etype}\" ( \"guid\" BIGINT NOT NULL, \"tags\" TEXT[], \"varlist\" TEXT[], \"cdate\" NUMERIC(18,6) NOT NULL, \"mdate\" NUMERIC(18,6) NOT NULL, PRIMARY KEY (\"guid\") ) WITH ( OIDS=FALSE ); ".
+      $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}entities{$etype}\" ( \"guid\" BIGINT NOT NULL, \"tags\" TEXT[], \"cdate\" NUMERIC(18,6) NOT NULL, \"mdate\" NUMERIC(18,6) NOT NULL, PRIMARY KEY (\"guid\") ) WITH ( OIDS=FALSE ); ".
         "ALTER TABLE \"{$this->prefix}entities{$etype}\" OWNER TO \"".pg_escape_string($this->link, $this->config['PostgreSQL']['user'])."\"; ".
         "DROP INDEX IF EXISTS \"{$this->prefix}entities{$etype}_id_cdate\"; ".
         "CREATE INDEX \"{$this->prefix}entities{$etype}_id_cdate\" ON \"{$this->prefix}entities{$etype}\" USING btree (\"cdate\"); ".
         "DROP INDEX IF EXISTS \"{$this->prefix}entities{$etype}_id_mdate\"; ".
         "CREATE INDEX \"{$this->prefix}entities{$etype}_id_mdate\" ON \"{$this->prefix}entities{$etype}\" USING btree (\"mdate\"); ".
         "DROP INDEX IF EXISTS \"{$this->prefix}entities{$etype}_id_tags\"; ".
-        "CREATE INDEX \"{$this->prefix}entities{$etype}_id_tags\" ON \"{$this->prefix}entities{$etype}\" USING gin (\"tags\"); ".
-        "DROP INDEX IF EXISTS \"{$this->prefix}entities{$etype}_id_varlist\"; ".
-        "CREATE INDEX \"{$this->prefix}entities{$etype}_id_varlist\" ON \"{$this->prefix}entities{$etype}\" USING gin (\"varlist\");");
+        "CREATE INDEX \"{$this->prefix}entities{$etype}_id_tags\" ON \"{$this->prefix}entities{$etype}\" USING gin (\"tags\");");
       // Create the data table.
       $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}data{$etype}\" ( \"guid\" BIGINT NOT NULL, \"name\" TEXT NOT NULL, \"value\" TEXT NOT NULL, PRIMARY KEY (\"guid\", \"name\"), FOREIGN KEY (\"guid\") REFERENCES \"{$this->prefix}entities{$etype}\" (\"guid\") MATCH SIMPLE ON UPDATE NO ACTION ON DELETE CASCADE ) WITH ( OIDS=FALSE ); ".
         "ALTER TABLE \"{$this->prefix}data{$etype}\" OWNER TO \"".pg_escape_string($this->link, $this->config['PostgreSQL']['user'])."\"; ".
@@ -404,17 +402,12 @@ class PostgreSQLDriver implements DriverInterface {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $curQuery .= '('.
+              $curQuery .= 'ie."guid" '.
                   (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
-                  '\'{'.pg_escape_string($this->link, $curVar).
-                  '}\' <@ ie."varlist"';
-              if ($typeIsNot xor $clauseNot) {
-                $curQuery .= ' OR ie."guid" IN (SELECT "guid" FROM "'.
-                    $this->prefix.'data'.$etype.'" WHERE "name"=\''.
-                    pg_escape_string($this->link, $curVar).
-                    '\' AND "value"=\'N;\')';
-              }
-              $curQuery .= ')';
+                  'IN (SELECT "guid" FROM "'.
+                  $this->prefix.'data'.$etype.'" WHERE "name"=\''.
+                  pg_escape_string($this->link, $curVar).
+                  '\' AND "value"!=\'N;\')';
             }
             break;
           case 'ref':
@@ -667,9 +660,12 @@ class PostgreSQLDriver implements DriverInterface {
                 if ($curQuery) {
                   $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
                 }
-                $curQuery .= '\'{'.
+                $curQuery .=
+                    (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
+                    'ie."guid" IN (SELECT "guid" FROM "'.
+                    $this->prefix.'comparisons'.$etype.'" WHERE "name"=\''.
                     pg_escape_string($this->link, $curValue[0]).
-                    '}\' <@ ie."varlist"';
+                    '\' AND "string" IS NOT NULL)';
               }
               // If usePLPerl is false, the query can't cover match clauses.
               $fullQueryCoverage = false;
@@ -884,9 +880,11 @@ class PostgreSQLDriver implements DriverInterface {
               if ($curQuery) {
                 $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
-              $curQuery .= '\'{'.
-                  pg_escape_string($this->link, $curValue[0]).
-                  '}\' <@ ie."varlist"';
+              $curQuery .=
+                  (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
+                  'ie."guid" IN (SELECT "guid" FROM "'.
+                  $this->prefix.'data'.$etype.'" WHERE "name"=\''.
+                  pg_escape_string($this->link, $curValue[0]).'\')';
             }
             $fullQueryCoverage = false;
             break;
@@ -1040,7 +1038,7 @@ class PostgreSQLDriver implements DriverInterface {
   public function import($filename) {
     return $this->importFromFile($filename, function ($guid, $tags, $data, $etype) {
       $this->query("DELETE FROM \"{$this->prefix}guids\" WHERE \"guid\"={$guid}; INSERT INTO \"{$this->prefix}guids\" (\"guid\") VALUES ({$guid});");
-      $this->query("DELETE FROM \"{$this->prefix}entities_{$etype}\" WHERE \"guid\"={$guid}; INSERT INTO \"{$this->prefix}entities_{$etype}\" (\"guid\", \"tags\", \"varlist\", \"cdate\", \"mdate\") VALUES ({$guid}, '".pg_escape_string($this->link, '{'.implode(',', $tags).'}')."', '".pg_escape_string($this->link, '{'.implode(',', array_keys($data)).'}')."', ".unserialize($data['cdate']).", ".unserialize($data['mdate']).");", $etype);
+      $this->query("DELETE FROM \"{$this->prefix}entities_{$etype}\" WHERE \"guid\"={$guid}; INSERT INTO \"{$this->prefix}entities_{$etype}\" (\"guid\", \"tags\", \"cdate\", \"mdate\") VALUES ({$guid}, '".pg_escape_string($this->link, '{'.implode(',', $tags).'}')."', ".unserialize($data['cdate']).", ".unserialize($data['mdate']).");", $etype);
       $this->query("DELETE FROM \"{$this->prefix}data_{$etype}\" WHERE \"guid\"={$guid};");
       $this->query("DELETE FROM \"{$this->prefix}comparisons_{$etype}\" WHERE \"guid\"={$guid};");
       unset($data['cdate'], $data['mdate']);
@@ -1121,12 +1119,12 @@ class PostgreSQLDriver implements DriverInterface {
       $row = pg_fetch_row($result);
       pg_free_result($result);
       return !isset($row[0]);
-    }, function ($entity, $data, $sdata, $varlist, $etype, $etypeDirty) use ($insertData) {
+    }, function ($entity, $data, $sdata, $etype, $etypeDirty) use ($insertData) {
       $this->query("INSERT INTO \"{$this->prefix}guids\" (\"guid\") VALUES ({$entity->guid});");
-      $this->query("INSERT INTO \"{$this->prefix}entities{$etype}\" (\"guid\", \"tags\", \"varlist\", \"cdate\", \"mdate\") VALUES ({$entity->guid}, '".pg_escape_string($this->link, '{'.implode(',', array_diff($entity->tags, [''])).'}')."', '".pg_escape_string($this->link, '{'.implode(',', $varlist).'}')."', ".((float) $entity->cdate).", ".((float) $entity->mdate).");", $etypeDirty);
+      $this->query("INSERT INTO \"{$this->prefix}entities{$etype}\" (\"guid\", \"tags\", \"cdate\", \"mdate\") VALUES ({$entity->guid}, '".pg_escape_string($this->link, '{'.implode(',', array_diff($entity->tags, [''])).'}')."', ".((float) $entity->cdate).", ".((float) $entity->mdate).");", $etypeDirty);
       $insertData($entity, $data, $sdata, $etype, $etypeDirty);
-    }, function ($entity, $data, $sdata, $varlist, $etype, $etypeDirty) use ($insertData) {
-      $this->query("UPDATE \"{$this->prefix}entities{$etype}\" SET \"tags\"='".pg_escape_string($this->link, '{'.implode(',', array_diff($entity->tags, [''])).'}')."', \"varlist\"='".pg_escape_string($this->link, '{'.implode(',', $varlist).'}')."', \"cdate\"=".((float) $entity->cdate).", \"mdate\"=".((float) $entity->mdate)." WHERE \"guid\"={$entity->guid};", $etypeDirty);
+    }, function ($entity, $data, $sdata, $etype, $etypeDirty) use ($insertData) {
+      $this->query("UPDATE \"{$this->prefix}entities{$etype}\" SET \"tags\"='".pg_escape_string($this->link, '{'.implode(',', array_diff($entity->tags, [''])).'}')."', \"cdate\"=".((float) $entity->cdate).", \"mdate\"=".((float) $entity->mdate)." WHERE \"guid\"={$entity->guid};", $etypeDirty);
       $this->query("DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$entity->guid};");
       $this->query("DELETE FROM \"{$this->prefix}comparisons{$etype}\" WHERE \"guid\"={$entity->guid};");
       $insertData($entity, $data, $sdata, $etype, $etypeDirty);
