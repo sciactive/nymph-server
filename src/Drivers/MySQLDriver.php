@@ -1046,7 +1046,7 @@ class MySQLDriver implements DriverInterface {
   public function import($filename) {
     return $this->importFromFile($filename, function ($guid, $tags, $data, $etype) {
       $this->query("REPLACE INTO `{$this->prefix}guids` (`guid`) VALUES ({$guid});");
-      $this->query("REPLACE INTO `{$this->prefix}entities_{$etype}` (`guid`, `tags`, `varlist`, `cdate`, `mdate`) VALUES ({$guid}, ' ".mysqli_real_escape_string($this->link, implode(' ', $tags))." ', ' ".mysqli_real_escape_string($this->link, implode(' ', array_keys($data)))." ', ".unserialize($data['cdate']).", ".unserialize($data['mdate']).");", $etype);
+      $this->query("REPLACE INTO `{$this->prefix}entities_{$etype}` (`guid`, `tags`, `cdate`, `mdate`) VALUES ({$guid}, ' ".mysqli_real_escape_string($this->link, implode(' ', $tags))." ', ".unserialize($data['cdate']).", ".unserialize($data['mdate']).");", $etype);
       $this->query("DELETE FROM `{$this->prefix}data_{$etype}` WHERE `guid`='{$guid}';");
       $this->query("DELETE FROM `{$this->prefix}comparisons_{$etype}` WHERE `guid`='{$guid}';");
       $this->query("DELETE FROM `{$this->prefix}references_{$etype}` WHERE `guid`='{$guid}';");
@@ -1142,7 +1142,7 @@ class MySQLDriver implements DriverInterface {
       return !isset($row[0]);
     }, function ($entity, $data, $sdata, $varlist, $etype, $etypeDirty) use ($insertData) {
       $this->query("INSERT INTO `{$this->prefix}guids` (`guid`) VALUES ({$entity->guid});");
-      $this->query("INSERT INTO `{$this->prefix}entities{$etype}` (`guid`, `tags`, `varlist`, `cdate`, `mdate`) VALUES ({$entity->guid}, ' ".mysqli_real_escape_string($this->link, implode(' ', array_diff($entity->tags, [''])))." ', ' ".mysqli_real_escape_string($this->link, implode(' ', $varlist))." ', ".((float) $entity->cdate).", ".((float) $entity->mdate).");", $etypeDirty);
+      $this->query("INSERT INTO `{$this->prefix}entities{$etype}` (`guid`, `tags`, `cdate`, `mdate`) VALUES ({$entity->guid}, ' ".mysqli_real_escape_string($this->link, implode(' ', array_diff($entity->tags, [''])))." ', ".((float) $entity->cdate).", ".((float) $entity->mdate).");", $etypeDirty);
       $insertData($entity, $data, $sdata, $etype, $etypeDirty);
     }, function ($entity, $data, $sdata, $varlist, $etype, $etypeDirty) use ($insertData) {
       if ($this->config['MySQL']['row_locking']) {
@@ -1154,7 +1154,7 @@ class MySQLDriver implements DriverInterface {
       if ($this->config['MySQL']['table_locking']) {
         $this->query("LOCK TABLES `{$this->prefix}entities{$etype}` WRITE, `{$this->prefix}data{$etype}` WRITE, `{$this->prefix}comparisons{$etype}` WRITE, `{$this->prefix}references{$etype}` WRITE;");
       }
-      $this->query("UPDATE `{$this->prefix}entities{$etype}` SET `tags`=' ".mysqli_real_escape_string($this->link, implode(' ', array_diff($entity->tags, [''])))." ', `varlist`=' ".mysqli_real_escape_string($this->link, implode(' ', $varlist))." ', `mdate`=".((float) $entity->mdate)." WHERE `guid`='".((int) $entity->guid)."';", $etypeDirty);
+      $this->query("UPDATE `{$this->prefix}entities{$etype}` SET `tags`=' ".mysqli_real_escape_string($this->link, implode(' ', array_diff($entity->tags, [''])))." ', `mdate`=".((float) $entity->mdate)." WHERE `guid`='".((int) $entity->guid)."';", $etypeDirty);
       $this->query("DELETE FROM `{$this->prefix}data{$etype}` WHERE `guid`='".((int) $entity->guid)."';");
       $this->query("DELETE FROM `{$this->prefix}comparisons{$etype}` WHERE `guid`='".((int) $entity->guid)."';");
       $this->query("DELETE FROM `{$this->prefix}references{$etype}` WHERE `guid`='".((int) $entity->guid)."';");
