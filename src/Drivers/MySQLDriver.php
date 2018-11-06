@@ -502,7 +502,7 @@ class MySQLDriver implements DriverInterface {
               break;
             } else {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               if (is_callable([$curValue[1], 'toReference'])) {
                 $svalue = serialize($curValue[1]->toReference());
@@ -542,7 +542,7 @@ class MySQLDriver implements DriverInterface {
               break;
             } else {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= $this->makeDataPart(
                   'comparisons',
@@ -578,7 +578,7 @@ class MySQLDriver implements DriverInterface {
               break;
             } else {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= $this->makeDataPart(
                   'comparisons',
@@ -614,7 +614,7 @@ class MySQLDriver implements DriverInterface {
               break;
             } else {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= $this->makeDataPart(
                   'comparisons',
@@ -650,7 +650,7 @@ class MySQLDriver implements DriverInterface {
               break;
             } else {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= $this->makeDataPart(
                   'comparisons',
@@ -682,7 +682,7 @@ class MySQLDriver implements DriverInterface {
               break;
             } else {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= $this->makeDataPart(
                   'comparisons',
@@ -715,7 +715,7 @@ class MySQLDriver implements DriverInterface {
               break;
             } else {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= $this->makeDataPart(
                   'comparisons',
@@ -748,7 +748,7 @@ class MySQLDriver implements DriverInterface {
               break;
             } else {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= $this->makeDataPart(
                   'comparisons',
@@ -781,7 +781,7 @@ class MySQLDriver implements DriverInterface {
               break;
             } else {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= $this->makeDataPart(
                   'comparisons',
@@ -819,7 +819,7 @@ class MySQLDriver implements DriverInterface {
               break;
             } elseif ($curValue[1] === true || $curValue[1] === false) {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= $this->makeDataPart(
                   'comparisons',
@@ -832,7 +832,7 @@ class MySQLDriver implements DriverInterface {
               break;
             } elseif ($curValue[1] === 1) {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= $this->makeDataPart(
                   'comparisons',
@@ -845,7 +845,7 @@ class MySQLDriver implements DriverInterface {
               break;
             } elseif ($curValue[1] === 0) {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= $this->makeDataPart(
                   'comparisons',
@@ -858,7 +858,7 @@ class MySQLDriver implements DriverInterface {
               break;
             } elseif ($curValue[1] === -1) {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= $this->makeDataPart(
                   'comparisons',
@@ -871,7 +871,7 @@ class MySQLDriver implements DriverInterface {
               break;
             } elseif ($curValue[1] === []) {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= $this->makeDataPart(
                   'comparisons',
@@ -1219,6 +1219,6 @@ class MySQLDriver implements DriverInterface {
           (int) $curRef
       );
     }
-    return implode(', ', $values);
+    return implode(',', $values);
   }
 }

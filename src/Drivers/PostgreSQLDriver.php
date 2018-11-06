@@ -162,18 +162,24 @@ class PostgreSQLDriver implements DriverInterface {
         "CREATE INDEX \"{$this->prefix}data{$etype}_id_guid_name__user\" ON \"{$this->prefix}data{$etype}\" USING btree (\"guid\") WHERE \"name\" = 'user'::text; ".
         "DROP INDEX IF EXISTS \"{$this->prefix}data{$etype}_id_guid_name__group\"; ".
         "CREATE INDEX \"{$this->prefix}data{$etype}_id_guid_name__group\" ON \"{$this->prefix}data{$etype}\" USING btree (\"guid\") WHERE \"name\" = 'group'::text;");
-      $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}comparisons{$etype}\" ( \"guid\" BIGINT NOT NULL, \"name\" TEXT NOT NULL, \"references\" BIGINT[], \"eq_true\" BOOLEAN, \"eq_one\" BOOLEAN, \"eq_zero\" BOOLEAN, \"eq_negone\" BOOLEAN, \"eq_emptyarray\" BOOLEAN, \"string\" TEXT, \"int\" BIGINT, \"float\" DOUBLE PRECISION, \"is_int\" BOOLEAN NOT NULL, PRIMARY KEY (\"guid\", \"name\"), FOREIGN KEY (\"guid\") REFERENCES \"{$this->prefix}entities{$etype}\" (\"guid\") MATCH SIMPLE ON UPDATE NO ACTION ON DELETE CASCADE ) WITH ( OIDS=FALSE ); ".
+      $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}comparisons{$etype}\" ( \"guid\" BIGINT NOT NULL, \"name\" TEXT NOT NULL, \"eq_true\" BOOLEAN, \"eq_one\" BOOLEAN, \"eq_zero\" BOOLEAN, \"eq_negone\" BOOLEAN, \"eq_emptyarray\" BOOLEAN, \"string\" TEXT, \"int\" BIGINT, \"float\" DOUBLE PRECISION, \"is_int\" BOOLEAN NOT NULL, PRIMARY KEY (\"guid\", \"name\"), FOREIGN KEY (\"guid\") REFERENCES \"{$this->prefix}entities{$etype}\" (\"guid\") MATCH SIMPLE ON UPDATE NO ACTION ON DELETE CASCADE ) WITH ( OIDS=FALSE ); ".
         "ALTER TABLE \"{$this->prefix}comparisons{$etype}\" OWNER TO \"".pg_escape_string($this->link, $this->config['PostgreSQL']['user'])."\"; ".
         "DROP INDEX IF EXISTS \"{$this->prefix}comparisons{$etype}_id_guid\"; ".
         "CREATE INDEX \"{$this->prefix}comparisons{$etype}_id_guid\" ON \"{$this->prefix}comparisons{$etype}\" USING btree (\"guid\"); ".
         "DROP INDEX IF EXISTS \"{$this->prefix}comparisons{$etype}_id_name\"; ".
         "CREATE INDEX \"{$this->prefix}comparisons{$etype}_id_name\" ON \"{$this->prefix}comparisons{$etype}\" USING btree (\"name\"); ".
-        "DROP INDEX IF EXISTS \"{$this->prefix}comparisons{$etype}_id_references\"; ".
-        "CREATE INDEX \"{$this->prefix}comparisons{$etype}_id_references\" ON \"{$this->prefix}comparisons{$etype}\" USING gin (\"references\"); ".
         "DROP INDEX IF EXISTS \"{$this->prefix}comparisons{$etype}_id_guid_name_eq_true\"; ".
         "CREATE INDEX \"{$this->prefix}comparisons{$etype}_id_guid_name_eq_true\" ON \"{$this->prefix}comparisons{$etype}\" USING btree (\"guid\", \"name\") WHERE \"eq_true\" = TRUE; ".
         "DROP INDEX IF EXISTS \"{$this->prefix}comparisons{$etype}_id_guid_name_not_eq_true\"; ".
         "CREATE INDEX \"{$this->prefix}comparisons{$etype}_id_guid_name_not_eq_true\" ON \"{$this->prefix}comparisons{$etype}\" USING btree (\"guid\", \"name\") WHERE \"eq_true\" <> TRUE; ");
+      $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}references{$etype}\" ( \"guid\" BIGINT NOT NULL, \"name\" TEXT NOT NULL, \"reference\" BIGINT NOT NULL, PRIMARY KEY (\"guid\", \"name\", \"reference\"), FOREIGN KEY (\"guid\") REFERENCES \"{$this->prefix}entities{$etype}\" (\"guid\") MATCH SIMPLE ON UPDATE NO ACTION ON DELETE CASCADE ) WITH ( OIDS=FALSE ); ".
+        "ALTER TABLE \"{$this->prefix}references{$etype}\" OWNER TO \"".pg_escape_string($this->link, $this->config['PostgreSQL']['user'])."\"; ".
+        "DROP INDEX IF EXISTS \"{$this->prefix}references{$etype}_id_guid\"; ".
+        "CREATE INDEX \"{$this->prefix}references{$etype}_id_guid\" ON \"{$this->prefix}references{$etype}\" USING btree (\"guid\"); ".
+        "DROP INDEX IF EXISTS \"{$this->prefix}references{$etype}_id_name\"; ".
+        "CREATE INDEX \"{$this->prefix}references{$etype}_id_name\" ON \"{$this->prefix}references{$etype}\" USING btree (\"name\"); ".
+        "DROP INDEX IF EXISTS \"{$this->prefix}references{$etype}_id_references\"; ".
+        "CREATE INDEX \"{$this->prefix}references{$etype}_id_reference\" ON \"{$this->prefix}references{$etype}\" USING btree (\"reference\"); ");
     } else {
       // Create the GUID table.
       $this->query("CREATE TABLE IF NOT EXISTS \"{$this->prefix}guids\" ( \"guid\" BIGINT NOT NULL, PRIMARY KEY (\"guid\")); ".
@@ -260,7 +266,13 @@ class PostgreSQLDriver implements DriverInterface {
     $etypeDirty = isset($className) ? $className::ETYPE : null;
     $guid = (int) $guid;
     $etype = isset($etypeDirty) ? '_'.pg_escape_string($this->link, $etypeDirty) : '';
-    $this->query("DELETE FROM \"{$this->prefix}entities{$etype}\" WHERE \"guid\"={$guid}; DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$guid}; DELETE FROM \"{$this->prefix}comparisons{$etype}\" WHERE \"guid\"={$guid};", $etypeDirty);
+    $this->query(
+        "DELETE FROM \"{$this->prefix}entities{$etype}\" WHERE \"guid\"={$guid}; ".
+          "DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$guid}; ".
+          "DELETE FROM \"{$this->prefix}comparisons{$etype}\" WHERE \"guid\"={$guid}; ".
+          "DELETE FROM \"{$this->prefix}references{$etype}\" WHERE \"guid\"={$guid};",
+        $etypeDirty
+    );
     $this->query("DELETE FROM \"{$this->prefix}guids\" WHERE \"guid\"={$guid};");
     // Remove any cached versions of this entity.
     if ($this->config['cache']) {
@@ -432,26 +444,16 @@ class PostgreSQLDriver implements DriverInterface {
             } else {
               $guids[] = (int) $curValue[1];
             }
-            if ($guids) {
+            foreach ($guids as $curQguid) {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
-                  'ie."guid" IN (SELECT "guid" FROM "'.$this->prefix.'comparisons'.
-                  $etype.'" WHERE "name"=\''.
-                  pg_escape_string($this->link, $curValue[0]).'\' AND (';
-              //$curQuery .= '(POSITION(\'a:3:{i:0;s:22:"nymph_entity_reference";i:1;i:';
-              //$curQuery .= implode(';\' IN "value") != 0) '.($typeIsOr ? 'OR' : 'AND').' (POSITION(\'a:3:{i:0;s:22:"nymph_entity_reference";i:1;i:', $guids);
-              //$curQuery .= ';\' IN "value") != 0)';
-              $curQuery .= '\'{';
-              $curQuery .=
-                  implode(
-                      '}\' <@ "references"'.
-                          ($typeIsOr ? ' OR ' : ' AND ').'\'{',
-                      $guids
-                  );
-              $curQuery .= '}\' <@ "references"';
-              $curQuery .= '))';
+                  'ie."guid" IN (SELECT "guid" FROM "'.
+                  $this->prefix.'references'.$etype.'" WHERE "name"=\''.
+                  pg_escape_string($this->link, $curValue[0]).
+                  '\' AND "reference"='.
+                  pg_escape_string($this->link, (int) $curQguid).')';
             }
             break;
           case 'strict':
@@ -472,7 +474,7 @@ class PostgreSQLDriver implements DriverInterface {
               break;
             } else {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               if (is_callable([$curValue[1], 'toReference'])) {
                 $svalue = serialize($curValue[1]->toReference());
@@ -514,7 +516,7 @@ class PostgreSQLDriver implements DriverInterface {
               break;
             } else {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."guid" IN (SELECT "guid" FROM "'.$this->prefix.'comparisons'.
@@ -544,7 +546,7 @@ class PostgreSQLDriver implements DriverInterface {
               break;
             } else {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."guid" IN (SELECT "guid" FROM "'.$this->prefix.'comparisons'.
@@ -574,7 +576,7 @@ class PostgreSQLDriver implements DriverInterface {
               break;
             } else {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."guid" IN (SELECT "guid" FROM "'.$this->prefix.'comparisons'.
@@ -604,7 +606,7 @@ class PostgreSQLDriver implements DriverInterface {
               break;
             } else {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."guid" IN (SELECT "guid" FROM "'.$this->prefix.'comparisons'.
@@ -642,7 +644,7 @@ class PostgreSQLDriver implements DriverInterface {
                 break;
               } else {
                 if ($curQuery) {
-                  $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                  $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
                 }
                 $curQuery .=
                     (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
@@ -690,7 +692,7 @@ class PostgreSQLDriver implements DriverInterface {
               break;
             } else {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .=
                   (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
@@ -722,7 +724,7 @@ class PostgreSQLDriver implements DriverInterface {
               break;
             } else {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .=
                   (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
@@ -754,7 +756,7 @@ class PostgreSQLDriver implements DriverInterface {
               break;
             } else {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .=
                   (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
@@ -786,7 +788,7 @@ class PostgreSQLDriver implements DriverInterface {
               break;
             } else {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .=
                   (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
@@ -823,7 +825,7 @@ class PostgreSQLDriver implements DriverInterface {
               break;
             } elseif ($curValue[1] === true || $curValue[1] === false) {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."guid" IN (SELECT "guid" FROM "'.
@@ -834,7 +836,7 @@ class PostgreSQLDriver implements DriverInterface {
               break;
             } elseif ($curValue[1] === 1) {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."guid" IN (SELECT "guid" FROM "'.
@@ -844,7 +846,7 @@ class PostgreSQLDriver implements DriverInterface {
               break;
             } elseif ($curValue[1] === 0) {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."guid" IN (SELECT "guid" FROM "'.
@@ -854,7 +856,7 @@ class PostgreSQLDriver implements DriverInterface {
               break;
             } elseif ($curValue[1] === -1) {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."guid" IN (SELECT "guid" FROM "'.
@@ -864,7 +866,7 @@ class PostgreSQLDriver implements DriverInterface {
               break;
             } elseif ($curValue[1] === []) {
               if ($curQuery) {
-                $curQuery .= ($typeIsOr ? ' OR ' : ' AND ');
+                $curQuery .= $typeIsOr ? ' OR ' : ' AND ';
               }
               $curQuery .= (($typeIsNot xor $clauseNot) ? 'NOT ' : '').
                   'ie."guid" IN (SELECT "guid" FROM "'.
@@ -1037,21 +1039,24 @@ class PostgreSQLDriver implements DriverInterface {
 
   public function import($filename) {
     return $this->importFromFile($filename, function ($guid, $tags, $data, $etype) {
-      $this->query("DELETE FROM \"{$this->prefix}guids\" WHERE \"guid\"={$guid}; INSERT INTO \"{$this->prefix}guids\" (\"guid\") VALUES ({$guid});");
-      $this->query("DELETE FROM \"{$this->prefix}entities_{$etype}\" WHERE \"guid\"={$guid}; INSERT INTO \"{$this->prefix}entities_{$etype}\" (\"guid\", \"tags\", \"cdate\", \"mdate\") VALUES ({$guid}, '".pg_escape_string($this->link, '{'.implode(',', $tags).'}')."', ".unserialize($data['cdate']).", ".unserialize($data['mdate']).");", $etype);
-      $this->query("DELETE FROM \"{$this->prefix}data_{$etype}\" WHERE \"guid\"={$guid};");
-      $this->query("DELETE FROM \"{$this->prefix}comparisons_{$etype}\" WHERE \"guid\"={$guid};");
+      $queries = [];
+      $queries[] = "DELETE FROM \"{$this->prefix}guids\" WHERE \"guid\"={$guid}; INSERT INTO \"{$this->prefix}guids\" (\"guid\") VALUES ({$guid});";
+      $queries[] = "DELETE FROM \"{$this->prefix}entities_{$etype}\" WHERE \"guid\"={$guid}; INSERT INTO \"{$this->prefix}entities_{$etype}\" (\"guid\", \"tags\", \"cdate\", \"mdate\") VALUES ({$guid}, '".pg_escape_string($this->link, '{'.implode(',', $tags).'}')."', ".unserialize($data['cdate']).", ".unserialize($data['mdate']).");";
+      $queries[] = "DELETE FROM \"{$this->prefix}data_{$etype}\" WHERE \"guid\"={$guid};";
+      $queries[] = "DELETE FROM \"{$this->prefix}comparisons_{$etype}\" WHERE \"guid\"={$guid};";
+      $queries[] = "DELETE FROM \"{$this->prefix}references_{$etype}\" WHERE \"guid\"={$guid};";
       unset($data['cdate'], $data['mdate']);
       if ($data) {
-        $query = '';
         foreach ($data as $name => $value) {
-          $query .= "INSERT INTO \"{$this->prefix}data_{$etype}\" (\"guid\", \"name\", \"value\") VALUES ";
-          $query .= $this->makeInsertValuesSQLData($guid, $name, $value).'; ';
-          $query .= "INSERT INTO \"{$this->prefix}comparisons_{$etype}\" (\"guid\", \"name\", \"references\", \"eq_true\", \"eq_one\", \"eq_zero\", \"eq_negone\", \"eq_emptyarray\", \"string\", \"int\", \"float\", \"is_int\") VALUES ";
-          $query .= $this->makeInsertValuesSQL($guid, $name, $value, unserialize($value)).'; ';
+          $queries[] = "INSERT INTO \"{$this->prefix}data_{$etype}\" (\"guid\", \"name\", \"value\") VALUES ".$this->makeInsertValuesData($guid, $name, $value).';';
+          $queries[] = "INSERT INTO \"{$this->prefix}comparisons_{$etype}\" (\"guid\", \"name\", \"eq_true\", \"eq_one\", \"eq_zero\", \"eq_negone\", \"eq_emptyarray\", \"string\", \"int\", \"float\", \"is_int\") VALUES ".$this->makeInsertValuesComparisons($guid, $name, unserialize($value)).';';
+          $references = $this->makeInsertValuesReferences($guid, $name, $value);
+          if ($references) {
+            $queries[] = "INSERT INTO \"{$this->prefix}references_{$etype}\" (\"guid\", \"name\", \"reference\") VALUES {$references};";
+          }
         }
-        $this->query($query, $etype);
       }
+      $this->query(implode(' ', $queries), $etype);
     }, function ($name, $curUid) {
       $this->query("DELETE FROM \"{$this->prefix}uids\" WHERE \"name\"='".pg_escape_string($this->link, $name)."'; INSERT INTO \"{$this->prefix}uids\" (\"name\", \"cur_uid\") VALUES ('".pg_escape_string($this->link, $name)."', ".((int) $curUid).");");
     }, function () {
@@ -1095,22 +1100,26 @@ class PostgreSQLDriver implements DriverInterface {
 
   public function saveEntity(&$entity) {
     $insertData = function ($entity, $data, $sdata, $etype, $etypeDirty) {
-      $values = [];
-      foreach ($data as $name => $uvalue) {
-        $svalue = serialize($uvalue);
-        $values[] = "INSERT INTO \"{$this->prefix}data{$etype}\" (\"guid\", \"name\", \"value\") VALUES ".
-          $this->makeInsertValuesSQLData($entity->guid, $name, $svalue).';';
-        $values[] = "INSERT INTO \"{$this->prefix}comparisons{$etype}\" (\"guid\", \"name\", \"references\", \"eq_true\", \"eq_one\", \"eq_zero\", \"eq_negone\", \"eq_emptyarray\", \"string\", \"int\", \"float\", \"is_int\") VALUES ".
-          $this->makeInsertValuesSQL($entity->guid, $name, $svalue, $uvalue).';';
+      $fullData = [];
+      foreach ($data as $name => $value) {
+        $fullData[$name] = [$value, serialize($value)];
       }
       foreach ($sdata as $name => $svalue) {
-        $uvalue = unserialize($svalue);
-        $values[] = "INSERT INTO \"{$this->prefix}data{$etype}\" (\"guid\", \"name\", \"value\") VALUES ".
-          $this->makeInsertValuesSQLData($entity->guid, $name, $svalue).';';
-        $values[] = "INSERT INTO \"{$this->prefix}comparisons{$etype}\" (\"guid\", \"name\", \"references\", \"eq_true\", \"eq_one\", \"eq_zero\", \"eq_negone\", \"eq_emptyarray\", \"string\", \"int\", \"float\", \"is_int\") VALUES ".
-          $this->makeInsertValuesSQL($entity->guid, $name, $svalue, $uvalue).';';
+        $fullData[$name] = [unserialize($svalue), $svalue];
       }
-      $this->query(implode(' ', $values), $etypeDirty);
+      $queries = [];
+      foreach ($fullData as $name => $values) {
+        list($value, $svalue) = $values;
+        $queries[] = "INSERT INTO \"{$this->prefix}data{$etype}\" (\"guid\", \"name\", \"value\") VALUES ".
+            $this->makeInsertValuesData($entity->guid, $name, $svalue).';';
+        $queries[] = "INSERT INTO \"{$this->prefix}comparisons{$etype}\" (\"guid\", \"name\", \"eq_true\", \"eq_one\", \"eq_zero\", \"eq_negone\", \"eq_emptyarray\", \"string\", \"int\", \"float\", \"is_int\") VALUES ".
+            $this->makeInsertValuesComparisons($entity->guid, $name, $value).';';
+        $referenceValues = $this->makeInsertValuesReferences($entity->guid, $name, $svalue);
+        if ($referenceValues) {
+          $queries[] = "INSERT INTO \"{$this->prefix}references{$etype}\" (\"guid\", \"name\", \"reference\") VALUES {$referenceValues};";
+        }
+      }
+      $this->query(implode(' ', $queries), $etypeDirty);
     };
     return $this->saveEntityRowLike($entity, function ($etypeDirty) {
       return '_'.pg_escape_string($this->link, $etypeDirty);
@@ -1127,6 +1136,7 @@ class PostgreSQLDriver implements DriverInterface {
       $this->query("UPDATE \"{$this->prefix}entities{$etype}\" SET \"tags\"='".pg_escape_string($this->link, '{'.implode(',', array_diff($entity->tags, [''])).'}')."', \"cdate\"=".((float) $entity->cdate).", \"mdate\"=".((float) $entity->mdate)." WHERE \"guid\"={$entity->guid};", $etypeDirty);
       $this->query("DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$entity->guid};");
       $this->query("DELETE FROM \"{$this->prefix}comparisons{$etype}\" WHERE \"guid\"={$entity->guid};");
+      $this->query("DELETE FROM \"{$this->prefix}references{$etype}\" WHERE \"guid\"={$entity->guid};");
       $insertData($entity, $data, $sdata, $etype, $etypeDirty);
     }, function () {
       $this->query("BEGIN;");
@@ -1146,7 +1156,7 @@ class PostgreSQLDriver implements DriverInterface {
     return true;
   }
 
-  private function makeInsertValuesSQLData($guid, $name, $svalue) {
+  private function makeInsertValuesData($guid, $name, $svalue) {
     return sprintf(
         "(%u, '%s', '%s')",
         (int) $guid,
@@ -1160,21 +1170,11 @@ class PostgreSQLDriver implements DriverInterface {
     );
   }
 
-  private function makeInsertValuesSQL($guid, $name, $svalue, $uvalue) {
-    preg_match_all(
-        '/a:3:\{i:0;s:22:"nymph_entity_reference";i:1;i:(\d+);/',
-        $svalue,
-        $references,
-        PREG_PATTERN_ORDER
-    );
+  private function makeInsertValuesComparisons($guid, $name, $uvalue) {
     return sprintf(
-        "(%u, '%s', '%s', %s, %s, %s, %s, %s, %s, %d, %f, %s)",
+        "(%u, '%s', %s, %s, %s, %s, %s, %s, %d, %f, %s)",
         (int) $guid,
         pg_escape_string($this->link, $name),
-        pg_escape_string(
-            $this->link,
-            '{'.implode(',', $references[1]).'}'
-        ),
         $uvalue == true ? 'TRUE' : 'FALSE',
         (!is_object($uvalue) && $uvalue == 1) ? 'TRUE' : 'FALSE',
         (!is_object($uvalue) && $uvalue == 0) ? 'TRUE' : 'FALSE',
@@ -1187,5 +1187,24 @@ class PostgreSQLDriver implements DriverInterface {
         is_object($uvalue) ? 1 : ((float) $uvalue),
         is_int($uvalue) ? 'TRUE' : 'FALSE'
     );
+  }
+
+  private function makeInsertValuesReferences($guid, $name, $svalue) {
+    preg_match_all(
+        '/a:3:\{i:0;s:22:"nymph_entity_reference";i:1;i:(\d+);/',
+        $svalue,
+        $references,
+        PREG_PATTERN_ORDER
+    );
+    $values = [];
+    foreach ($references[1] as $curRef) {
+      $values[] = sprintf(
+          "(%u, '%s', %u)",
+          (int) $guid,
+          pg_escape_string($this->link, $name),
+          (int) $curRef
+      );
+    }
+    return implode(',', $values);
   }
 }
