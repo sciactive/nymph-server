@@ -79,6 +79,7 @@
  */
 class Entity implements EntityInterface {
   const ETYPE = 'entity';
+  const NULL_CONST = null;
 
   /**
    * The GUID of the entity.
@@ -367,7 +368,9 @@ class Entity implements EntityInterface {
     }
     // Check if it's set.
     if (!isset($this->data[$name])) {
-      return $this->data[$name];
+      // Since we must return by reference, we have to use a constant here. If
+      // we return $this->data[$name], an entry will be created in data.
+      return $this->NULL_CONST;
     }
     // If it's not an entity, return the regular value.
     try {
