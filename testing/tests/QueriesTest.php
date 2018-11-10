@@ -1577,6 +1577,13 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
         ['&', 'ref' => ['reference', $arr['refGuid'] + 1]]
     );
     $this->assertFalse($testEntity->inArray($resultEntity));
+
+    // Testing wrong reference...
+    $resultEntity = Nymph::getEntities(
+        ['class' => 'NymphTesting\TestModel'],
+        ['&', 'ref' => ['reference', 0]]
+    );
+    $this->assertFalse($testEntity->inArray($resultEntity));
   }
 
   /**

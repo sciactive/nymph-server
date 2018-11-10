@@ -127,13 +127,11 @@ class MySQLDriver implements DriverInterface {
       $foreignKeyDataTableGuid = " REFERENCES `{$this->prefix}entities{$etype}`(`guid`) ON DELETE CASCADE";
       $foreignKeyDataComparisonsTableGuid = " REFERENCES `{$this->prefix}entities{$etype}`(`guid`) ON DELETE CASCADE";
       $foreignKeyReferencesTableGuid = " REFERENCES `{$this->prefix}entities{$etype}`(`guid`) ON DELETE CASCADE";
-      $foreignKeyDataComparisonsTableReference = " REFERENCES `{$this->prefix}entities{$etype}`(`guid`) ON DELETE NO ACTION";
     } else {
       $foreignKeyEntityTableGuid = '';
       $foreignKeyDataTableGuid = '';
       $foreignKeyDataComparisonsTableGuid = '';
       $foreignKeyReferencesTableGuid = '';
-      $foreignKeyDataComparisonsTableReference = '';
     }
     if (isset($etype)) {
       $etype = '_'.mysqli_real_escape_string($this->link, $etype);
@@ -189,9 +187,9 @@ class MySQLDriver implements DriverInterface {
             "`guid` BIGINT(20) UNSIGNED NOT NULL".
               "{$foreignKeyDataComparisonsTableGuid}, ".
             "`name` TEXT NOT NULL, ".
-            "`reference` BIGINT(20) UNSIGNED NOT NULL".
-              "{$foreignKeyDataComparisonsTableReference}, ".
-            "PRIMARY KEY (`guid`, `name`(255), `reference`)".
+            "`reference` BIGINT(20) UNSIGNED NOT NULL, ".
+            "PRIMARY KEY (`guid`, `name`(255), `reference`), ".
+            "INDEX `id_name_reference` USING BTREE (`name`(255), `reference`)".
           ") ENGINE {$this->config['MySQL']['engine']} ".
           "CHARACTER SET utf8 COLLATE utf8_bin;"
       );
