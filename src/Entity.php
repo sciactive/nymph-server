@@ -898,22 +898,24 @@ class Entity implements EntityInterface {
     $this->data = $data;
     $this->sdata = $sdata;
 
-    $this->originalAcValues['user'] =
-      isset($this->user) ? $this->user : null;
-    $this->originalAcValues['group'] =
-      isset($this->group) ? $this->group : null;
-    $this->originalAcValues['acUser'] =
-      isset($this->acUser) ? $this->acUser : null;
-    $this->originalAcValues['acGroup'] =
-      isset($this->acGroup) ? $this->acGroup : null;
-    $this->originalAcValues['acOther'] =
-      isset($this->acOther) ? $this->acOther : null;
-    $this->originalAcValues['acRead'] =
-      isset($this->acRead) ? $this->acRead : null;
-    $this->originalAcValues['acWrite'] =
-      isset($this->acWrite) ? $this->acWrite : null;
-    $this->originalAcValues['acFull'] =
-      isset($this->acFull) ? $this->acFull : null;
+    if (empty($this->originalAcValues)) {
+      $this->originalAcValues['user'] =
+        isset($this->user) ? $this->user : null;
+      $this->originalAcValues['group'] =
+        isset($this->group) ? $this->group : null;
+      $this->originalAcValues['acUser'] =
+        isset($this->acUser) ? $this->acUser : null;
+      $this->originalAcValues['acGroup'] =
+        isset($this->acGroup) ? $this->acGroup : null;
+      $this->originalAcValues['acOther'] =
+        isset($this->acOther) ? $this->acOther : null;
+      $this->originalAcValues['acRead'] =
+        isset($this->acRead) ? $this->acRead : null;
+      $this->originalAcValues['acWrite'] =
+        isset($this->acWrite) ? $this->acWrite : null;
+      $this->originalAcValues['acFull'] =
+        isset($this->acFull) ? $this->acFull : null;
+    }
   }
 
   /**
