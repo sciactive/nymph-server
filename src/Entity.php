@@ -328,11 +328,13 @@ class Entity implements EntityInterface {
    * @return mixed The value of the variable or null if it doesn't exist.
    */
   public function &__get($name) {
+    if ($name === 'guid') {
+      return $this->$name;
+    }
     if ($this->isASleepingReference) {
       $this->referenceWake();
     }
-    if ($name === 'guid'
-        || $name === 'cdate'
+    if ($name === 'cdate'
         || $name === 'mdate'
         || $name === 'tags'
       ) {
