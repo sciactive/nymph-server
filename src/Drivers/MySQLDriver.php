@@ -254,6 +254,7 @@ class MySQLDriver implements DriverInterface {
   }
 
   public function deleteEntityByID($guid, $className = null) {
+    // TODO: className should be mandatory.
     $etypeDirty = isset($className) ? $className::ETYPE : null;
     $etype = isset($etypeDirty)
       ? '_'.mysqli_real_escape_string($this->link, $etypeDirty)
