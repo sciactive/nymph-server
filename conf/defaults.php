@@ -17,7 +17,7 @@ return [
   /*
    * PubSub Enabled
    * Whether Nymph should use the PubSub functionality. This requires the
-   * Nymph-PubSub package.
+   * sciactive/nymph-pubsub package.
    */
   'pubsub' => class_exists('\\Nymph\\PubSub\\HookMethods'),
   /*
