@@ -412,6 +412,7 @@ class REST {
   protected function loadEntity($entityData) {
     if (!class_exists($entityData['class'])
         || $entityData['class'] === 'Entity'
+        || $entityData['class'] === 'Nymph\Entity'
         || $entityData['class'] === '\Nymph\Entity'
       ) {
       // Don't let clients use the `Entity` class, since it has no validity/AC
