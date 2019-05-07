@@ -1083,9 +1083,9 @@ class SQLite3Driver implements DriverInterface {
       $this->query("DELETE FROM \"{$this->prefix}references{$etype}\" WHERE \"guid\"={$entity->guid};");
       $insertData($entity, $data, $sdata, $etype, $etypeDirty);
     }, function () {
-      $this->query("BEGIN;");
+      $this->query("SAVEPOINT 'save';");
     }, function () {
-      $this->query("COMMIT;");
+      $this->query("RELEASE 'save';");
     });
   }
 

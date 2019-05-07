@@ -165,7 +165,7 @@ trait DriverTrait {
       }
       $matches = [];
       if (preg_match(
-          '/^\s*{(\d+)}<([\w-_]+)>\[([\w,]*)\]\s*$/S',
+          '/^\s*{(\d+)}<([-\w_]+)>\[([\w,]*)\]\s*$/S',
           $line,
           $matches
       )) {
@@ -619,7 +619,10 @@ trait DriverTrait {
     $count = $ocount = 0;
 
     // Check if the requested entity is cached.
-    if ($this->config['cache'] && is_int($selectors[1]['guid'])) {
+    if ($this->config['cache']
+        && !((bool) $options['skip_cache'])
+        && is_int($selectors[1]['guid'])
+    ) {
       // Only safe to use the cache option with no other selectors than a GUID
       // and tags.
       if (count($selectors) === 1 &&
@@ -629,13 +632,16 @@ trait DriverTrait {
             (count($selectors[1]) === 3 && isset($selectors[1]['tag']))
           )
         ) {
-        $entity = $this->pullCache($selectors[1]['guid'], $className);
+        $entity = $this->pullCache(
+            $selectors[1]['guid'],
+            $className,
+            (bool) $options['skip_ac']
+        );
         if (isset($entity)
             && (
               !isset($selectors[1]['tag'])
               || $entity->hasTag($selectors[1]['tag'])
             )) {
-          $entity->useSkipAc((bool) $options['skip_ac']);
           return [$entity];
         }
       }
@@ -704,13 +710,19 @@ trait DriverTrait {
         switch ($ret) {
           case 'entity':
           default:
-            if ($this->config['cache']) {
-              $entity = $this->pullCache($guid, $className);
-            } else {
-              $entity = null;
+            $entity = null;
+            if ($this->config['cache'] && !((bool) $options['skip_cache'])) {
+              $entity = $this->pullCache(
+                  $guid,
+                  $className,
+                  (bool) $options['skip_ac']
+              );
             }
             if (!isset($entity) || $data['mdate'] > $entity->mdate) {
               $entity = call_user_func([$className, 'factory']);
+              if (isset($options['skip_ac'])) {
+                $entity->useSkipAc((bool) $options['skip_ac']);
+              }
               $entity->guid = $guid;
               $entity->cdate = $data['cdate'];
               unset($data['cdate']);
@@ -719,11 +731,15 @@ trait DriverTrait {
               $entity->tags = $tags;
               $entity->putData($data, $sdata);
               if ($this->config['cache']) {
-                $this->pushCache($entity, $className);
+                $this->pushCache(
+                    $guid,
+                    $data['cdate'],
+                    $data['mdate'],
+                    $tags,
+                    $data,
+                    $sdata
+                );
               }
-            }
-            if (isset($options['skip_ac'])) {
-              $entity->useSkipAc((bool) $options['skip_ac']);
             }
             $entities[] = $entity;
             break;
@@ -823,7 +839,14 @@ trait DriverTrait {
     }
     // Cache the entity.
     if ($this->config['cache']) {
-      $this->pushCache($entity, $className);
+      $this->pushCache(
+          $entity->guid,
+          $entity->cdate,
+          $entity->mdate,
+          $entity->tags,
+          $data,
+          $sdata
+      );
     }
     return true;
   }
@@ -833,17 +856,28 @@ trait DriverTrait {
    *
    * @param int $guid The entity's GUID.
    * @param string $className The entity's class.
+   * @param bool $useSkipAc Whether to tell the entity to use skip_ac.
    * @return Entity|null The entity or null if it's not cached.
    * @access protected
    */
-  protected function pullCache($guid, $className) {
+  protected function pullCache($guid, $className, $useSkipAc = false) {
     // Increment the entity access count.
     if (!isset($this->entityCount[$guid])) {
       $this->entityCount[$guid] = 0;
     }
     $this->entityCount[$guid]++;
-    if (isset($this->entityCache[$guid][$className])) {
-      return (clone $this->entityCache[$guid][$className]);
+    if (isset($this->entityCache[$guid])) {
+      $entity = call_user_func([$className, 'factory']);
+      $entity->useSkipAc((bool) $useSkipAc);
+      $entity->guid = $guid;
+      $entity->cdate = $this->entityCache[$guid]['cdate'];
+      $entity->mdate = $this->entityCache[$guid]['mdate'];
+      $entity->tags = $this->entityCache[$guid]['tags'];
+      $entity->putData(
+          $this->entityCache[$guid]['data'],
+          $this->entityCache[$guid]['sdata']
+      );
+      return $entity;
     }
     return null;
   }
@@ -851,45 +885,56 @@ trait DriverTrait {
   /**
    * Push an entity onto the cache.
    *
-   * @param Entity &$entity The entity to push onto the cache.
-   * @param string $className The class of the entity.
+   * @param int $guid The entity's GUID.
+   * @param float $cdate The entity's cdate.
+   * @param float $mdate The entity's mdate.
+   * @param array $tags The entity's tags.
+   * @param array $data The entity's data.
+   * @param array $sdata The entity's sdata.
    * @access protected
    */
-  protected function pushCache(&$entity, $className) {
-    if (!isset($entity->guid)) {
+  protected function pushCache(
+      $guid,
+      $cdate,
+      $mdate,
+      $tags,
+      $data,
+      $sdata
+  ) {
+    if (!isset($guid)) {
       return;
     }
     // Increment the entity access count.
-    if (!isset($this->entityCount[$entity->guid])) {
-      $this->entityCount[$entity->guid] = 0;
+    if (!isset($this->entityCount[$guid])) {
+      $this->entityCount[$guid] = 0;
     }
-    $this->entityCount[$entity->guid]++;
+    $this->entityCount[$guid]++;
     // Check the threshold.
-    if ($this->entityCount[$entity->guid] < $this->config['cache_threshold']) {
+    if ($this->entityCount[$guid] < $this->config['cache_threshold']) {
       return;
     }
     // Cache the entity.
-    if ((array) $this->entityCache[$entity->guid] ===
-        $this->entityCache[$entity->guid]) {
-      $this->entityCache[$entity->guid][$className] = clone $entity;
-    } else {
-      while ($this->config['cache_limit']
-          && count($this->entityCache) >= $this->config['cache_limit']) {
-        // Find which entity has been accessed the least.
-        asort($this->entityCount);
-        foreach ($this->entityCount as $key => $val) {
-          if (isset($this->entityCache[$key])) {
-            break;
-          }
-        }
-        // Remove it.
+    $this->entityCache[$guid] = [
+      'cdate' => $cdate,
+      'mdate' => $mdate,
+      'tags' => $tags,
+      'data' => $data,
+      'sdata' => $sdata
+    ];
+    while ($this->config['cache_limit']
+        && count($this->entityCache) >= $this->config['cache_limit']) {
+      // Find which entity has been accessed the least.
+      asort($this->entityCount);
+      foreach ($this->entityCount as $key => $val) {
         if (isset($this->entityCache[$key])) {
-          unset($this->entityCache[$key]);
+          break;
         }
       }
-      $this->entityCache[$entity->guid] = [$className => (clone $entity)];
+      // Remove it.
+      if (isset($this->entityCache[$key])) {
+        unset($this->entityCache[$key]);
+      }
     }
-    $this->entityCache[$entity->guid][$className]->clearCache();
   }
 
   public function hsort(

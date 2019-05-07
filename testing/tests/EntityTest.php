@@ -64,6 +64,23 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
   /**
    * @depends testAssignment
    */
+  public function testUndefinedProperty($arr) {
+    $testEntity = $arr['entity'];
+
+    try {
+      $string = $testEntity->undefinedProperty;
+    } catch (\PHPUnit\Framework\Error\Notice $e) {
+      $this->assertEquals(8, $e->getCode());
+      $this->assertEquals(
+          'Undefined property: Nymph\EntityData::$undefinedProperty',
+          $e->getMessage()
+      );
+    }
+  }
+
+  /**
+   * @depends testAssignment
+   */
   public function testComparison($arr) {
     $testEntity = $arr['entity'];
     $compare = TestModel::factory($testEntity->guid);
@@ -286,7 +303,7 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     unset($entityDataDelete['data']['string']);
     $testEntity->jsonAcceptData($entityDataDelete['data']);
 
-    $this->assertNull($testEntity->string);
+    $this->assertFalse(isset($testEntity->string));
 
     $this->assertTrue($testEntity->refresh());
 

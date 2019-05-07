@@ -38,17 +38,16 @@ interface EntityInterface extends DataObjectInterface, \JsonSerializable {
    */
   public function addTag();
   /**
-   * Clear the cache of referenced entities.
+   * Replace any referenced entities in the data with sleeping references.
    *
    * Calling this function ensures that the next time a referenced entity is
-   * accessed, it will be retrieved from the entity manager.
+   * accessed, it will be retrieved from the DB (unless it is in Nymph's cache).
    */
   public function clearCache();
   /**
    * Used to retrieve the data array.
    *
-   * This should only be used by the entity manager to save the data array
-   * into storage.
+   * This should only be used by Nymph to save the data into storage.
    *
    * @param bool $includeSData Whether to include the serialized data as well.
    * @return array The entity's data array.
@@ -58,11 +57,10 @@ interface EntityInterface extends DataObjectInterface, \JsonSerializable {
   /**
    * Used to retrieve the serialized data array.
    *
-   * This should only be used by the entity manager to save the data array
-   * into storage.
+   * This should only be used by Nymph to save the data array into storage.
    *
-   * This method can be used by entity managers to avoid unserializing data
-   * that hasn't been requested yet.
+   * This method is used by Nymph to avoid unserializing data that hasn't been
+   * requested yet.
    *
    * It should always be called after getData().
    *
@@ -93,13 +91,12 @@ interface EntityInterface extends DataObjectInterface, \JsonSerializable {
    */
   public function hasTag();
   /**
-   * Used to set the data array.
+   * Used to set the data.
    *
-   * This should only be used by the entity manager to push the data array
-   * from storage.
+   * This should only be used by Nymph to push the data from storage.
    *
-   * $sdata be used by entity managers to avoid unserializing data that hasn't
-   * been requested yet.
+   * $sdata is used by Nymph to avoid unserializing data that hasn't been
+   * requested yet.
    *
    * @param array $data The data array.
    * @param array $sdata The serialized data array.

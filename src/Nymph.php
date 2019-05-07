@@ -348,6 +348,8 @@ class Nymph {
    * - return - (string) What to return. "entity" or "guid". Defaults to
    *   "entity".
    * - source - (string) Will be 'client' if the query came from a REST call.
+   * - skip_cache - (bool) If true, Nymph will skip the cache and retrieve the
+   *   entity from the DB.
    * - skip_ac - (bool) If true, Tilmeld will not filter returned entities
    *   according to access controls. (If Tilmeld is installed.) (This is Always
    *   set to false by the REST endpoint.)

@@ -56,7 +56,7 @@ interface DataObjectInterface {
    */
   public function is(&$object);
   /**
-   * Refresh the object from storage.
+   * Refresh the object from storage. (Bypasses Nymph's cache.)
    *
    * If the object has been deleted from storage, the database cannot be
    * reached, or a database error occurs, refresh() will return 0.

@@ -1019,7 +1019,7 @@ class QueriesTest extends \PHPUnit\Framework\TestCase {
           'tag' => 'test',
           'pmatch' => [
             'match',
-            '[[:<:]][a-zA-Z0-9+_-]+@[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]{2,4}[[:>:]]'
+            '[-a-zA-Z0-9+_]+@[-a-zA-Z0-9_]+\.[-a-zA-Z0-9_]{2,4}'
           ]
         ] // a simple email
     );

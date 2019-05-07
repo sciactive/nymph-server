@@ -3,66 +3,70 @@
 /**
  * Database abstraction object.
  *
- * Used to provide a standard, abstract way to access, manipulate, and store
- * data.
+ * Provides a way to access, manipulate, and store data in Nymph.
  *
  * The GUID is not set until the entity is saved. GUIDs must be unique forever,
- * even after deletion. It's the job of the entity manager to make sure no two
+ * even after deletion. It's the job of the Nymph DB driver to make sure no two
  * entities ever have the same GUID.
  *
+ * Each entity class has an etype that determines which table(s) in the database
+ * it belongs to. If two entity classes have the same etype, their data will be
+ * stored in the same table(s). This isn't a good idea, however, because
+ * references to an entity store a class name, not an etype.
+ *
  * Tags are used to classify entities. Where an etype is used to separate data
- * by table, tags are used to separate entities within a table. You can define
- * specific tags to be protected, meaning they cannot be added/removed on the
- * frontend. It can be useful to allow user defined tags, such as for a blog
- * post.
+ * by tables, tags can be used to separate entities within a table. You can
+ * define specific tags to be protected, meaning they cannot be added/removed
+ * from the REST endpoint. It can be useful to allow user defined tags, such as
+ * for blog posts.
  *
  * Simply calling delete() will not unset the entity. It will still take up
- * memory. Likewise, simply calling unset will not delete the entity from
- * storage.
+ * memory. Likewise, simply calling unset will not delete the entity from the
+ * DB.
  *
- * Some notes about equals() and is():
+ * Some notes about equals() and is(), the replacements for "==":
+ *
+ * The == operator will likely not give you the result you want, since any yet
+ * to be unserialized data causes == to return false when you probably want it
+ * to return true.
  *
  * equals() performs a more strict comparison of the entity to another. Use
- * equals() instead of the == operator, because the cached entity data causes ==
- * to return false when it should return true. In order to return true, the
- * entity and $object must meet the following criteria:
+ * equals() instead of the == operator when you want to check both the entities
+ * they represent, and the data inside them. In order to return true for
+ * equals(), the entity and $object must meet the following criteria:
  *
  * - They must be entities.
- * - They must have equal GUIDs. (Or both can have no GUID.)
+ * - They must have equal GUIDs, or both must have no GUID.
  * - They must be instances of the same class.
  * - Their data must be equal.
  *
  * is() performs a less strict comparison of the entity to another. Use is()
  * instead of the == operator when the entity's data may have been changed, but
- * you only care if it is the same entity. In order to return true, the entity
- * and $object must meet the following criteria:
+ * you only care if they represent the same entity. In order to return true, the
+ * entity and $object must meet the following criteria:
  *
  * - They must be entities.
- * - They must have equal GUIDs. (Or both can have no GUID.)
+ * - They must have equal GUIDs, or both must have no GUID.
  * - If they have no GUIDs, their data must be equal.
  *
- * Some notes about saving entities in other entity's variables:
+ * Some notes about saving entities in other entity's properties:
  *
- * The entity class often uses references to store an entity in another entity's
- * variable or array. The reference is stored as an array with the values:
+ * Entities use references in the DB to store an entity in their properties. The
+ * reference is stored as an array with the values:
  *
  * - 0 => The string 'nymph_entity_reference'
- * - 1 => The reference entity's GUID.
- * - 2 => The reference entity's class name.
+ * - 1 => The referenced entity's GUID.
+ * - 2 => The referenced entity's class name.
  *
- * Since the reference entity's class name is stored in the reference on the
- * entity's first save and used to retrieve the reference entity using the same
- * class, if you change the class name in an update, you need to reassign the
- * reference entity and save to storage.
+ * Since the referenced entity's class name is stored in the reference on the
+ * parent entity, if you change the class name in an update, you need to
+ * reassign all referenced entities of that class and resave.
  *
  * When an entity is loaded, it does not request its referenced entities from
- * the entity manager. This is done the first time the variable/array is
- * accessed. The referenced entity is then stored in a cache, so if it is
- * altered elsewhere, then accessed again through the variable, the changes will
- * *not* be there. Therefore, you should take great care when accessing entities
- * from multiple variables. If you might be using a referenced entity again
- * later in the code execution (after some other processing occurs), it's
- * recommended to call clearCache().
+ * Nymph. Instead, it creates instances without data called sleeping references.
+ * When you first access an entity's data, if it is a sleeping reference, it
+ * will fill its data from the DB. You can call clearCache() to turn all the
+ * entities back into sleeping references.
  *
  * @license https://www.apache.org/licenses/LICENSE-2.0
  * @author Hunter Perrin <hperrin@gmail.com>
@@ -76,10 +80,10 @@
  * @property int $mdate The entity's modification date, as a high precision Unix
  *                      timestamp. The value is rounded to the ten thousandths
  *                      digit.
+ * @property array $tags The entity's tags. An array of strings.
  */
 class Entity implements EntityInterface {
   const ETYPE = 'entity';
-  const NULL_CONST = null;
 
   /**
    * The GUID of the entity.
@@ -114,29 +118,12 @@ class Entity implements EntityInterface {
    */
   protected $tags = [];
   /**
-   * The array used to store each variable assigned to an entity.
+   * The data store.
    *
    * @var array
    * @access protected
    */
-  protected $data = [];
-  /**
-   * Same as $data, but hasn't been unserialized.
-   *
-   * @var array
-   * @access protected
-   */
-  protected $sdata = [];
-  /**
-   * The array used to store referenced entities.
-   *
-   * This technique allows your code to see another entity as a variable,
-   * while storing only a reference.
-   *
-   * @var array
-   * @access protected
-   */
-  protected $entityCache = [];
+  protected $data;
   /**
    * Whether this instance is a sleeping reference.
    *
@@ -161,20 +148,20 @@ class Entity implements EntityInterface {
   public $objectData = [];
   /**
    * Properties that will not be serialized into JSON with json_encode(). This
-   * can also be considered a blacklist, because these properties will not be
-   * set with incoming JSON.
+   * can be considered a blacklist, because these properties will not be set
+   * with incoming JSON.
    *
-   * You should be aware that clients can still determine what is in these
-   * properties, unless they are also listed in searchRestrictedData.
+   * Clients CAN still determine what is in these properties, unless they are
+   * also listed in searchRestrictedData.
    *
    * @var array
    * @access protected
    */
   protected $privateData = [];
   /**
-   * Properties that will not be searchable from the frontend. In other words,
-   * if the frontend includes any of these properties in any of their clauses,
-   * they will be filtered out before the search is executed.
+   * Properties that will not be searchable from the frontend. If the frontend
+   * includes any of these properties in any of their clauses, they will be
+   * filtered out before the search is executed.
    *
    * @var array
    * @access protected
@@ -183,17 +170,18 @@ class Entity implements EntityInterface {
   /**
    * Properties that can only be modified by server side code. They will still
    * be visible on the frontend, unlike privateData, but any changes to them
-   * that come from the frontend will be ignored. This can also be considered a
-   * blacklist.
+   * that come from the frontend will be ignored.
+   *
+   * In addition to what's listed here, the 'user' and 'group' properties will
+   * be filtered for non-admins when Tilmeld is detected.
    *
    * @var array
    * @access protected
    */
   protected $protectedData = [];
   /**
-   * If this is an array, then entries listed here correspond to the only
-   * properties that will be accepted from incoming JSON. Any other properties
-   * will be ignored.
+   * If this is an array, then it lists the only properties that will be
+   * accepted from incoming JSON. Any other properties will be ignored.
    *
    * If you use a whitelist, you don't need to use protectedData, since you
    * can simply leave those entries out of whitelistData.
@@ -205,47 +193,35 @@ class Entity implements EntityInterface {
   /**
    * Tags that can only be added/removed by server side code. They will still be
    * visible on the frontend, but any changes to them that come from the
-   * frontend will be ignored. This can also be considered a blacklist.
+   * frontend will be ignored.
    *
    * @var array
    * @access protected
    */
   protected $protectedTags = [];
   /**
-   * If this is an array, then tags listed here are the only tags that will be
-   * accepted from incoming JSON. Any other tags will be ignored.
+   * If this is an array, then it lists the only tags that will be accepted from
+   * incoming JSON. Any other tags will be ignored.
    *
    * @var array|bool
    * @access protected
    */
   protected $whitelistTags = false;
   /**
-   * The names of the methods allowed to be called by client side JavaScript
-   * with serverCall.
+   * The names of methods allowed to be called by the frontend with serverCall.
    *
    * @var array
    * @access protected
    */
   protected $clientEnabledMethods = [];
   /**
-   * The names of the static methods allowed to be called by client side
-   * JavaScript with serverCallStatic.
-   *
-   * Static methods should be called from their class' object, rather than an
-   * instance, in JavaScript.
+   * The names of static methods allowed to be called by the frontedn with
+   * serverCallStatic.
    *
    * @var array
    * @access public
    */
   public static $clientEnabledStaticMethods = [];
-  /**
-   * The name of the corresponding class on the client side. Leave null to use
-   * the same name, or if your client class knows the server class name.
-   *
-   * @var string|null
-   * @access protected
-   */
-  protected $clientClassName = null;
   /**
    * Whether to use "skip_ac" when accessing entity references.
    *
@@ -266,6 +242,9 @@ class Entity implements EntityInterface {
    * @param int $id The ID of the entity to load, 0 for a new entity.
    */
   public function __construct($id = 0) {
+    if (!isset($this->data)) {
+      $this->data = new EntityData();
+    }
     if ($id > 0) {
       $entity = Nymph::getEntity(
           ['class' => get_class($this)],
@@ -319,17 +298,17 @@ class Entity implements EntityInterface {
   }
 
   /**
-   * Retrieve a variable.
+   * Retrieve a property.
    *
    * You do not need to explicitly call this method. It is called by PHP when
-   * you access the variable normally.
+   * you access the property normally.
    *
-   * @param string $name The name of the variable.
-   * @return mixed The value of the variable or null if it doesn't exist.
+   * @param string $name The name of the property.
+   * @return mixed The value of the property or null if it doesn't exist.
    */
   public function &__get($name) {
     if ($name === 'guid') {
-      return $this->$name;
+      return $this->guid;
     }
     if ($this->isASleepingReference) {
       $this->referenceWake();
@@ -340,75 +319,17 @@ class Entity implements EntityInterface {
       ) {
       return $this->$name;
     }
-    // Unserialize.
-    if (isset($this->sdata[$name])) {
-      $this->data[$name] = unserialize($this->sdata[$name]);
-      unset($this->sdata[$name]);
-    }
-    // Check for an entity first.
-    if (isset($this->entityCache[$name])) {
-      if ($this->data[$name][0] === 'nymph_entity_reference') {
-        if ($this->entityCache[$name] === 0) {
-          // The entity hasn't been loaded yet, so load it now.
-          $className = $this->data[$name][2];
-          if (!class_exists($className)) {
-            throw new Exceptions\EntityCorruptedException(
-                "Entity reference refers to a class that can't be found, ".
-                "$className."
-            );
-          }
-          $this->entityCache[$name] =
-              $className::factoryReference($this->data[$name]);
-          $this->entityCache[$name]->useSkipAc($this->useSkipAc);
-        }
-        return $this->entityCache[$name];
-      } else {
-        throw new Exceptions\EntityCorruptedException(
-            "Entity data has become corrupt and cannot be determined."
-        );
-      }
-    }
-    // Check if it's set.
-    if (!isset($this->data[$name])) {
-      // Since we must return by reference, we have to use a constant here. If
-      // we return $this->data[$name], an entry will be created in data.
-      return $this->NULL_CONST;
-    }
-    // If it's not an entity, return the regular value.
-    try {
-      if (is_array($this->data[$name])) {
-        // But, if it's an array, check all the values for entity references,
-        // and change them.
-        array_walk($this->data[$name], [$this, 'referenceToEntity']);
-      } elseif (is_object($this->data[$name])
-                && !(
-                  (
-                    is_a($this->data[$name], '\Nymph\Entity')
-                    || is_a($this->data[$name], '\SciActive\HookOverride')
-                  )
-                  && is_callable([$this->data[$name], 'toReference'])
-                )) {
-        // Only do this for non-entity objects.
-        foreach ($this->data[$name] as &$curProperty) {
-          $this->referenceToEntity($curProperty, null);
-        }
-        unset($curProperty);
-      }
-    } catch (Exceptions\EntityClassNotFoundException $e) {
-      throw new Exceptions\EntityCorruptedException($e->getMessage());
-    }
-    return $this->data[$name];
+    return $this->data->$name;
   }
 
   /**
-   * Checks whether a variable is set.
+   * Checks whether a property is set.
    *
    * You do not need to explicitly call this method. It is called by PHP when
-   * you access the variable normally.
+   * you access the property normally.
    *
-   * @param string $name The name of the variable.
+   * @param string $name The name of the property.
    * @return bool
-   * @todo Check that a referenced entity has not been deleted.
    */
   public function __isset($name) {
     if ($this->isASleepingReference) {
@@ -421,25 +342,25 @@ class Entity implements EntityInterface {
       ) {
       return isset($this->$name);
     }
-    // Unserialize.
-    if (isset($this->sdata[$name])) {
-      $this->data[$name] = unserialize($this->sdata[$name]);
-      unset($this->sdata[$name]);
-    }
-    return isset($this->data[$name]);
+    return isset($this->data->$name);
   }
 
   /**
-   * Sets a variable.
+   * Sets a property.
    *
    * You do not need to explicitly call this method. It is called by PHP when
-   * you access the variable normally.
+   * you access the property normally.
    *
-   * @param string $name The name of the variable.
-   * @param mixed $value The value of the variable.
-   * @return mixed The value of the variable.
+   * @param string $name The name of the property.
+   * @param mixed $value The value of the property.
+   * @return mixed The value of the property.
    */
   public function __set($name, $value) {
+    // When providing defaults, a subclass may try to set values before the
+    // constructor has run.
+    if (!isset($this->data)) {
+      $this->data = new EntityData();
+    }
     if ($this->isASleepingReference) {
       $this->referenceWake();
     }
@@ -452,52 +373,16 @@ class Entity implements EntityInterface {
     if ($name === 'tags') {
       return ($this->$name = (array) $value);
     }
-    // Delete any serialized value.
-    if (isset($this->sdata[$name])) {
-      unset($this->sdata[$name]);
-    }
-    if ((
-          is_a($value, '\Nymph\Entity')
-          || is_a($value, '\SciActive\HookOverride')
-        )
-        && is_callable([$value, 'toReference'])) {
-      // Store a reference to the entity (GUID and the class it was loaded as).
-      // We don't want to manipulate $value itself, because it could be a
-      // variable that the program is still using.
-      $saveValue = $value->toReference();
-      // If toReference returns an array, the GUID of the entity is set
-      // or it's a sleeping reference, so this is an entity and we don't
-      // store it in the data array.
-      if (is_array($saveValue)) {
-        $this->entityCache[$name] = $value;
-      } elseif (isset($this->entityCache[$name])) {
-        unset($this->entityCache[$name]);
-      }
-      $this->data[$name] = $saveValue;
-      return $value;
-    } else {
-      // This is not an entity, so if it was one, delete the cached entity.
-      if (isset($this->entityCache[$name])) {
-        unset($this->entityCache[$name]);
-      }
-      // Store the actual value passed.
-      $saveValue = $value;
-      // If the variable is an array, look through it and change entities to
-      // references.
-      if (is_array($saveValue)) {
-        array_walk_recursive($saveValue, [$this, 'entityToReference']);
-      }
-      return ($this->data[$name] = $saveValue);
-    }
+    return ($this->data->$name = $value);
   }
 
   /**
-   * Unsets a variable.
+   * Unsets a property.
    *
    * You do not need to explicitly call this method. It is called by PHP when
-   * you access the variable normally.
+   * you access the property normally.
    *
-   * @param string $name The name of the variable.
+   * @param string $name The name of the property.
    */
   public function __unset($name) {
     if ($this->isASleepingReference) {
@@ -519,11 +404,7 @@ class Entity implements EntityInterface {
       $this->$name = [];
       return;
     }
-    if (isset($this->entityCache[$name])) {
-      unset($this->entityCache[$name]);
-    }
-    unset($this->data[$name]);
-    unset($this->sdata[$name]);
+    unset($this->data->$name);
   }
 
   public function addTag() {
@@ -562,25 +443,12 @@ class Entity implements EntityInterface {
     if ($this->isASleepingReference) {
       $this->referenceWake();
     }
-    // Convert entities in arrays.
-    foreach ($this->data as &$value) {
-      if (is_array($value)) {
-        array_walk_recursive($value, [$this, 'entityToReference']);
-      }
-    }
-    unset($value);
 
-    // Handle individual entities.
-    foreach ($this->entityCache as $key => &$value) {
-      if (strpos($key, 'referenceGuid__') === 0) {
-        // If it's from an array, remove it.
-        unset($this->entityCache[$key]);
-      } else {
-        // If it's from a property, set it back to 0.
-        $value = 0;
-      }
-    }
-    unset($value);
+    $this->data->putData(
+        $this->data->getData(),
+        $this->data->getSData(),
+        $this->useSkipAc
+    );
   }
 
   public function clientEnabledMethods() {
@@ -592,30 +460,6 @@ class Entity implements EntityInterface {
       $this->referenceWake();
     }
     return Nymph::deleteEntity($this);
-  }
-
-  /**
-   * Check if an item is an entity, and if it is, convert it to a reference.
-   *
-   * @param mixed &$item The item to check.
-   * @param mixed $key Unused, but can't be removed because array_walk_recursive
-   *                   will fail.
-   * @access private
-   */
-  private function entityToReference(&$item, $key) {
-    if ($this->isASleepingReference) {
-      $this->referenceWake();
-    }
-    if ((is_a($item, '\Nymph\Entity') || is_a($item, '\SciActive\HookOverride'))
-        && isset($item->guid) && is_callable([$item, 'toReference'])) {
-      // This is an entity, so we should put it in the entity cache.
-      if (!isset($this->entityCache["referenceGuid__{$item->guid}"])) {
-        $this->entityCache["referenceGuid__{$item->guid}"] = clone $item;
-      }
-      // Make a reference to the entity (its GUID and the class the entity was
-      // loaded as).
-      $item = $item->toReference();
-    }
   }
 
   public function equals(&$object) {
@@ -655,47 +499,20 @@ class Entity implements EntityInterface {
       $this->referenceWake();
     }
     if ($includeSData) {
-      foreach ($this->sdata as $key => $value) {
-        $this->data[$key] = unserialize($value);
-        unset($this->sdata[$key]);
+      // Access all the serialized properties to initialize them.
+      $sdata = $this->data->getSData();
+      foreach ($sdata as $key => $value) {
+        $unused = $this->data->$key;
       }
     }
-    // Convert any entities to references.
-    return array_map([$this, 'getDataReference'], $this->data);
-  }
-
-  /**
-   * Convert entities to references and return the result.
-   *
-   * @param mixed $item The item to convert.
-   * @return mixed The resulting item.
-   */
-  private function getDataReference($item) {
-    if ($this->isASleepingReference) {
-      $this->referenceWake();
-    }
-    if ((is_a($item, '\Nymph\Entity') || is_a($item, '\SciActive\HookOverride'))
-        && is_callable([$item, 'toReference'])) {
-      // Convert entities to references.
-      return $item->toReference();
-    } elseif (is_array($item)) {
-      // Recurse into lower arrays.
-      return array_map([$this, 'getDataReference'], $item);
-    } elseif (is_object($item)) {
-      foreach ($item as &$curProperty) {
-        $curProperty = $this->getDataReference($curProperty);
-      }
-      unset($curProperty);
-    }
-    // Not an entity or array, just return it.
-    return $item;
+    return $this->data->getData();
   }
 
   public function getSData() {
     if ($this->isASleepingReference) {
       $this->referenceWake();
     }
-    return $this->sdata;
+    return $this->data->getSData();
   }
 
   public function getOriginalAcValues() {
@@ -706,19 +523,16 @@ class Entity implements EntityInterface {
     if ($this->isASleepingReference) {
       $this->referenceWake();
     }
-    foreach ($this->sdata as $key => $value) {
-      $this->data[$key] = unserialize($value);
-      unset($this->sdata[$key]);
+    $sdata = $this->data->getSData();
+    foreach ($sdata as $key => $value) {
+      $unused = $this->data->$key;
     }
-    $data = [];
-    foreach ($this->data as $key => $value) {
-      $data[$key] = $value;
-    }
+    // Access all the serialized properties to initialize them.
+    $data = $this->data->getData(false);
     $data['guid'] = $this->guid;
     $data['cdate'] = $this->cdate;
     $data['mdate'] = $this->mdate;
     $data['tags'] = $this->tags;
-    array_walk($data, [$this, 'referenceToEntity']);
     array_walk_recursive($data, function (&$item) {
       if (is_a($item, '\SciActive\HookOverride')
           && is_callable([$item, '_hookObject'])) {
@@ -782,7 +596,7 @@ class Entity implements EntityInterface {
     }
   }
 
-  public function jsonSerialize($clientClassName = true) {
+  public function jsonSerialize() {
     if ($this->isASleepingReference) {
       return $this->sleepingReference;
     }
@@ -797,9 +611,7 @@ class Entity implements EntityInterface {
         $object->data[$key] = $val;
       }
     }
-    $object->class = ($clientClassName && isset($this->clientClassName))
-        ? $this->clientClassName
-        : get_class($this);
+    $object->class = get_class($this);
     return $object;
   }
 
@@ -821,6 +633,7 @@ class Entity implements EntityInterface {
   }
 
   public function jsonAcceptData($data) {
+    // TODO: Do this without causing everything to become unserialized.
     if ($this->isASleepingReference) {
       $this->referenceWake();
     }
@@ -833,8 +646,8 @@ class Entity implements EntityInterface {
 
     $privateData = [];
     foreach ($this->privateData as $name) {
-      if (key_exists($name, $this->data) || key_exists($name, $this->sdata)) {
-        $privateData[$name] = $this->$name;
+      if (isset($this->data->$name)) {
+        $privateData[$name] = $this->data->$name;
       }
       if (key_exists($name, $data)) {
         unset($data[$name]);
@@ -842,9 +655,16 @@ class Entity implements EntityInterface {
     }
 
     $protectedData = [];
-    foreach ($this->protectedData as $name) {
-      if (key_exists($name, $this->data) || key_exists($name, $this->sdata)) {
-        $protectedData[$name] = $this->$name;
+    $protectedProps = $this->protectedData;
+    if (class_exists('\Tilmeld\Tilmeld')
+        && !\Tilmeld\Tilmeld::gatekeeper('tilmeld/admin')
+    ) {
+      $protectedProps[] = 'user';
+      $protectedProps[] = 'group';
+    }
+    foreach ($protectedProps as $name) {
+      if (isset($this->data->$name)) {
+        $protectedData[$name] = $this->data->$name;
       }
       if (key_exists($name, $data)) {
         unset($data[$name]);
@@ -864,59 +684,26 @@ class Entity implements EntityInterface {
       }
     }
 
-    $data = array_merge($nonWhitelistData, $data, $protectedData, $privateData);
+    $newData = array_merge($nonWhitelistData, $data, $protectedData, $privateData);
 
-    $this->putData($data);
+    $this->putData($newData);
   }
 
   public function putData($data, $sdata = []) {
     if ($this->isASleepingReference) {
       $this->referenceWake();
     }
-    if (!is_array($data)) {
-      $data = [];
-    }
-    // Erase the entity cache.
-    $this->entityCache = [];
-    foreach ($data as $name => $value) {
-      if (is_array($value) && isset($value[0])
-          && $value[0] === 'nymph_entity_reference') {
-        // Don't load the entity yet, but make the entry in the array,
-        // so we know it is an entity reference. This will speed up
-        // retrieving entities with lots of references, especially
-        // recursive references.
-        $this->entityCache[$name] = 0;
-      }
-    }
-    foreach ($sdata as $name => $value) {
-      if (strpos($value, 'a:3:{i:0;s:22:"nymph_entity_reference";') === 0) {
-        // Don't load the entity yet, but make the entry in the array,
-        // so we know it is an entity reference. This will speed up
-        // retrieving entities with lots of references, especially
-        // recursive references.
-        $this->entityCache[$name] = 0;
-      }
-    }
-    $this->data = $data;
-    $this->sdata = $sdata;
+    $this->data->putData($data, $sdata, $this->useSkipAc);
 
     if (empty($this->originalAcValues)) {
-      $this->originalAcValues['user'] =
-        isset($this->user) ? $this->user : null;
-      $this->originalAcValues['group'] =
-        isset($this->group) ? $this->group : null;
-      $this->originalAcValues['acUser'] =
-        isset($this->acUser) ? $this->acUser : null;
-      $this->originalAcValues['acGroup'] =
-        isset($this->acGroup) ? $this->acGroup : null;
-      $this->originalAcValues['acOther'] =
-        isset($this->acOther) ? $this->acOther : null;
-      $this->originalAcValues['acRead'] =
-        isset($this->acRead) ? $this->acRead : null;
-      $this->originalAcValues['acWrite'] =
-        isset($this->acWrite) ? $this->acWrite : null;
-      $this->originalAcValues['acFull'] =
-        isset($this->acFull) ? $this->acFull : null;
+      $this->originalAcValues['user'] = $this->data->user ?? null;
+      $this->originalAcValues['group'] = $this->data->group ?? null;
+      $this->originalAcValues['acUser'] = $this->data->acUser ?? null;
+      $this->originalAcValues['acGroup'] = $this->data->acGroup ?? null;
+      $this->originalAcValues['acOther'] = $this->data->acOther ?? null;
+      $this->originalAcValues['acRead'] = $this->data->acRead ?? null;
+      $this->originalAcValues['acWrite'] = $this->data->acWrite ?? null;
+      $this->originalAcValues['acFull'] = $this->data->acFull ?? null;
     }
   }
 
@@ -944,52 +731,6 @@ class Entity implements EntityInterface {
     $this->isASleepingReference = true;
     $this->guid = $reference[1];
     $this->sleepingReference = $reference;
-  }
-
-  /**
-   * Check if an item is a reference, and if it is, convert it to an entity.
-   *
-   * This function will recurse into deeper arrays.
-   *
-   * @param mixed &$item The item to check.
-   * @param mixed $key Unused, but can't be removed because array_walk will
-   *                   fail.
-   * @access private
-   */
-  private function referenceToEntity(&$item, $key) {
-    if ($this->isASleepingReference) {
-      $this->referenceWake();
-    }
-    if (is_array($item)) {
-      if (isset($item[0]) && $item[0] === 'nymph_entity_reference') {
-        if (!isset($this->entityCache["referenceGuid__{$item[1]}"])) {
-          if (!class_exists($item[2])) {
-            throw new Exceptions\EntityClassNotFoundException(
-                "Tried to load entity reference that refers to a class that ".
-                "can't be found, {$item[2]}."
-            );
-          }
-          $this->entityCache["referenceGuid__{$item[1]}"] =
-              call_user_func([$item[2], 'factoryReference'], $item);
-        }
-        $item = $this->entityCache["referenceGuid__{$item[1]}"];
-      } else {
-        array_walk($item, [$this, 'referenceToEntity']);
-      }
-    } elseif (is_object($item)
-              && !(
-                (
-                  is_a($item, '\Nymph\Entity')
-                  || is_a($item, '\SciActive\HookOverride')
-                )
-                && is_callable([$item, 'toReference'])
-              )) {
-      // Only do this for non-entity objects.
-      foreach ($item as &$curProperty) {
-        $this->referenceToEntity($curProperty, null);
-      }
-      unset($curProperty);
-    }
   }
 
   /**
@@ -1032,13 +773,16 @@ class Entity implements EntityInterface {
       return false;
     }
     $refresh = Nymph::getEntity(
-        ['class' => get_class($this)],
+        [
+          'class' => get_class($this),
+          'skip_cache' => true,
+          'skip_ac' => $this->useSkipAc
+        ],
         ['&', 'guid' => $this->guid]
     );
     if (!isset($refresh)) {
       return 0;
     }
-    $this->clearCache();
     $this->tags = $refresh->tags;
     $this->cdate = $refresh->cdate;
     $this->mdate = $refresh->mdate;
