@@ -6,10 +6,9 @@
  * Provides Nymph functionality compatible with a REST API. Allows the developer
  * to design their own API, or just use the reference implementation.
  *
- * @license https://www.apache.org/licenses/LICENSE-2.0
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
- * @link http://nymph.io/
+ * @see http://nymph.io/
  */
 class REST {
   /**
@@ -452,7 +451,6 @@ class REST {
    * @param string $message The message to place on the HTTP status header line.
    * @param Exception $exception An optional exception object to report.
    * @return boolean Always returns false.
-   * @access protected
    */
   protected function httpError($errorCode, $message, $exception = null) {
     header("HTTP/1.1 $errorCode $message", true, $errorCode);
@@ -476,7 +474,6 @@ class REST {
    *
    * @param mixed &$item The item to check.
    * @param mixed $key Unused.
-   * @access private
    */
   private function referenceToEntity(&$item, $key) {
     if (is_array($item)) {

@@ -3,13 +3,9 @@
 /**
  * Entity interface.
  *
- * @license https://www.apache.org/licenses/LICENSE-2.0
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
- * @link http://nymph.io/
- *
- * @property int $guid The GUID of the entity.
- * @property array $tags Array of the entity's tags.
+ * @see http://nymph.io/
  */
 interface EntityInterface extends DataObjectInterface, \JsonSerializable {
   /**
@@ -51,7 +47,6 @@ interface EntityInterface extends DataObjectInterface, \JsonSerializable {
    *
    * @param bool $includeSData Whether to include the serialized data as well.
    * @return array The entity's data array.
-   * @access protected
    */
   public function getData($includeSData = false);
   /**
@@ -65,7 +60,6 @@ interface EntityInterface extends DataObjectInterface, \JsonSerializable {
    * It should always be called after getData().
    *
    * @return array The entity's serialized data array.
-   * @access protected
    */
   public function getSData();
   /**

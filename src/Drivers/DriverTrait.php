@@ -7,10 +7,9 @@ use Nymph\Exceptions;
  *
  * Provides basic methods for a Nymph ORM driver.
  *
- * @license https://www.apache.org/licenses/LICENSE-2.0
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
- * @link http://nymph.io/
+ * @see http://nymph.io/
  */
 trait DriverTrait {
   /**
@@ -21,37 +20,31 @@ trait DriverTrait {
   public $connected = false;
   /**
    * Nymph configuration object.
-   * @access protected
    * @var object
    */
   protected $config;
   /**
    * A cache to make entity retrieval faster.
-   * @access protected
    * @var array
    */
   protected $entityCache = [];
   /**
    * A counter for the entity cache to determine the most accessed entities.
-   * @access protected
    * @var array
    */
   protected $entityCount = [];
   /**
    * Sort case sensitively.
-   * @access protected
    * @var bool
    */
   protected $sortCaseSensitive;
   /**
    * Parent property to sort by.
-   * @access protected
    * @var string
    */
   protected $sortParent;
   /**
    * Property to sort by.
-   * @access protected
    * @var string
    */
   protected $sortProperty;
@@ -442,7 +435,6 @@ trait DriverTrait {
    * Remove all copies of an entity from the cache.
    *
    * @param int $guid The GUID of the entity to remove.
-   * @access protected
    */
   protected function cleanCache($guid) {
     unset($this->entityCache[$guid]);
@@ -464,7 +456,6 @@ trait DriverTrait {
    * @param array|Entity|int $entity An entity, GUID, or array of either to
    *                                 search for.
    * @return bool True if the reference is found, false otherwise.
-   * @access protected
    */
   protected function entityReferenceSearch($value, $entity) {
     if (!is_array($value) && !($value instanceof Traversable)) {
@@ -858,7 +849,6 @@ trait DriverTrait {
    * @param string $className The entity's class.
    * @param bool $useSkipAc Whether to tell the entity to use skip_ac.
    * @return Entity|null The entity or null if it's not cached.
-   * @access protected
    */
   protected function pullCache($guid, $className, $useSkipAc = false) {
     // Increment the entity access count.
@@ -891,7 +881,6 @@ trait DriverTrait {
    * @param array $tags The entity's tags.
    * @param array $data The entity's data.
    * @param array $sdata The entity's sdata.
-   * @access protected
    */
   protected function pushCache(
       $guid,
@@ -1054,7 +1043,6 @@ trait DriverTrait {
    * @param Entity $a Entity A.
    * @param Entity $b Entity B.
    * @return int Sort order.
-   * @access protected
    */
   protected function sortProperty($a, $b) {
     $property = $this->sortProperty;

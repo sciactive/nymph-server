@@ -7,10 +7,9 @@ use Nymph\Exceptions;
 /**
  * PostgreSQL based Nymph driver.
  *
- * @license https://www.apache.org/licenses/LICENSE-2.0
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
- * @link http://nymph.io/
+ * @see http://nymph.io/
  */
 class PostgreSQLDriver implements DriverInterface {
   use DriverTrait {
@@ -19,14 +18,12 @@ class PostgreSQLDriver implements DriverInterface {
   /**
    * The PostgreSQL link identifier for this instance.
    *
-   * @access private
    * @var mixed
    */
   private $link = null;
   /**
    * Whether to use PL/Perl.
    *
-   * @access private
    * @var string
    */
   private $usePLPerl;

@@ -6,10 +6,9 @@
  * This exception is meant to be thrown when an attempt to save an entity is
  * made, and validation on the data of that entity fails.
  *
- * @license https://www.apache.org/licenses/LICENSE-2.0
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
- * @link http://nymph.io/
+ * @see http://nymph.io/
  */
 class EntityInvalidDataException extends \Exception {
   private $fields = [];

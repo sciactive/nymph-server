@@ -68,28 +68,18 @@
  * will fill its data from the DB. You can call clearCache() to turn all the
  * entities back into sleeping references.
  *
- * @license https://www.apache.org/licenses/LICENSE-2.0
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
- * @link http://nymph.io/
- *
- * @property int $guid The entity's Globally Unique ID.
- * @property int $cdate The entity's creation date, as a high precision Unix
- *                      timestamp. The value is rounded to the ten thousandths
- *                      digit.
- * @property int $mdate The entity's modification date, as a high precision Unix
- *                      timestamp. The value is rounded to the ten thousandths
- *                      digit.
- * @property array $tags The entity's tags. An array of strings.
+ * @see http://nymph.io/
  */
 class Entity implements EntityInterface {
   const ETYPE = 'entity';
 
   /**
-   * The GUID of the entity.
+   * The entity's Globally Unique ID.
    *
    * @var int|null
-   * @access private
+   * @access public
    */
   private $guid = null;
   /**
@@ -98,7 +88,7 @@ class Entity implements EntityInterface {
    * The value is rounded to the ten thousandths digit.
    *
    * @var float|null
-   * @access private
+   * @access public
    */
   private $cdate = null;
   /**
@@ -107,35 +97,32 @@ class Entity implements EntityInterface {
    * The value is rounded to the ten thousandths digit.
    *
    * @var float|null
-   * @access private
+   * @access public
    */
   private $mdate = null;
   /**
    * Array of the entity's tags.
    *
    * @var array
-   * @access protected
+   * @access public
    */
   protected $tags = [];
   /**
    * The data store.
    *
    * @var array
-   * @access protected
    */
   protected $data;
   /**
    * Whether this instance is a sleeping reference.
    *
    * @var bool
-   * @access private
    */
   private $isASleepingReference = false;
   /**
    * The reference to use to wake.
    *
    * @var array|null
-   * @access private
    */
   private $sleepingReference = null;
   /**
@@ -143,7 +130,6 @@ class Entity implements EntityInterface {
    * when unserializing from JSON.
    *
    * @var array
-   * @access public
    */
   public $objectData = [];
   /**
@@ -155,7 +141,6 @@ class Entity implements EntityInterface {
    * also listed in searchRestrictedData.
    *
    * @var array
-   * @access protected
    */
   protected $privateData = [];
   /**
@@ -164,7 +149,6 @@ class Entity implements EntityInterface {
    * filtered out before the search is executed.
    *
    * @var array
-   * @access protected
    */
   public static $searchRestrictedData = [];
   /**
@@ -176,7 +160,6 @@ class Entity implements EntityInterface {
    * be filtered for non-admins when Tilmeld is detected.
    *
    * @var array
-   * @access protected
    */
   protected $protectedData = [];
   /**
@@ -187,7 +170,6 @@ class Entity implements EntityInterface {
    * can simply leave those entries out of whitelistData.
    *
    * @var array|bool
-   * @access protected
    */
   protected $whitelistData = false;
   /**
@@ -196,7 +178,6 @@ class Entity implements EntityInterface {
    * frontend will be ignored.
    *
    * @var array
-   * @access protected
    */
   protected $protectedTags = [];
   /**
@@ -204,14 +185,12 @@ class Entity implements EntityInterface {
    * incoming JSON. Any other tags will be ignored.
    *
    * @var array|bool
-   * @access protected
    */
   protected $whitelistTags = false;
   /**
    * The names of methods allowed to be called by the frontend with serverCall.
    *
    * @var array
-   * @access protected
    */
   protected $clientEnabledMethods = [];
   /**
@@ -219,21 +198,18 @@ class Entity implements EntityInterface {
    * serverCallStatic.
    *
    * @var array
-   * @access public
    */
   public static $clientEnabledStaticMethods = [];
   /**
    * Whether to use "skip_ac" when accessing entity references.
    *
    * @var bool
-   * @access private
    */
   private $useSkipAc = false;
   /**
    * The AC properties' values when the entity was loaded.
    *
    * @var array
-   * @access private
    */
   private $originalAcValues = [];
 

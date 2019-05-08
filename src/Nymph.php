@@ -3,15 +3,13 @@
 use Nymph\Drivers\DriverInterface;
 
 /**
- * Nymph
+ * An object relational mapper with PHP and JavaScript interfaces.
  *
- * An object relational mapper with PHP and JavaScript interfaces. Written by
- * Hunter Perrin for SciActive.
+ * Written by Hunter Perrin for SciActive.
  *
- * @license https://www.apache.org/licenses/LICENSE-2.0
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
- * @link http://nymph.io/
+ * @see http://nymph.io/
  */
 class Nymph {
   const VERSION = '3.0.0-beta.23';
@@ -20,7 +18,6 @@ class Nymph {
    * The Nymph config array.
    *
    * @var array
-   * @access public
    */
   public static $config;
 
@@ -28,7 +25,6 @@ class Nymph {
    * The Nymph driver.
    *
    * @var Nymph\Drivers\DriverInterface
-   * @access public
    */
   public static $driver;
 

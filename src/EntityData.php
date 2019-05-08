@@ -7,10 +7,9 @@
  * ability to store serialized data and unserialize it when it is first
  * accessed.
  *
- * @license https://www.apache.org/licenses/LICENSE-2.0
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
- * @link http://nymph.io/
+ * @see http://nymph.io/
  */
 class EntityData {
 
@@ -18,14 +17,12 @@ class EntityData {
    * Unserialized data.
    *
    * @var array
-   * @access protected
    */
   private $sdata = [];
   /**
    * Whether to use "skip_ac" when accessing entity references.
    *
    * @var bool
-   * @access private
    */
   private $useSkipAc = false;
 
@@ -166,7 +163,6 @@ class EntityData {
    *
    * @param mixed $item The item to convert.
    * @return mixed The resulting item.
-   * @access private
    */
   private function entitiesToReferences($item) {
     if ((is_a($item, '\Nymph\Entity') || is_a($item, '\SciActive\HookOverride'))
@@ -195,7 +191,6 @@ class EntityData {
    *
    * @param mixed $item The item to convert.
    * @return mixed The resulting item.
-   * @access private
    */
   private function referencesToEntities($item) {
     if (is_array($item)) {

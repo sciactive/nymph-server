@@ -1,4 +1,4 @@
-# Nymph Server - collaborative app data
+# Nymph Server - collaborative app data {#mainpage}
 
 [![Build Status](https://img.shields.io/travis/sciactive/nymph-server/master.svg)](http://travis-ci.org/sciactive/nymph-server) [![Latest Stable Version](https://img.shields.io/packagist/v/sciactive/nymph-server.svg)](https://packagist.org/packages/sciactive/nymph-server) [![Open Issues](https://img.shields.io/github/issues/sciactive/nymph-server.svg)](https://github.com/sciactive/nymph-server/issues) [![License](https://img.shields.io/github/license/sciactive/nymph-server.svg)]()
 

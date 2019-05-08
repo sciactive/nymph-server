@@ -8,10 +8,9 @@ use SQLite3;
 /**
  * SQLite3 based Nymph driver.
  *
- * @license https://www.apache.org/licenses/LICENSE-2.0
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
- * @link http://nymph.io/
+ * @see http://nymph.io/
  */
 class SQLite3Driver implements DriverInterface {
   use DriverTrait {
@@ -20,7 +19,6 @@ class SQLite3Driver implements DriverInterface {
   /**
    * The SQLite3 database connection for this instance.
    *
-   * @access private
    * @var SQLite3
    */
   private $link = null;

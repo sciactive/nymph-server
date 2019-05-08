@@ -7,10 +7,9 @@ use Nymph\Exceptions;
 /**
  * MySQL based Nymph driver.
  *
- * @license https://www.apache.org/licenses/LICENSE-2.0
  * @author Hunter Perrin <hperrin@gmail.com>
  * @copyright SciActive.com
- * @link http://nymph.io/
+ * @see http://nymph.io/
  */
 class MySQLDriver implements DriverInterface {
   use DriverTrait {
@@ -19,7 +18,6 @@ class MySQLDriver implements DriverInterface {
   /**
    * The MySQL link identifier for this instance.
    *
-   * @access private
    * @var mixed
    */
   private $link = null;
