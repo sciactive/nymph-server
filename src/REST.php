@@ -90,12 +90,12 @@ class REST {
       }
       $created = [];
       $invalidData = false;
-      foreach ($ents as $newEnt) {
-        if ((int) $newEnt['guid'] > 0) {
+      foreach ($ents as $entData) {
+        if ((int) $entData['guid'] > 0) {
           $invalidData = true;
           continue;
         }
-        $entity = $this->loadEntity($newEnt);
+        $entity = $this->loadEntity($entData);
         if (!$entity) {
           $invalidData = true;
           continue;
@@ -192,6 +192,17 @@ class REST {
     if (!in_array($action, ['entity', 'entities', 'uid'])) {
       return $this->httpError(400, 'Bad Request');
     }
+    return $this->doPutOrPatch($action, $data, false);
+  }
+
+  protected function PATCH($action = '', $data = '') {
+    if (!in_array($action, ['entity', 'entities'])) {
+      return $this->httpError(400, 'Bad Request');
+    }
+    return $this->doPutOrPatch($action, $data, true);
+  }
+
+  protected function doPutOrPatch($action, $data, $patch) {
     ob_start();
     if ($action === 'uid') {
       $args = json_decode($data, true);
@@ -220,12 +231,12 @@ class REST {
       $invalidData = false;
       $notfound = false;
       $lastException = null;
-      foreach ($ents as $newEnt) {
-        if (!is_numeric($newEnt['guid']) || (int) $newEnt['guid'] <= 0) {
+      foreach ($ents as $entData) {
+        if (!is_numeric($entData['guid']) || (int) $entData['guid'] <= 0) {
           $invalidData = true;
           continue;
         }
-        $entity = $this->loadEntity($newEnt);
+        $entity = $this->loadEntity($entData, $patch);
         if (!$entity) {
           $invalidData = true;
           continue;
@@ -408,7 +419,7 @@ class REST {
     return $newSel;
   }
 
-  protected function loadEntity($entityData) {
+  protected function loadEntity($entityData, $patch = false) {
     if (!class_exists($entityData['class'])
         || $entityData['class'] === 'Entity'
         || $entityData['class'] === 'Nymph\Entity'
@@ -433,14 +444,11 @@ class REST {
     } else {
       $entity = new $entityData['class'];
     }
-    $entity->jsonAcceptTags($entityData['tags']);
-    if (isset($entityData['cdate'])) {
-      $entity->cdate = (float) $entityData['cdate'];
+    if ($patch) {
+      $entity->jsonAcceptPatch($entityData);
+    } else {
+      $entity->jsonAcceptData($entityData);
     }
-    if (isset($entityData['mdate'])) {
-      $entity->mdate = (float) $entityData['mdate'];
-    }
-    $entity->jsonAcceptData($entityData['data']);
     return $entity;
   }
 

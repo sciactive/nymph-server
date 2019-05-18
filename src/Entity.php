@@ -593,14 +593,16 @@ class Entity implements EntityInterface {
     return $object;
   }
 
-  public function jsonAcceptTags($tags) {
+  public function jsonAcceptData($input) {
+    // TODO: Do this without causing everything to become unserialized.
     if ($this->isASleepingReference) {
       $this->referenceWake();
     }
 
+    // Accept the tags
     $currentTags = $this->getTags();
     $protectedTags = array_intersect($this->protectedTags, $currentTags);
-    $tags = array_diff($tags, $this->protectedTags);
+    $tags = array_diff($input['tags'], $this->protectedTags);
 
     if ($this->whitelistTags !== false) {
       $tags = array_intersect($tags, $this->whitelistTags);
@@ -608,16 +610,11 @@ class Entity implements EntityInterface {
 
     $this->removeTag($currentTags);
     $this->addTag(array_keys(array_flip(array_merge($tags, $protectedTags))));
-  }
 
-  public function jsonAcceptData($data) {
-    // TODO: Do this without causing everything to become unserialized.
-    if ($this->isASleepingReference) {
-      $this->referenceWake();
-    }
-
+    // Accept the data.
+    $data = $input['data'];
     foreach ($this->objectData as $name) {
-      if (isset($data[$name]) && (array) $data[$name] === $data) {
+      if (isset($data[$name]) && is_array($data[$name])) {
         $data[$name] = (object) $data[$name];
       }
     }
@@ -665,6 +662,56 @@ class Entity implements EntityInterface {
     $newData = array_merge($nonWhitelistData, $data, $protectedData, $privateData);
 
     $this->putData($newData);
+  }
+
+  public function jsonAcceptPatch($patch) {
+    if ($this->isASleepingReference) {
+      $this->referenceWake();
+    }
+
+    foreach ($this->objectData as $name) {
+      if (isset($patch['set'][$name]) && is_array($patch['set'][$name])) {
+        $patch['set'][$name] = (object) $patch['set'][$name];
+      }
+    }
+
+    foreach ($patch['set'] as $name => $value) {
+      if (($this->whitelistData !== false && !in_array($name, $this->whitelistData))
+        || in_array($name, $this->protectedData)
+        || in_array($name, $this->privateData)
+      ) {
+        continue;
+      }
+      $this->data->$name = $value;
+    }
+
+    foreach ($patch['unset'] as $name) {
+      if (($this->whitelistData !== false && !in_array($name, $this->whitelistData))
+        || in_array($name, $this->protectedData)
+        || in_array($name, $this->privateData)
+      ) {
+        continue;
+      }
+      unset($this->data->$name);
+    }
+
+    foreach ($patch['addTags'] as $tag) {
+      if (($this->whitelistTags !== false && !in_array($tag, $this->whitelistTags))
+        || in_array($tag, $this->protectedTags)
+      ) {
+        continue;
+      }
+      $this->addTag($tag);
+    }
+
+    foreach ($patch['removeTags'] as $tag) {
+      if (($this->whitelistTags !== false && !in_array($tag, $this->whitelistTags))
+        || in_array($tag, $this->protectedTags)
+      ) {
+        continue;
+      }
+      $this->removeTag($tag);
+    }
   }
 
   public function putData($data, $sdata = []) {
