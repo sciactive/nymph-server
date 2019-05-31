@@ -2,19 +2,15 @@
 
 [![Build Status](https://img.shields.io/travis/sciactive/nymph-server/master.svg)](http://travis-ci.org/sciactive/nymph-server) [![Latest Stable Version](https://img.shields.io/packagist/v/sciactive/nymph-server.svg)](https://packagist.org/packages/sciactive/nymph-server) [![Open Issues](https://img.shields.io/github/issues/sciactive/nymph-server.svg)](https://github.com/sciactive/nymph-server/issues) [![License](https://img.shields.io/github/license/sciactive/nymph-server.svg)]()
 
-Nymph is an object data store that is easy to use in JavaScript and PHP.
+Nymph is an object data store for JavaScript and PHP.
 
 ## Installation
 
 ### Automatic Setup
 
-The fastest way to start building a Nymph app is with the Nymph App Template.
-
-[Nymph App Template](https://github.com/hperrin/nymph-template)
+The fastest way to start building a Nymph app is with the [Nymph App Template](https://github.com/hperrin/nymph-template).
 
 ### Manual Installation
-
-You can install Nymph Server with Composer.
 
 ```sh
 composer require sciactive/nymph-server
@@ -22,13 +18,16 @@ composer require sciactive/nymph-server
 
 This repository is the PHP ORM and REST server. For more information, you can see the [main Nymph repository](https://github.com/sciactive/nymph).
 
-## Setting up a Nymph Application
+## Usage
 
-<div dir="rtl">Quick Setup with Composer</div>
+For detailed docs, check out the wiki:
 
-```sh
-composer require sciactive/nymph-server
-```
+* [Entity Class](https://github.com/sciactive/nymph/wiki/Entity-Class)
+* [Entity Querying](https://github.com/sciactive/nymph/wiki/Entity-Querying)
+* [Extending the Entity Class](https://github.com/sciactive/nymph/wiki/Extending-the-Entity-Class)
+
+Here's an overview:
+
 ```php
 require 'vendor/autoload.php';
 use Nymph\Nymph;
