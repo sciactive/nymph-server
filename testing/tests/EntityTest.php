@@ -301,7 +301,7 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $entityDataDelete = json_decode($json, true);
 
     unset($entityDataDelete['data']['string']);
-    $testEntity->jsonAcceptData($entityDataDelete['data']);
+    $testEntity->jsonAcceptData($entityDataDelete);
 
     $this->assertFalse(isset($testEntity->string));
 
@@ -315,7 +315,6 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $testEntity->cdate = "13";
     $testEntity->mdate = "14.00009";
     $entityData['tags'] = ['test', 'notag', 'newtag'];
-    $testEntity->jsonAcceptTags($entityData['tags']);
     $entityData['data']['name'] = 'bad';
     $entityData['data']['string'] = 'good';
     $entityData['data']['null'] = true;
@@ -324,7 +323,7 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $entityData['data']['reference'] = false;
     $entityData['data']['refArray'] = [false];
     $entityData['data']['refObject'] = (object) ["thing"=>false];
-    $testEntity->jsonAcceptData($entityData['data']);
+    $testEntity->jsonAcceptData($entityData);
 
     $this->assertFalse($testEntity->hasTag('notag'));
     $this->assertTrue($testEntity->hasTag('newtag'));
@@ -352,8 +351,7 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
 
     $testEntity->cdate = "13";
     $testEntity->mdate = "14";
-    $testEntity->jsonAcceptTags($entityData['tags']);
-    $testEntity->jsonAcceptData($entityData['data']);
+    $testEntity->jsonAcceptData($entityData);
 
     $this->assertFalse($testEntity->hasTag('notag'));
     $this->assertTrue($testEntity->hasTag('newtag'));
