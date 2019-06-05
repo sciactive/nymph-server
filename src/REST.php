@@ -130,19 +130,21 @@ class REST {
       if (isset($args['static']) && $args['static']) {
         $className = $args['class'];
         if (!class_exists($className)
-            || !isset($className::$clientEnabledStaticMethods)) {
+          || !isset($className::$clientEnabledStaticMethods)
+        ) {
           return $this->httpError(400, 'Bad Request');
         }
         if (!in_array(
-            $args['method'],
-            $className::$clientEnabledStaticMethods
-        )) {
+          $args['method'],
+          $className::$clientEnabledStaticMethods
+        )
+        ) {
           return $this->httpError(403, 'Forbidden');
         }
         try {
           $ret = call_user_func_array(
-              [$className, $args['method']],
-              $args['params']
+            [$className, $args['method']],
+            $args['params']
           );
           header('Content-Type: application/json');
           echo json_encode(['return' => $ret]);
@@ -152,8 +154,9 @@ class REST {
       } else {
         $entity = $this->loadEntity($args['entity']);
         if (!$entity
-            || ((int) $args['entity']['guid'] > 0 && !$entity->guid)
-            || !is_callable([$entity, $args['method']])) {
+          || ((int) $args['entity']['guid'] > 0 && !$entity->guid)
+          || !is_callable([$entity, $args['method']])
+        ) {
           return $this->httpError(400, 'Bad Request');
         }
         if (!in_array($args['method'], $entity->clientEnabledMethods())) {
@@ -161,8 +164,8 @@ class REST {
         }
         try {
           $ret = call_user_func_array(
-              [$entity, $args['method']],
-              $args['params']
+            [$entity, $args['method']],
+            $args['params']
           );
           header('Content-Type: application/json');
           echo json_encode(['entity' => $entity, 'return' => $ret]);
@@ -207,9 +210,10 @@ class REST {
     if ($action === 'uid') {
       $args = json_decode($data, true);
       if (!isset($args['name'])
-          || !isset($args['value'])
-          || !is_string($args['name'])
-          || !is_numeric($args['value'])) {
+        || !isset($args['value'])
+        || !is_string($args['name'])
+        || !is_numeric($args['value'])
+      ) {
         return $this->httpError(400, 'Bad Request');
       }
       try {
@@ -312,7 +316,8 @@ class REST {
       }
       if (empty($result)) {
         if ($action === 'entity'
-            || Nymph::$config['empty_list_error']) {
+          || Nymph::$config['empty_list_error']
+        ) {
           return $this->httpError(404, 'Not Found');
         }
       }
@@ -343,6 +348,9 @@ class REST {
    * to PHP ["&", "crit" => "val", ["&", ...], ...]
    *
    * Also filter out clauses that use restricted properties.
+   *
+   * @param string $className The name of the class.
+   * @param array $selector The selector to translate.
    */
   public static function translateSelector($className, $selector) {
     $restricted = [];
@@ -367,12 +375,12 @@ class REST {
         // Each entry is an array of property name, value.
         if (is_array($value[0])) {
           return array_values(
-              array_filter(
-                  $value,
-                  function ($arr) use ($restricted) {
-                    return !in_array($arr[0], $restricted);
-                  }
-              )
+            array_filter(
+              $value,
+              function ($arr) use ($restricted) {
+                return !in_array($arr[0], $restricted);
+              }
+            )
           );
         } else {
           return in_array($value[0], $restricted) ? null : $value;
@@ -386,10 +394,9 @@ class REST {
         $newSel = array_merge($tmpArg, $newSel);
       } elseif (is_numeric($key)) {
         if (isset($val['type'])
-            || (
-              isset($val[0])
-              && in_array($val[0], ['&', '!&', '|', '!|'])
-            )) {
+          || (isset($val[0])
+          && in_array($val[0], ['&', '!&', '|', '!|']))
+        ) {
           $tmpSel = self::translateSelector($className, $val);
           if ($tmpSel === false) {
             return false;
@@ -421,20 +428,20 @@ class REST {
 
   protected function loadEntity($entityData, $patch = false) {
     if (!class_exists($entityData['class'])
-        || $entityData['class'] === 'Entity'
-        || $entityData['class'] === 'Nymph\Entity'
-        || $entityData['class'] === '\Nymph\Entity'
-      ) {
+      || $entityData['class'] === 'Entity'
+      || $entityData['class'] === 'Nymph\Entity'
+      || $entityData['class'] === '\Nymph\Entity'
+    ) {
       // Don't let clients use the `Entity` class, since it has no validity/AC
       // checks.
       return false;
     }
     if ((int) $entityData['guid'] > 0) {
       $entity = Nymph::getEntity(
-          ['class' => $entityData['class']],
-          ['&',
-            'guid' => (int) $entityData['guid']
-          ]
+        ['class' => $entityData['class']],
+        ['&',
+          'guid' => (int) $entityData['guid']
+        ]
       );
       if ($entity === null) {
         return false;
@@ -463,12 +470,14 @@ class REST {
   protected function httpError($errorCode, $message, $exception = null) {
     header("HTTP/1.1 $errorCode $message", true, $errorCode);
     if ($exception) {
-      echo json_encode([
-        'textStatus' => "$errorCode $message",
-        'exception' => get_class($exception),
-        'code' => $exception->getCode(),
-        'message' => $exception->getMessage()
-      ]);
+      echo json_encode(
+        [
+          'textStatus' => "$errorCode $message",
+          'exception' => get_class($exception),
+          'code' => $exception->getCode(),
+          'message' => $exception->getMessage()
+        ]
+      );
     } else {
       echo json_encode(['textStatus' => "$errorCode $message"]);
     }
@@ -480,7 +489,7 @@ class REST {
    *
    * This function will recurse into deeper arrays.
    *
-   * @param mixed &$item The item to check.
+   * @param mixed $item The item to check.
    * @param mixed $key Unused.
    */
   private function referenceToEntity(&$item, $key) {
@@ -491,13 +500,10 @@ class REST {
         array_walk($item, [$this, 'referenceToEntity']);
       }
     } elseif (is_object($item)
-              && !(
-                (
-                  is_a($item, '\Nymph\Entity')
-                  || is_a($item, '\SciActive\HookOverride')
-                )
-                && is_callable([$item, 'toReference'])
-              )) {
+      && !((is_a($item, '\Nymph\Entity')
+      || is_a($item, '\SciActive\HookOverride'))
+      && is_callable([$item, 'toReference']))
+    ) {
       // Only do this for non-entity objects.
       foreach ($item as &$curProperty) {
         $this->referenceToEntity($curProperty, null);

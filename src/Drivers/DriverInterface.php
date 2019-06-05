@@ -19,28 +19,28 @@ interface DriverInterface {
   public function getEntity($options = [], ...$selectors);
   public function getUID($name);
   public function hsort(
-      &$array,
-      $property = null,
-      $parentProperty = null,
-      $caseSensitive = false,
-      $reverse = false
+    &$array,
+    $property = null,
+    $parentProperty = null,
+    $caseSensitive = false,
+    $reverse = false
   );
   public function import($filename);
   public function newUID($name);
   public function psort(
-      &$array,
-      $property = null,
-      $parentProperty = null,
-      $caseSensitive = false,
-      $reverse = false
+    &$array,
+    $property = null,
+    $parentProperty = null,
+    $caseSensitive = false,
+    $reverse = false
   );
   public function renameUID($oldName, $newName);
   public function saveEntity(&$entity);
   public function setUID($name, $value);
   public function sort(
-      &$array,
-      $property = null,
-      $caseSensitive = false,
-      $reverse = false
+    &$array,
+    $property = null,
+    $caseSensitive = false,
+    $reverse = false
   );
 }

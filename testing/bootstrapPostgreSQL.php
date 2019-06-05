@@ -2,9 +2,11 @@
 
 error_reporting(E_ALL);
 
-require file_exists(__DIR__.'/../vendor/autoload.php')
+require(
+  file_exists(__DIR__.'/../vendor/autoload.php')
     ? __DIR__.'/../vendor/autoload.php'
-    : __DIR__.'/../../autoload-dev.php';
+    : __DIR__.'/../../autoload-dev.php'
+);
 
 $nymphConfig = [
   'driver' => 'PostgreSQL'

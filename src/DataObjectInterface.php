@@ -31,7 +31,7 @@ interface DataObjectInterface {
   /**
    * Perform a more strict comparison of this object to another.
    *
-   * @param mixed &$object The object to compare.
+   * @param mixed $object The object to compare.
    * @return bool True or false.
    */
   public function equals(&$object);
@@ -50,7 +50,7 @@ interface DataObjectInterface {
   /**
    * Perform a less strict comparison of this object to another.
    *
-   * @param mixed &$object The object to compare.
+   * @param mixed $object The object to compare.
    * @return bool True or false.
    */
   public function is(&$object);

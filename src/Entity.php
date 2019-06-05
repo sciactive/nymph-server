@@ -223,8 +223,8 @@ class Entity implements EntityInterface {
     }
     if ($id > 0) {
       $entity = Nymph::getEntity(
-          ['class' => get_class($this)],
-          ['&', 'guid' => $id]
+        ['class' => get_class($this)],
+        ['&', 'guid' => $id]
       );
       if (isset($entity)) {
         $this->guid = $entity->guid;
@@ -267,7 +267,7 @@ class Entity implements EntityInterface {
     $className = $reference[2];
     if (!class_exists($className)) {
       throw new Exceptions\EntityClassNotFoundException(
-          "factoryReference called for a class that can't be found, $className."
+        "factoryReference called for a class that can't be found, $className."
       );
     }
     $entity = call_user_func([$className, 'factory']);
@@ -292,9 +292,9 @@ class Entity implements EntityInterface {
       $this->referenceWake();
     }
     if ($name === 'cdate'
-        || $name === 'mdate'
-        || $name === 'tags'
-      ) {
+      || $name === 'mdate'
+      || $name === 'tags'
+    ) {
       return $this->$name;
     }
     return $this->data->$name;
@@ -314,10 +314,10 @@ class Entity implements EntityInterface {
       $this->referenceWake();
     }
     if ($name === 'guid'
-        || $name === 'cdate'
-        || $name === 'mdate'
-        || $name === 'tags'
-      ) {
+      || $name === 'cdate'
+      || $name === 'mdate'
+      || $name === 'tags'
+    ) {
       return isset($this->$name);
     }
     return isset($this->data->$name);
@@ -423,9 +423,9 @@ class Entity implements EntityInterface {
     }
 
     $this->data->putData(
-        $this->data->getData(),
-        $this->data->getSData(),
-        $this->useSkipAc
+      $this->data->getData(),
+      $this->data->getSData(),
+      $this->useSkipAc
     );
   }
 
@@ -511,12 +511,16 @@ class Entity implements EntityInterface {
     $data['cdate'] = $this->cdate;
     $data['mdate'] = $this->mdate;
     $data['tags'] = $this->tags;
-    array_walk_recursive($data, function (&$item) {
-      if (is_a($item, '\SciActive\HookOverride')
-          && is_callable([$item, '_hookObject'])) {
-        $item = $item->_hookObject();
+    array_walk_recursive(
+      $data,
+      function (&$item) {
+        if (is_a($item, '\SciActive\HookOverride')
+          && is_callable([$item, '_hookObject'])
+        ) {
+          $item = $item->_hookObject();
+        }
       }
-    });
+    );
     return (object) $data;
   }
 
@@ -632,7 +636,7 @@ class Entity implements EntityInterface {
     $protectedData = [];
     $protectedProps = $this->protectedData;
     if (class_exists('\Tilmeld\Tilmeld')
-        && !\Tilmeld\Tilmeld::gatekeeper('tilmeld/admin')
+      && !\Tilmeld\Tilmeld::gatekeeper('tilmeld/admin')
     ) {
       $protectedProps[] = 'user';
       $protectedProps[] = 'group';
@@ -659,7 +663,12 @@ class Entity implements EntityInterface {
       }
     }
 
-    $newData = array_merge($nonWhitelistData, $data, $protectedData, $privateData);
+    $newData = array_merge(
+      $nonWhitelistData,
+      $data,
+      $protectedData,
+      $privateData
+    );
 
     $this->putData($newData);
   }
@@ -676,7 +685,10 @@ class Entity implements EntityInterface {
     }
 
     foreach ($patch['set'] as $name => $value) {
-      if (($this->whitelistData !== false && !in_array($name, $this->whitelistData))
+      if ((
+          $this->whitelistData !== false
+          && !in_array($name, $this->whitelistData)
+        )
         || in_array($name, $this->protectedData)
         || in_array($name, $this->privateData)
       ) {
@@ -686,7 +698,10 @@ class Entity implements EntityInterface {
     }
 
     foreach ($patch['unset'] as $name) {
-      if (($this->whitelistData !== false && !in_array($name, $this->whitelistData))
+      if ((
+          $this->whitelistData !== false
+          && !in_array($name, $this->whitelistData)
+        )
         || in_array($name, $this->protectedData)
         || in_array($name, $this->privateData)
       ) {
@@ -696,7 +711,10 @@ class Entity implements EntityInterface {
     }
 
     foreach ($patch['addTags'] as $tag) {
-      if (($this->whitelistTags !== false && !in_array($tag, $this->whitelistTags))
+      if ((
+          $this->whitelistTags !== false
+          && !in_array($tag, $this->whitelistTags)
+        )
         || in_array($tag, $this->protectedTags)
       ) {
         continue;
@@ -705,7 +723,10 @@ class Entity implements EntityInterface {
     }
 
     foreach ($patch['removeTags'] as $tag) {
-      if (($this->whitelistTags !== false && !in_array($tag, $this->whitelistTags))
+      if ((
+          $this->whitelistTags !== false
+          && !in_array($tag, $this->whitelistTags)
+        )
         || in_array($tag, $this->protectedTags)
       ) {
         continue;
@@ -738,18 +759,19 @@ class Entity implements EntityInterface {
    */
   public function referenceSleep($reference) {
     if (count($reference) !== 3
-        || $reference[0] !== 'nymph_entity_reference'
-        || !is_int($reference[1])
-        || !is_string($reference[2])) {
+      || $reference[0] !== 'nymph_entity_reference'
+      || !is_int($reference[1])
+      || !is_string($reference[2])
+    ) {
       throw new Exceptions\InvalidParametersException(
-          'referenceSleep expects parameter 1 to be a valid Nymph entity '.
+        'referenceSleep expects parameter 1 to be a valid Nymph entity '.
           'reference.'
       );
     }
     $thisClass = get_class($this);
     if ($reference[2] !== $thisClass) {
       throw new Exceptions\InvalidParametersException(
-          "referenceSleep can only be called with an entity reference of the ".
+        "referenceSleep can only be called with an entity reference of the ".
           "same class. Given class: {$reference[2]}; this class: $thisClass."
       );
     }
@@ -769,13 +791,13 @@ class Entity implements EntityInterface {
     }
     if (!class_exists($this->sleepingReference[2])) {
       throw new Exceptions\EntityClassNotFoundException(
-          "Tried to wake sleeping reference entity that refers to a class ".
+        "Tried to wake sleeping reference entity that refers to a class ".
           "that can't be found, {$this->sleepingReference[2]}."
       );
     }
     $entity = Nymph::getEntity(
-        ['class' => $this->sleepingReference[2], 'skip_ac' => $this->useSkipAc],
-        ['&', 'guid' => $this->sleepingReference[1]]
+      ['class' => $this->sleepingReference[2], 'skip_ac' => $this->useSkipAc],
+      ['&', 'guid' => $this->sleepingReference[1]]
     );
     if (!isset($entity)) {
       return false;
@@ -798,12 +820,12 @@ class Entity implements EntityInterface {
       return false;
     }
     $refresh = Nymph::getEntity(
-        [
-          'class' => get_class($this),
-          'skip_cache' => true,
-          'skip_ac' => $this->useSkipAc
-        ],
-        ['&', 'guid' => $this->guid]
+      [
+        'class' => get_class($this),
+        'skip_cache' => true,
+        'skip_ac' => $this->useSkipAc
+      ],
+      ['&', 'guid' => $this->guid]
     );
     if (!isset($refresh)) {
       return 0;

@@ -42,33 +42,41 @@ class SortingTest extends \PHPUnit\Framework\TestCase {
 
     Nymph::sort($arr, 'name');
 
-    $this->assertEquals([
-      $first,
-      $second,
-      $third,
-      $fourth,
-      $fifth,
-      $sixth,
-      $seventh,
-      $eighth,
-      $ninth,
-      $tenth
-    ], $arr);
+    $this->assertEquals(
+      [
+        $first,
+        $second,
+        $third,
+        $fourth,
+        $fifth,
+        $sixth,
+        $seventh,
+        $eighth,
+        $ninth,
+        $tenth
+      ],
+      $arr
+    );
 
     Nymph::sort($arr, 'name', true, true);
 
-    $this->assertEquals(array_reverse([
-      $first,
-      $third,
-      $fourth,
-      $fifth,
-      $sixth,
-      $seventh,
-      $eighth,
-      $ninth,
-      $tenth,
-      $second
-    ]), $arr);
+    $this->assertEquals(
+      array_reverse(
+        [
+          $first,
+          $third,
+          $fourth,
+          $fifth,
+          $sixth,
+          $seventh,
+          $eighth,
+          $ninth,
+          $tenth,
+          $second
+        ]
+      ),
+      $arr
+    );
   }
 
   public function testHSort() {
@@ -136,24 +144,27 @@ class SortingTest extends \PHPUnit\Framework\TestCase {
       echo "\n".(isset($cur->parent) ? (isset($cur->parent->parent) ? "{$cur->parent->parent->name} : " : '')."{$cur->parent->name} : " : '')."$cur->name\n";
     }*/
 
-    $this->assertEquals([
-      $first,
-      $firstsub1,
-      $firstsub2,
-      $second,
-      $third,
-      $firstsub3,
-      $fourth,
-      $firstsub4,
-      $firstsub5,
-      $firstsub6,
-      $fifth,
-      $sixth,
-      $seventh,
-      $eighth,
-      $ninth,
-      $tenth
-    ], $arr);
+    $this->assertEquals(
+      [
+        $first,
+        $firstsub1,
+        $firstsub2,
+        $second,
+        $third,
+        $firstsub3,
+        $fourth,
+        $firstsub4,
+        $firstsub5,
+        $firstsub6,
+        $fifth,
+        $sixth,
+        $seventh,
+        $eighth,
+        $ninth,
+        $tenth
+      ],
+      $arr
+    );
 
     Nymph::hsort($arr, 'name', 'parent', true, true);
 
@@ -161,23 +172,26 @@ class SortingTest extends \PHPUnit\Framework\TestCase {
       echo "\n".(isset($cur->parent) ? (isset($cur->parent->parent) ? "{$cur->parent->parent->name} : " : '')."{$cur->parent->name} : " : '')."$cur->name\n";
     }*/
 
-    $this->assertEquals([
-      $second,
-      $tenth,
-      $ninth,
-      $eighth,
-      $seventh,
-      $sixth,
-      $fifth,
-      $fourth,
-      $firstsub6,
-      $firstsub4,
-      $firstsub5,
-      $third,
-      $firstsub3,
-      $first,
-      $firstsub2,
-      $firstsub1,
-    ], $arr);
+    $this->assertEquals(
+      [
+        $second,
+        $tenth,
+        $ninth,
+        $eighth,
+        $seventh,
+        $sixth,
+        $fifth,
+        $fourth,
+        $firstsub6,
+        $firstsub4,
+        $firstsub5,
+        $third,
+        $firstsub3,
+        $first,
+        $firstsub2,
+        $firstsub1,
+      ],
+      $arr
+    );
   }
 }

@@ -21,10 +21,10 @@ class EntityInvalidDataException extends \Exception {
    *                             validation checking.
    */
   public function __construct(
-      $message = '',
-      $code = 0,
-      $previous = null,
-      $fields = []
+    $message = '',
+    $code = 0,
+    $previous = null,
+    $fields = []
   ) {
     parent::__construct($message, $code, $previous);
     if (!empty($fields)) {

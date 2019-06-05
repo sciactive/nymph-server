@@ -5,8 +5,8 @@
 class EntityTest extends \PHPUnit\Framework\TestCase {
   public function testHookPHP() {
     $this->assertTrue(
-        class_exists('\SciActive\Hook'),
-        'HookPHP must be installed to run these tests.'
+      class_exists('\SciActive\Hook'),
+      'HookPHP must be installed to run these tests.'
     );
   }
 
@@ -26,6 +26,7 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
 
   /**
    * @depends testInstantiate
+   * @param \NymphTesting\TestModel $testEntity
    */
   public function testAssignment($testEntity) {
     // Assign some variables.
@@ -51,8 +52,9 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $entityReferenceGuid = $entityReferenceTest->guid;
     $testEntity->reference = $entityReferenceTest;
     $testEntity->refArray = [0 => ['entity' => $entityReferenceTest]];
-    $testEntity->refObject =
-        (object) ['thing' => (object) ['entity' => $entityReferenceTest]];
+    $testEntity->refObject = (object) [
+      'thing' => (object) ['entity' => $entityReferenceTest]
+    ];
     $this->assertTrue($testEntity->save());
 
     $entityReferenceTest->test = 'good';
@@ -63,6 +65,7 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
 
   /**
    * @depends testAssignment
+   * @param array $arr
    */
   public function testUndefinedProperty($arr) {
     $testEntity = $arr['entity'];
@@ -72,14 +75,15 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     } catch (\PHPUnit\Framework\Error\Notice $e) {
       $this->assertEquals(8, $e->getCode());
       $this->assertEquals(
-          'Undefined property: Nymph\EntityData::$undefinedProperty',
-          $e->getMessage()
+        'Undefined property: Nymph\EntityData::$undefinedProperty',
+        $e->getMessage()
       );
     }
   }
 
   /**
    * @depends testAssignment
+   * @param array $arr
    */
   public function testComparison($arr) {
     $testEntity = $arr['entity'];
@@ -98,6 +102,7 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
 
   /**
    * @depends testAssignment
+   * @param array $arr
    */
   public function testArraySearching($arr) {
     $testEntity = $arr['entity'];
@@ -121,8 +126,8 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $this->assertSame(1, $testEntity->arraySearch($array, true));
     $this->assertSame(false, $testEntity->arraySearch([0, 1, 2, 3, 4, 5]));
     $this->assertSame(
-        false,
-        $testEntity->arraySearch([0, 1, 2, 3, 4, 5], true)
+      false,
+      $testEntity->arraySearch([0, 1, 2, 3, 4, 5], true)
     );
 
     $array[1]->string = 'different';
@@ -133,6 +138,7 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
 
   /**
    * @depends testAssignment
+   * @param array $arr
    */
   public function testRefresh($arr) {
     $testEntity = $arr['entity'];
@@ -145,6 +151,7 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
 
   /**
    * @depends testAssignment
+   * @param array $arr
    */
   public function testUpdateRefresh($arr) {
     $testEntity = $arr['entity'];
@@ -166,6 +173,7 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
 
   /**
    * @depends testAssignment
+   * @param array $arr
    */
   public function testToReference($arr) {
     $testEntity = $arr['entity'];
@@ -173,13 +181,14 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $reference = $testEntity->toReference();
 
     $this->assertEquals(
-        ['nymph_entity_reference', $testEntity->guid, 'NymphTesting\TestModel'],
-        $reference
+      ['nymph_entity_reference', $testEntity->guid, 'NymphTesting\TestModel'],
+      $reference
     );
   }
 
   /**
    * @depends testAssignment
+   * @param array $arr
    */
   public function testTags($arr) {
     $testEntity = $arr['entity'];
@@ -189,7 +198,7 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $this->assertTrue($testEntity->hasTag('test', 'test2'));
     $testEntity->addTag(['test', 'test3', 'test4', 'test5', 'test6']);
     $this->assertTrue(
-        $testEntity->hasTag(['test', 'test3', 'test4', 'test5', 'test6'])
+      $testEntity->hasTag(['test', 'test3', 'test4', 'test5', 'test6'])
     );
     $testEntity->removeTag('test2');
     $this->assertFalse($testEntity->hasTag('test2'));
@@ -212,6 +221,7 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
 
   /**
    * @depends testAssignment
+   * @param array $arr
    */
   public function testReferences($arr) {
     $testEntity = $arr['entity'];
@@ -220,12 +230,12 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
 
     $this->assertSame($arr['refGuid'], $testEntity->reference->guid);
     $this->assertSame(
-        $arr['refGuid'],
-        $testEntity->refArray[0]['entity']->guid
+      $arr['refGuid'],
+      $testEntity->refArray[0]['entity']->guid
     );
     $this->assertSame(
-        $arr['refGuid'],
-        $testEntity->refObject->thing->entity->guid
+      $arr['refGuid'],
+      $testEntity->refObject->thing->entity->guid
     );
 
     $entity = TestModel::factory($testEntity->guid);
@@ -233,19 +243,20 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $this->assertSame($arr['refGuid'], $entity->reference->guid);
     $this->assertSame($arr['refGuid'], $entity->refArray[0]['entity']->guid);
     $this->assertSame(
-        $arr['refGuid'],
-        $entity->refObject->thing->entity->guid
+      $arr['refGuid'],
+      $entity->refObject->thing->entity->guid
     );
   }
 
   /**
    * @depends testAssignment
+   * @param array $arr
    */
   public function testSleepingReferences($arr) {
     $testEntity = $arr['entity'];
 
     $entity = TestModel::factoryReference(
-        ['nymph_entity_reference', $testEntity->guid, 'NymphTesting\TestModel']
+      ['nymph_entity_reference', $testEntity->guid, 'NymphTesting\TestModel']
     );
 
     $this->assertSame($testEntity->guid, $entity->guid);
@@ -260,13 +271,14 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $this->assertSame($arr['refGuid'], $entity->reference->guid);
     $this->assertSame($arr['refGuid'], $entity->refArray[0]['entity']->guid);
     $this->assertSame(
-        $arr['refGuid'],
-        $entity->refObject->thing->entity->guid
+      $arr['refGuid'],
+      $entity->refObject->thing->entity->guid
     );
   }
 
   /**
    * @depends testAssignment
+   * @param array $arr
    */
   public function testJSON($arr) {
     $testEntity = $arr['entity'];
@@ -274,23 +286,24 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $json = json_encode($testEntity);
 
     $this->assertJsonStringEqualsJsonString(
-        '{"guid":'.$testEntity->guid.',"cdate":'.
-            json_encode($testEntity->cdate).',"mdate":'.
-            json_encode($testEntity->mdate).',"tags":["test"],"data":'.
-            '{"reference":["nymph_entity_reference",'.
-            $arr['refGuid'].',"NymphTesting\\\\TestModel"],"refArray":[{"entity":'.
-            '["nymph_entity_reference",'.
-            $arr['refGuid'].',"NymphTesting\\\\TestModel"]}],"refObject":{"thing":'.
-            '{"entity":["nymph_entity_reference",'.$arr['refGuid'].
-            ',"NymphTesting\\\\TestModel"]}},"name":"Entity Test","number":30,"array":'.
-            '["full","of","values",500],"string":"test","null":null},'.
-            '"class":"NymphTesting\\\\TestModel"}',
-        $json
+      '{"guid":'.$testEntity->guid.',"cdate":'.
+        json_encode($testEntity->cdate).',"mdate":'.
+        json_encode($testEntity->mdate).',"tags":["test"],"data":'.
+        '{"reference":["nymph_entity_reference",'.
+        $arr['refGuid'].',"NymphTesting\\\\TestModel"],"refArray":[{"entity":'.
+        '["nymph_entity_reference",'.
+        $arr['refGuid'].',"NymphTesting\\\\TestModel"]}],"refObject":{"thing":'.
+        '{"entity":["nymph_entity_reference",'.$arr['refGuid'].
+        ',"NymphTesting\\\\TestModel"]}},"name":"Entity Test","number":30,"array":'.
+        '["full","of","values",500],"string":"test","null":null},'.
+        '"class":"NymphTesting\\\\TestModel"}',
+      $json
     );
   }
 
   /**
    * @depends testAssignment
+   * @param array $arr
    */
   public function testAcceptJSON($arr) {
     $testEntity = $arr['entity'];
@@ -322,7 +335,7 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $entityData['data']['number'] = 4;
     $entityData['data']['reference'] = false;
     $entityData['data']['refArray'] = [false];
-    $entityData['data']['refObject'] = (object) ["thing"=>false];
+    $entityData['data']['refObject'] = (object) ["thing" => false];
     $testEntity->jsonAcceptData($entityData);
 
     $this->assertFalse($testEntity->hasTag('notag'));
@@ -336,12 +349,12 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $this->assertSame(30, $testEntity->number);
     $this->assertSame($arr['refGuid'], $testEntity->reference->guid);
     $this->assertSame(
-        $arr['refGuid'],
-        $testEntity->refArray[0]['entity']->guid
+      $arr['refGuid'],
+      $testEntity->refArray[0]['entity']->guid
     );
     $this->assertSame(
-        $arr['refGuid'],
-        $testEntity->refObject->thing->entity->guid
+      $arr['refGuid'],
+      $testEntity->refObject->thing->entity->guid
     );
 
     $this->assertTrue($testEntity->refresh());
@@ -364,7 +377,7 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $this->assertSame(30, $testEntity->number);
     $this->assertFalse($testEntity->reference);
     $this->assertSame([false], $testEntity->refArray);
-    $this->assertEquals((object) ["thing"=>false], $testEntity->refObject);
+    $this->assertEquals((object) ["thing" => false], $testEntity->refObject);
 
     $this->assertTrue($testEntity->refresh());
   }

@@ -95,29 +95,29 @@ class Nymph {
    * @return boolean Whether the entity data passes the given selectors.
    */
   public static function checkData(
-      &$data,
-      &$sdata,
-      $selectors,
-      $guid = null,
-      $tags = null,
-      $typesAlreadyChecked = [],
-      $dataValsAreadyChecked = []
+    &$data,
+    &$sdata,
+    $selectors,
+    $guid = null,
+    $tags = null,
+    $typesAlreadyChecked = [],
+    $dataValsAreadyChecked = []
   ) {
     return self::$driver->checkData(
-        $data,
-        $sdata,
-        $selectors,
-        $guid,
-        $tags,
-        $typesAlreadyChecked,
-        $dataValsAreadyChecked
+      $data,
+      $sdata,
+      $selectors,
+      $guid,
+      $tags,
+      $typesAlreadyChecked,
+      $dataValsAreadyChecked
     );
   }
 
   /**
    * Delete an entity from the database.
    *
-   * @param Entity &$entity The entity to delete.
+   * @param Entity $entity The entity to delete.
    * @return bool True on success, false on failure.
    */
   public static function deleteEntity(&$entity) {
@@ -133,7 +133,7 @@ class Nymph {
    * The variable "mdate" is set to the current Unix timestamp using
    * microtime(true).
    *
-   * @param mixed &$entity The entity.
+   * @param mixed $entity The entity.
    * @return bool True on success, false on failure.
    */
   public static function saveEntity(&$entity) {
@@ -146,7 +146,7 @@ class Nymph {
    * Entities will be placed immediately after their parents. The
    * $parentProperty property must hold either null, or the entity's parent.
    *
-   * @param array &$array The array of entities.
+   * @param array $array The array of entities.
    * @param string|null $property The name of the property to sort entities by.
    * @param string|null $parentProperty The name of the property which holds the
    *                                    parent of the entity.
@@ -154,18 +154,18 @@ class Nymph {
    * @param bool $reverse Reverse the sort order.
    */
   public static function hsort(
-      &$array,
-      $property = null,
-      $parentProperty = null,
-      $caseSensitive = false,
-      $reverse = false
+    &$array,
+    $property = null,
+    $parentProperty = null,
+    $caseSensitive = false,
+    $reverse = false
   ) {
     return self::$driver->hsort(
-        $array,
-        $property,
-        $parentProperty,
-        $caseSensitive,
-        $reverse
+      $array,
+      $property,
+      $parentProperty,
+      $caseSensitive,
+      $reverse
     );
   }
 
@@ -175,7 +175,7 @@ class Nymph {
    * Entities' will be sorted by their parents' properties, then the entities'
    * properties.
    *
-   * @param array &$array The array of entities.
+   * @param array $array The array of entities.
    * @param string|null $property The name of the property to sort entities by.
    * @param string|null $parentProperty The name of the property which holds the
    *                                    parent of the entity.
@@ -183,40 +183,40 @@ class Nymph {
    * @param bool $reverse Reverse the sort order.
    */
   public static function psort(
-      &$array,
-      $property = null,
-      $parentProperty = null,
-      $caseSensitive = false,
-      $reverse = false
+    &$array,
+    $property = null,
+    $parentProperty = null,
+    $caseSensitive = false,
+    $reverse = false
   ) {
     return self::$driver->psort(
-        $array,
-        $property,
-        $parentProperty,
-        $caseSensitive,
-        $reverse
+      $array,
+      $property,
+      $parentProperty,
+      $caseSensitive,
+      $reverse
     );
   }
 
   /**
    * Sort an array of entities by a specified property's value.
    *
-   * @param array &$array The array of entities.
+   * @param array $array The array of entities.
    * @param string|null $property The name of the property to sort entities by.
    * @param bool $caseSensitive Sort case sensitively.
    * @param bool $reverse Reverse the sort order.
    */
   public static function sort(
-      &$array,
-      $property = null,
-      $caseSensitive = false,
-      $reverse = false
+    &$array,
+    $property = null,
+    $caseSensitive = false,
+    $reverse = false
   ) {
     return self::$driver->sort(
-        $array,
-        $property,
-        $caseSensitive,
-        $reverse
+      $array,
+      $property,
+      $caseSensitive,
+      $reverse
     );
   }
 
@@ -479,10 +479,9 @@ class Nymph {
    * </pre>
    *
    * @param array $options The options.
-   * @param array $selectors Unlimited optional selectors to search for. If none
-   *                         are given, all entities are retrieved for the given
-   *                         options.
-   * @param array $selectors,...
+   * @param array ...$selectors Unlimited optional selectors to search for. If
+   *                            none are given, all entities are retrieved for
+   *                            the given options.
    * @return array|null An array of entities, or null on failure.
    * @todo An option to place a total count in a var.
    * @todo Use an asterisk to specify any variable.
@@ -500,9 +499,8 @@ class Nymph {
    * getEntities() would return an empty array.
    *
    * @param array $options The options to search for.
-   * @param array|int $selectors Unlimited optional selectors to search for, or
-   *                             just a GUID.
-   * @param array $selectors,...
+   * @param array|int ...$selectors Unlimited optional selectors to search for,
+   *                                or just a GUID.
    * @return Entity|null An entity, or null on failure and nothing found.
    */
   public static function getEntity($options = [], ...$selectors) {

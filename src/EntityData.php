@@ -39,13 +39,13 @@ class EntityData {
     // Unserialize.
     if ($name === 'sdata' || $name === 'useSkipAc') {
       throw new Exceptions\InvalidParametersException(
-          "You can't read the property \"{$name}\" in entity data. It is a ".
+        "You can't read the property \"{$name}\" in entity data. It is a ".
           "reserved property."
       );
     }
     if (key_exists($name, $this->sdata)) {
       $this->$name = $this->referencesToEntities(
-          unserialize($this->sdata[$name])
+        unserialize($this->sdata[$name])
       );
       // Setting the property removed the item from sdata.
     } else {
@@ -72,7 +72,7 @@ class EntityData {
     // Unserialize.
     if (key_exists($name, $this->sdata)) {
       $this->$name = $this->referencesToEntities(
-          unserialize($this->sdata[$name])
+        unserialize($this->sdata[$name])
       );
       unset($this->sdata[$name]);
     }
@@ -92,7 +92,7 @@ class EntityData {
   public function __set($name, $value) {
     if ($name === 'sdata' || $name === 'useSkipAc') {
       throw new Exceptions\InvalidParametersException(
-          "You can't set the property \"{$name}\" in entity data. It is a ".
+        "You can't set the property \"{$name}\" in entity data. It is a ".
           "reserved property."
       );
     }
@@ -124,9 +124,11 @@ class EntityData {
         $getValue = clone $value;
       }
       if ($key !== 'sdata' && $key !== 'useSkipAc') {
-        $data[$key] = $references
-          ? $this->entitiesToReferences($value)
-          : $value;
+        $data[$key] = (
+          $references
+            ? $this->entitiesToReferences($value)
+            : $value
+        );
       }
     }
     return $data;
@@ -166,7 +168,8 @@ class EntityData {
    */
   private function entitiesToReferences($item) {
     if ((is_a($item, '\Nymph\Entity') || is_a($item, '\SciActive\HookOverride'))
-        && is_callable([$item, 'toReference'])) {
+      && is_callable([$item, 'toReference'])
+    ) {
       // Convert entities to references.
       return $item->toReference();
     } elseif (is_array($item)) {
@@ -197,7 +200,7 @@ class EntityData {
       if (isset($item[0]) && $item[0] === 'nymph_entity_reference') {
         if (!class_exists($item[2])) {
           throw new Exceptions\EntityClassNotFoundException(
-              "Tried to load entity reference that refers to a class that ".
+            "Tried to load entity reference that refers to a class that ".
               "can't be found, {$item[2]}."
           );
         }
@@ -210,13 +213,10 @@ class EntityData {
         return array_map([$this, 'referencesToEntities'], $item);
       }
     } elseif (is_object($item)
-              && !(
-                (
-                  is_a($item, '\Nymph\Entity')
-                  || is_a($item, '\SciActive\HookOverride')
-                )
-                && is_callable([$item, 'toReference'])
-              )) {
+      && !((is_a($item, '\Nymph\Entity')
+      || is_a($item, '\SciActive\HookOverride'))
+      && is_callable([$item, 'toReference']))
+    ) {
       // Only do this for non-entity objects.
       $clone = clone $item;
       foreach ($clone as &$curProperty) {
