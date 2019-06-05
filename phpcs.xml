@@ -12,9 +12,7 @@
     <exclude name="PEAR.Functions.FunctionDeclaration.BraceOnSameLine" />
     <exclude name="Squiz.Functions.MultiLineFunctionDeclaration.BraceOnSameLine" />
     <!-- Multiline condition complex indentation. -->
-    <!-- <exclude name="PEAR.ControlStructures.MultiLineCondition.SpacingAfterOpenBrace" /> -->
     <exclude name="PEAR.ControlStructures.MultiLineCondition.StartWithBoolean" />
-    <!-- <exclude name="PSR2.ControlStructures.ControlStructureSpacing.SpacingAfterOpenBrace" /> -->
     <exclude name="PEAR.ControlStructures.MultiLineCondition.Alignment" />
     <!-- Conflicts with PEAR.Functions.FunctionDeclaration. -->
     <exclude name="Squiz.Functions.MultiLineFunctionDeclaration.Indent" />
