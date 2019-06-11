@@ -89,6 +89,7 @@ class REST {
         $ents = [$ents];
       }
       $created = [];
+      $hadSuccess = false;
       $invalidData = false;
       foreach ($ents as $entData) {
         if ((int) $entData['guid'] > 0) {
@@ -103,14 +104,18 @@ class REST {
         try {
           if ($entity->save()) {
             $created[] = $entity;
+            $hadSuccess = true;
+          } else {
+            $created[] = false;
           }
         } catch (Exceptions\EntityInvalidDataException $e) {
           $invalidData = true;
+          $created[] = null;
         } catch (\Exception $e) {
           return $this->httpError(500, 'Internal Server Error', $e);
         }
       }
-      if (empty($created)) {
+      if (!$hadSuccess) {
         if ($invalidData) {
           return $this->httpError(400, 'Bad Request');
         } else {
@@ -168,7 +173,11 @@ class REST {
             $args['params']
           );
           header('Content-Type: application/json');
-          echo json_encode(['entity' => $entity, 'return' => $ret]);
+          if ($args['stateless']) {
+            echo json_encode(['return' => $ret]);
+          } else {
+            echo json_encode(['entity' => $entity, 'return' => $ret]);
+          }
         } catch (\Exception $e) {
           return $this->httpError(500, 'Internal Server Error', $e);
         }
@@ -232,6 +241,7 @@ class REST {
         $ents = [$ents];
       }
       $saved = [];
+      $hadSuccess = false;
       $invalidData = false;
       $notfound = false;
       $lastException = null;
@@ -248,14 +258,18 @@ class REST {
         try {
           if ($entity->save()) {
             $saved[] = $entity;
+            $hadSuccess = true;
+          } else {
+            $saved[] = false;
           }
         } catch (Exceptions\EntityInvalidDataException $e) {
           $invalidData = true;
+          $saved[] = null;
         } catch (\Exception $e) {
           $lastException = $e;
         }
       }
-      if (empty($saved)) {
+      if (!$hadSuccess) {
         if ($invalidData) {
           return $this->httpError(400, 'Bad Request');
         } elseif ($notfound) {
@@ -468,7 +482,7 @@ class REST {
    * @return boolean Always returns false.
    */
   protected function httpError($errorCode, $message, $exception = null) {
-    header("HTTP/1.1 $errorCode $message", true, $errorCode);
+    http_response_code($errorCode);
     if ($exception) {
       echo json_encode(
         [
