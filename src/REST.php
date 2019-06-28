@@ -12,6 +12,30 @@
  */
 class REST {
   /**
+   * Respond to the incoming REST request.
+   *
+   * This function will decode the incoming values and call `run`.
+   *
+   * @return bool True on success, false on failure.
+   */
+  public function respond() {
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+      return $this->run(
+        $_SERVER['REQUEST_METHOD'],
+        json_decode($_REQUEST['action'], true),
+        json_decode($_REQUEST['data'], true)
+      );
+    } else {
+      $args = json_decode(file_get_contents("php://input"), true);
+      return $this->run(
+        $_SERVER['REQUEST_METHOD'],
+        $args['action'],
+        $args['data']
+      );
+    }
+  }
+
+  /**
    * Run the Nymph REST server process.
    *
    * Note that on failure, an HTTP error status code will be sent, usually
@@ -19,7 +43,7 @@ class REST {
    *
    * @param string $method The HTTP method.
    * @param string $action The Nymph action.
-   * @param string $data The JSON encoded data.
+   * @param string $data The decoded data.
    * @return bool True on success, false on failure.
    */
   public function run($method, $action, $data) {
@@ -36,13 +60,12 @@ class REST {
     }
     ob_start();
     if (in_array($action, ['entity', 'entities'])) {
-      $ents = json_decode($data, true);
       if ($action === 'entity') {
-        $ents = [$ents];
+        $data = [$data];
       }
       $deleted = [];
       $failures = false;
-      foreach ($ents as $delEnt) {
+      foreach ($data as $delEnt) {
         try {
           $guid = (int) $delEnt['guid'];
           if (Nymph::deleteEntityByID($guid, $delEnt['class'])) {
@@ -61,7 +84,7 @@ class REST {
           return $this->httpError(500, 'Internal Server Error');
         }
       }
-      header('HTTP/1.1 200 OK', true, 200);
+      http_response_code(200);
       header('Content-Type: application/json');
       if ($action === 'entity') {
         echo json_encode($deleted[0]);
@@ -72,7 +95,7 @@ class REST {
       if (!Nymph::deleteUID("$data")) {
         return $this->httpError(500, 'Internal Server Error');
       }
-      header('HTTP/1.1 204 No Content', true, 204);
+      http_response_code(204);
     }
     ob_end_flush();
     return true;
@@ -84,14 +107,13 @@ class REST {
     }
     ob_start();
     if (in_array($action, ['entity', 'entities'])) {
-      $ents = json_decode($data, true);
       if ($action === 'entity') {
-        $ents = [$ents];
+        $data = [$data];
       }
       $created = [];
       $hadSuccess = false;
       $invalidData = false;
-      foreach ($ents as $entData) {
+      foreach ($data as $entData) {
         if ((int) $entData['guid'] > 0) {
           $invalidData = true;
           continue;
@@ -122,7 +144,7 @@ class REST {
           return $this->httpError(500, 'Internal Server Error');
         }
       }
-      header('HTTP/1.1 201 Created', true, 201);
+      http_response_code(201);
       header('Content-Type: application/json');
       if ($action === 'entity') {
         echo json_encode($created[0]);
@@ -130,17 +152,16 @@ class REST {
         echo json_encode($created);
       }
     } elseif ($action === 'method') {
-      $args = json_decode($data, true);
-      array_walk($args['params'], [$this, 'referenceToEntity']);
-      if (isset($args['static']) && $args['static']) {
-        $className = $args['class'];
+      array_walk($data['params'], [$this, 'referenceToEntity']);
+      if (isset($data['static']) && $data['static']) {
+        $className = $data['class'];
         if (!class_exists($className)
           || !isset($className::$clientEnabledStaticMethods)
         ) {
           return $this->httpError(400, 'Bad Request');
         }
         if (!in_array(
-          $args['method'],
+          $data['method'],
           $className::$clientEnabledStaticMethods
         )
         ) {
@@ -148,8 +169,8 @@ class REST {
         }
         try {
           $ret = call_user_func_array(
-            [$className, $args['method']],
-            $args['params']
+            [$className, $data['method']],
+            $data['params']
           );
           header('Content-Type: application/json');
           echo json_encode(['return' => $ret]);
@@ -157,23 +178,23 @@ class REST {
           return $this->httpError(500, 'Internal Server Error', $e);
         }
       } else {
-        $entity = $this->loadEntity($args['entity']);
+        $entity = $this->loadEntity($data['entity']);
         if (!$entity
-          || ((int) $args['entity']['guid'] > 0 && !$entity->guid)
-          || !is_callable([$entity, $args['method']])
+          || ((int) $data['entity']['guid'] > 0 && !$entity->guid)
+          || !is_callable([$entity, $data['method']])
         ) {
           return $this->httpError(400, 'Bad Request');
         }
-        if (!in_array($args['method'], $entity->clientEnabledMethods())) {
+        if (!in_array($data['method'], $entity->clientEnabledMethods())) {
           return $this->httpError(403, 'Forbidden');
         }
         try {
           $ret = call_user_func_array(
-            [$entity, $args['method']],
-            $args['params']
+            [$entity, $data['method']],
+            $data['params']
           );
           header('Content-Type: application/json');
-          if ($args['stateless']) {
+          if ($data['stateless']) {
             echo json_encode(['return' => $ret]);
           } else {
             echo json_encode(['entity' => $entity, 'return' => $ret]);
@@ -182,7 +203,7 @@ class REST {
           return $this->httpError(500, 'Internal Server Error', $e);
         }
       }
-      header('HTTP/1.1 200 OK', true, 200);
+      http_response_code(200);
     } else {
       try {
         $result = Nymph::newUID("$data");
@@ -192,7 +213,7 @@ class REST {
       if (!is_int($result)) {
         return $this->httpError(500, 'Internal Server Error');
       }
-      header('HTTP/1.1 201 Created', true, 201);
+      http_response_code(201);
       header('Content-Type: text/plain');
       echo $result;
     }
@@ -217,16 +238,15 @@ class REST {
   protected function doPutOrPatch($action, $data, $patch) {
     ob_start();
     if ($action === 'uid') {
-      $args = json_decode($data, true);
-      if (!isset($args['name'])
-        || !isset($args['value'])
-        || !is_string($args['name'])
-        || !is_numeric($args['value'])
+      if (!isset($data['name'])
+        || !isset($data['value'])
+        || !is_string($data['name'])
+        || !is_numeric($data['value'])
       ) {
         return $this->httpError(400, 'Bad Request');
       }
       try {
-        $result = Nymph::setUID($args['name'], (int) $args['value']);
+        $result = Nymph::setUID($data['name'], (int) $data['value']);
       } catch (\Exception $e) {
         return $this->httpError(500, 'Internal Server Error', $e);
       }
@@ -236,16 +256,15 @@ class REST {
       header('Content-Type: text/plain');
       echo json_encode($result);
     } else {
-      $ents = json_decode($data, true);
       if ($action === 'entity') {
-        $ents = [$ents];
+        $data = [$data];
       }
       $saved = [];
       $hadSuccess = false;
       $invalidData = false;
       $notfound = false;
       $lastException = null;
-      foreach ($ents as $entData) {
+      foreach ($data as $entData) {
         if (!is_numeric($entData['guid']) || (int) $entData['guid'] <= 0) {
           $invalidData = true;
           continue;
@@ -285,7 +304,7 @@ class REST {
         echo json_encode($saved);
       }
     }
-    header('HTTP/1.1 200 OK', true, 200);
+    http_response_code(200);
     ob_end_flush();
     return true;
   }
@@ -301,30 +320,29 @@ class REST {
     ];
     $method = $actionMap[$action];
     if (in_array($action, ['entity', 'entities'])) {
-      $args = json_decode($data, true);
-      if (!is_array($args)) {
+      if (!is_array($data)) {
         return $this->httpError(400, 'Bad Request');
       }
-      $count = count($args);
-      if ($count < 1 || !is_array($args[0])) {
+      $count = count($data);
+      if ($count < 1 || !is_array($data[0])) {
         return $this->httpError(400, 'Bad Request');
       }
-      if (!isset($args[0]['class']) || !class_exists($args[0]['class'])) {
+      if (!isset($data[0]['class']) || !class_exists($data[0]['class'])) {
         return $this->httpError(400, 'Bad Request');
       }
-      $args[0]['source'] = 'client';
-      $args[0]['skip_ac'] = false;
+      $data[0]['source'] = 'client';
+      $data[0]['skip_ac'] = false;
       if ($count > 1) {
         for ($i = 1; $i < $count; $i++) {
-          $newArg = self::translateSelector($args[0]['class'], $args[$i]);
+          $newArg = self::translateSelector($data[0]['class'], $data[$i]);
           if ($newArg === false) {
             return $this->httpError(400, 'Bad Request');
           }
-          $args[$i] = $newArg;
+          $data[$i] = $newArg;
         }
       }
       try {
-        $result = call_user_func_array("\Nymph\Nymph::$method", $args);
+        $result = call_user_func_array("\Nymph\Nymph::$method", $data);
       } catch (\Exception $e) {
         return $this->httpError(500, 'Internal Server Error', $e);
       }
