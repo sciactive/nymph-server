@@ -362,7 +362,7 @@ class PostgreSQLDriver implements DriverInterface {
               "\t{$row['dname']}=".json_encode($row['dvalue'])."\n"
             );
             $row = pg_fetch_assoc($result);
-          } while ((int) $row['guid'] === $guid);
+          } while (isset($row) && (int) $row['guid'] === $guid);
         } else {
           // Make sure that $row is incremented :)
           $row = pg_fetch_assoc($result);

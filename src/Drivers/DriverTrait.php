@@ -667,7 +667,7 @@ trait DriverTrait {
           $dataNameAndSValue = $getDataNameAndSValueCallback($row);
           $sdata[$dataNameAndSValue['name']] = $dataNameAndSValue['svalue'];
           $row = $rowFetchCallback($result);
-        } while ($row && $getGUIDCallback($row) === $guid);
+        } while (isset($row) && $getGUIDCallback($row) === $guid);
       } else {
         // Make sure that $row is incremented :)
         $row = $rowFetchCallback($result);

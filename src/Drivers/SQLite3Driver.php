@@ -298,7 +298,7 @@ class SQLite3Driver implements DriverInterface {
               "\t{$row['dname']}=".json_encode($row['dvalue'])."\n"
             );
             $row = $result->fetchArray(SQLITE3_ASSOC);
-          } while ((int) $row['guid'] === $guid);
+          } while (isset($row) && (int) $row['guid'] === $guid);
         } else {
           // Make sure that $row is incremented :)
           $row = $result->fetchArray(SQLITE3_ASSOC);
