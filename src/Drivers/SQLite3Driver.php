@@ -71,7 +71,7 @@ class SQLite3Driver implements DriverInterface {
           'preg_match',
           'preg_match',
           2,
-          SQLITE3_DETERMINISTIC
+          defined('SQLITE3_DETERMINISTIC') ? SQLITE3_DETERMINISTIC : 0
         );
         $this->link->createFunction(
           'regexp',
@@ -79,7 +79,7 @@ class SQLite3Driver implements DriverInterface {
             return !!$this->posixRegexMatch($pattern, $subject);
           },
           2,
-          SQLITE3_DETERMINISTIC
+          defined('SQLITE3_DETERMINISTIC') ? SQLITE3_DETERMINISTIC : 0
         );
       } else {
         $this->connected = false;
@@ -298,7 +298,7 @@ class SQLite3Driver implements DriverInterface {
               "\t{$row['dname']}=".json_encode($row['dvalue'])."\n"
             );
             $row = $result->fetchArray(SQLITE3_ASSOC);
-          } while (isset($row) && (int) $row['guid'] === $guid);
+          } while ($row && (int) $row['guid'] === $guid);
         } else {
           // Make sure that $row is incremented :)
           $row = $result->fetchArray(SQLITE3_ASSOC);
@@ -1025,7 +1025,7 @@ class SQLite3Driver implements DriverInterface {
     $this->query("SAVEPOINT 'newuid';");
     $result = $this->query("SELECT \"cur_uid\" FROM \"{$this->prefix}uids\" WHERE \"name\"='".SQLite3::escapeString($name)."';");
     $row = $result->fetchArray(SQLITE3_NUM);
-    $curUid = is_numeric($row[0]) ? (int) $row[0] : null;
+    $curUid = ($row && is_numeric($row[0])) ? (int) $row[0] : null;
     $result->finalize();
     if (!is_int($curUid)) {
       $curUid = 1;

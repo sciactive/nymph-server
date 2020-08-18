@@ -362,7 +362,7 @@ class PostgreSQLDriver implements DriverInterface {
               "\t{$row['dname']}=".json_encode($row['dvalue'])."\n"
             );
             $row = pg_fetch_assoc($result);
-          } while (isset($row) && (int) $row['guid'] === $guid);
+          } while ($row && (int) $row['guid'] === $guid);
         } else {
           // Make sure that $row is incremented :)
           $row = pg_fetch_assoc($result);
@@ -1097,7 +1097,7 @@ class PostgreSQLDriver implements DriverInterface {
     $this->query('BEGIN;');
     $result = $this->query("SELECT \"cur_uid\" FROM \"{$this->prefix}uids\" WHERE \"name\"='".pg_escape_string($this->link, $name)."' FOR UPDATE;");
     $row = pg_fetch_row($result);
-    $curUid = is_numeric($row[0]) ? (int) $row[0] : null;
+    $curUid = ($row && is_numeric($row[0])) ? (int) $row[0] : null;
     pg_free_result($result);
     if (!is_int($curUid)) {
       $curUid = 1;

@@ -353,7 +353,7 @@ class MySQLDriver implements DriverInterface {
               "\t{$row['dname']}=".json_encode($row['dvalue'])."\n"
             );
             $row = mysqli_fetch_assoc($result);
-          } while (isset($row) && (int) $row['guid'] === $guid);
+          } while ($row && (int) $row['guid'] === $guid);
         } else {
           // Make sure that $row is incremented :)
           $row = mysqli_fetch_assoc($result);
