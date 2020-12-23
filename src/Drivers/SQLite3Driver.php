@@ -71,7 +71,7 @@ class SQLite3Driver implements DriverInterface {
           'preg_match',
           'preg_match',
           2,
-          defined('SQLITE3_DETERMINISTIC') ? SQLITE3_DETERMINISTIC : 0
+          defined('SQLITE3_DETERMINISTIC') ? \SQLITE3_DETERMINISTIC : 0
         );
         $this->link->createFunction(
           'regexp',
@@ -79,7 +79,7 @@ class SQLite3Driver implements DriverInterface {
             return !!$this->posixRegexMatch($pattern, $subject);
           },
           2,
-          defined('SQLITE3_DETERMINISTIC') ? SQLITE3_DETERMINISTIC : 0
+          defined('SQLITE3_DETERMINISTIC') ? \SQLITE3_DETERMINISTIC : 0
         );
       } else {
         $this->connected = false;
@@ -1051,19 +1051,19 @@ class SQLite3Driver implements DriverInterface {
 
   public function saveEntity(&$entity) {
     $this->checkReadOnlyMode();
-    $insertData = function ($entity, $data, $sdata, $etype, $etypeDirty) {
-      $runInsertQuery = function ($name, $value, $svalue) use ($entity, $etype, $etypeDirty) {
+    $insertData = function ($guid, $data, $sdata, $etype, $etypeDirty) {
+      $runInsertQuery = function ($name, $value, $svalue) use ($guid, $etype, $etypeDirty) {
         $this->query(
           "INSERT INTO \"{$this->prefix}data{$etype}\" (\"guid\", \"name\", \"value\") VALUES ".
-            $this->makeInsertValuesData($entity->guid, $name, serialize($value)).';',
+            $this->makeInsertValuesData($guid, $name, serialize($value)).';',
           $etypeDirty
         );
         $this->query(
           "INSERT INTO \"{$this->prefix}comparisons{$etype}\" (\"guid\", \"name\", \"eq_true\", \"eq_one\", \"eq_zero\", \"eq_negone\", \"eq_emptyarray\", \"string\", \"int\", \"float\", \"is_int\") VALUES ".
-            $this->makeInsertValuesComparisons($entity->guid, $name, $value).';',
+            $this->makeInsertValuesComparisons($guid, $name, $value).';',
           $etypeDirty
         );
-        $referenceValues = $this->makeInsertValuesReferences($entity->guid, $name, serialize($value));
+        $referenceValues = $this->makeInsertValuesReferences($guid, $name, serialize($value));
         if ($referenceValues) {
           $this->query(
             "INSERT INTO \"{$this->prefix}references{$etype}\" (\"guid\", \"name\", \"reference\") VALUES {$referenceValues};",
@@ -1089,23 +1089,34 @@ class SQLite3Driver implements DriverInterface {
         $result->finalize();
         return !isset($row[0]);
       },
-      function ($entity, $data, $sdata, $etype, $etypeDirty) use ($insertData) {
-        $this->query("INSERT INTO \"{$this->prefix}guids\" (\"guid\") VALUES ({$entity->guid});");
-        $this->query("INSERT INTO \"{$this->prefix}entities{$etype}\" (\"guid\", \"tags\", \"cdate\", \"mdate\") VALUES ({$entity->guid}, '".SQLite3::escapeString(','.implode(',', array_diff($entity->tags, [''])).',')."', ".((float) $entity->cdate).", ".((float) $entity->mdate).");", $etypeDirty);
-        $insertData($entity, $data, $sdata, $etype, $etypeDirty);
+      function ($entity, $guid, $tags, $data, $sdata, $cdate, $etype, $etypeDirty) use ($insertData) {
+        $this->query("INSERT INTO \"{$this->prefix}guids\" (\"guid\") VALUES ({$guid});");
+        $this->query("INSERT INTO \"{$this->prefix}entities{$etype}\" (\"guid\", \"tags\", \"cdate\", \"mdate\") VALUES ({$guid}, '".SQLite3::escapeString(','.implode(',', $tags).',')."', ".((float) $cdate).", ".((float) $cdate).");", $etypeDirty);
+        $insertData($guid, $data, $sdata, $etype, $etypeDirty);
+        return true;
       },
-      function ($entity, $data, $sdata, $etype, $etypeDirty) use ($insertData) {
-        $this->query("UPDATE \"{$this->prefix}entities{$etype}\" SET \"tags\"='".SQLite3::escapeString(','.implode(',', array_diff($entity->tags, [''])).',')."', \"cdate\"=".((float) $entity->cdate).", \"mdate\"=".((float) $entity->mdate)." WHERE \"guid\"={$entity->guid};", $etypeDirty);
-        $this->query("DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$entity->guid};");
-        $this->query("DELETE FROM \"{$this->prefix}comparisons{$etype}\" WHERE \"guid\"={$entity->guid};");
-        $this->query("DELETE FROM \"{$this->prefix}references{$etype}\" WHERE \"guid\"={$entity->guid};");
-        $insertData($entity, $data, $sdata, $etype, $etypeDirty);
+      function ($entity, $guid, $tags, $data, $sdata, $mdate, $etype, $etypeDirty) use ($insertData) {
+        $this->query("UPDATE \"{$this->prefix}entities{$etype}\" SET \"tags\"='".SQLite3::escapeString(','.implode(',', $tags).',')."', \"mdate\"=".((float) $mdate)." WHERE \"guid\"={$guid} AND abs(\"mdate\" - ".((float) $entity->mdate).") < 0.001;", $etypeDirty);
+        $changed = $this->link->changes();
+        $success = false;
+        if ($changed === 1) {
+          $this->query("DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$guid};");
+          $this->query("DELETE FROM \"{$this->prefix}comparisons{$etype}\" WHERE \"guid\"={$guid};");
+          $this->query("DELETE FROM \"{$this->prefix}references{$etype}\" WHERE \"guid\"={$guid};");
+          $insertData($guid, $data, $sdata, $etype, $etypeDirty);
+          $success = true;
+        }
+        return $success;
       },
       function () {
         $this->query("SAVEPOINT 'save';");
       },
-      function () {
-        $this->query("RELEASE 'save';");
+      function ($success) {
+        if ($success) {
+          $this->query("RELEASE 'save';");
+        } else {
+          $this->query("ROLLBACK TO 'save';");
+        }
       }
     );
   }

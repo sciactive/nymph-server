@@ -35,14 +35,12 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $testEntity->string = 'test';
     $testEntity->array = ['full', 'of', 'values', 500];
     $testEntity->number = 30;
-    $testEntity->mdate = 30.00001;
 
     $this->assertSame('Entity Test', $testEntity->name);
     $this->assertNull($testEntity->null);
     $this->assertSame('test', $testEntity->string);
     $this->assertSame(['full', 'of', 'values', 500], $testEntity->array);
     $this->assertSame(30, $testEntity->number);
-    $this->assertSame(30.0, $testEntity->mdate);
 
     $this->assertTrue($testEntity->save());
 
@@ -169,6 +167,26 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
 
     $testEntity->refresh();
     $this->assertSame('test', $testEntity->string);
+  }
+
+  /**
+   * @depends testAssignment
+   * @param array $arr
+   */
+  public function testConflictFailsToSave($arr) {
+    $testEntity = $arr['entity'];
+
+    $testEntityCopy = TestModel::factory($testEntity->guid);
+    $this->assertTrue($testEntityCopy->save());
+
+    $this->assertFalse($testEntity->save());
+
+    $testEntity->refresh();
+
+    $this->assertLessThan(
+      .001,
+      abs($testEntityCopy->mdate - $testEntity->mdate)
+    );
   }
 
   /**
@@ -325,8 +343,10 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
 
     $entityData = json_decode($json, true);
 
-    $testEntity->cdate = "13";
-    $testEntity->mdate = "14.00009";
+    $testEntity->cdate = 13;
+    $testEntity->mdate = 14;
+    $entityData['cdate'] = 13;
+    $entityData['mdate'] = 14.00009;
     $entityData['tags'] = ['test', 'notag', 'newtag'];
     $entityData['data']['name'] = 'bad';
     $entityData['data']['string'] = 'good';
@@ -341,7 +361,7 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $this->assertFalse($testEntity->hasTag('notag'));
     $this->assertTrue($testEntity->hasTag('newtag'));
     $this->assertSame(13.0, $testEntity->cdate);
-    $this->assertSame(14.0, $testEntity->mdate);
+    $this->assertSame(14.00009, $testEntity->mdate);
     $this->assertSame('Entity Test', $testEntity->name);
     $this->assertNull($testEntity->null);
     $this->assertSame('good', $testEntity->string);
@@ -362,14 +382,14 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     // Test no whitelist, but protected data instead.
     $testEntity->useProtectedData();
 
-    $testEntity->cdate = "13";
-    $testEntity->mdate = "14";
+    $testEntity->cdate = 13;
+    $testEntity->mdate = 14;
     $testEntity->jsonAcceptData($entityData);
 
     $this->assertFalse($testEntity->hasTag('notag'));
     $this->assertTrue($testEntity->hasTag('newtag'));
     $this->assertSame(13.0, $testEntity->cdate);
-    $this->assertSame(14.0, $testEntity->mdate);
+    $this->assertSame(14.00009, $testEntity->mdate);
     $this->assertSame('bad', $testEntity->name);
     $this->assertTrue($testEntity->null);
     $this->assertSame('good', $testEntity->string);
@@ -380,5 +400,50 @@ class EntityTest extends \PHPUnit\Framework\TestCase {
     $this->assertEquals((object) ["thing" => false], $testEntity->refObject);
 
     $this->assertTrue($testEntity->refresh());
+  }
+
+  /**
+   * @depends testAssignment
+   * @param array $arr
+   */
+  public function testConflictJSON($arr) {
+    $testEntity = $arr['entity'];
+
+    // Test that an old JSON payload causes a conflict.
+    $json = json_encode($testEntity);
+
+    $this->assertTrue($testEntity->save());
+
+    $thrown = false;
+    $data = json_decode($json, true);
+
+    try {
+      $testEntity->jsonAcceptData($data);
+    } catch (\Nymph\Exceptions\EntityConflictException $e) {
+      $thrown = true;
+    }
+
+    $this->assertTrue($thrown);
+
+    $thrown = false;
+
+    try {
+      $testEntity->jsonAcceptPatch(
+        [
+          'guid' => $data['guid'],
+          'mdate' => $data['mdate'],
+          'set' => [
+            'test' => true
+          ],
+          'unset' => [],
+          'addTags' => [],
+          'removeTags' => []
+        ]
+      );
+    } catch (\Nymph\Exceptions\EntityConflictException $e) {
+      $thrown = true;
+    }
+
+    $this->assertTrue($thrown);
   }
 }

@@ -113,14 +113,24 @@ class REST {
       $created = [];
       $hadSuccess = false;
       $invalidData = false;
+      $conflict = false;
+      $lastException = null;
       foreach ($data as $entData) {
         if ((int) $entData['guid'] > 0) {
           $invalidData = true;
+          $created[] = null;
           continue;
         }
-        $entity = $this->loadEntity($entData);
+        try {
+          $entity = $this->loadEntity($entData);
+        } catch (Exceptions\EntityConflictException $e) {
+          $conflict = true;
+          $created[] = null;
+          continue;
+        }
         if (!$entity) {
           $invalidData = true;
+          $created[] = null;
           continue;
         }
         try {
@@ -134,14 +144,17 @@ class REST {
           $invalidData = true;
           $created[] = null;
         } catch (\Exception $e) {
-          return $this->httpError(500, 'Internal Server Error', $e);
+          $lastException = $e;
+          $created[] = null;
         }
       }
       if (!$hadSuccess) {
         if ($invalidData) {
           return $this->httpError(400, 'Bad Request');
+        } elseif ($conflict) {
+          return $this->httpError(409, 'Conflict');
         } else {
-          return $this->httpError(500, 'Internal Server Error');
+          return $this->httpError(500, 'Internal Server Error', $lastException);
         }
       }
       http_response_code(201);
@@ -178,7 +191,11 @@ class REST {
           return $this->httpError(500, 'Internal Server Error', $e);
         }
       } else {
-        $entity = $this->loadEntity($data['entity']);
+        try {
+          $entity = $this->loadEntity($data['entity']);
+        } catch (Exceptions\EntityConflictException $e) {
+          return $this->httpError(409, 'Conflict');
+        }
         if (!$entity
           || ((int) $data['entity']['guid'] > 0 && !$entity->guid)
           || !is_callable([$entity, $data['method']])
@@ -262,16 +279,25 @@ class REST {
       $saved = [];
       $hadSuccess = false;
       $invalidData = false;
+      $conflict = false;
       $notfound = false;
       $lastException = null;
       foreach ($data as $entData) {
         if (!is_numeric($entData['guid']) || (int) $entData['guid'] <= 0) {
           $invalidData = true;
+          $saved[] = null;
           continue;
         }
-        $entity = $this->loadEntity($entData, $patch);
+        try {
+          $entity = $this->loadEntity($entData, $patch);
+        } catch (Exceptions\EntityConflictException $e) {
+          $conflict = true;
+          $saved[] = null;
+          continue;
+        }
         if (!$entity) {
           $invalidData = true;
+          $saved[] = null;
           continue;
         }
         try {
@@ -286,11 +312,14 @@ class REST {
           $saved[] = null;
         } catch (\Exception $e) {
           $lastException = $e;
+          $saved[] = null;
         }
       }
       if (!$hadSuccess) {
         if ($invalidData) {
           return $this->httpError(400, 'Bad Request');
+        } elseif ($conflict) {
+          return $this->httpError(409, 'Conflict');
         } elseif ($notfound) {
           return $this->httpError(404, 'Not Found');
         } else {
@@ -318,6 +347,9 @@ class REST {
       'entities' => 'getEntities',
       'uid' => 'getUID'
     ];
+    if (!key_exists($action, $actionMap)) {
+      return $this->httpError(400, 'Bad Request');
+    }
     $method = $actionMap[$action];
     if (in_array($action, ['entity', 'entities'])) {
       if (!is_array($data)) {
@@ -458,7 +490,11 @@ class REST {
     return $newSel;
   }
 
-  protected function loadEntity($entityData, $patch = false) {
+  protected function loadEntity(
+    $entityData,
+    $patch = false,
+    $allowConflict = false
+  ) {
     if (!class_exists($entityData['class'])
       || $entityData['class'] === 'Entity'
       || $entityData['class'] === 'Nymph\Entity'
@@ -484,9 +520,9 @@ class REST {
       $entity = new $entityData['class'];
     }
     if ($patch) {
-      $entity->jsonAcceptPatch($entityData);
+      $entity->jsonAcceptPatch($entityData, $allowConflict);
     } else {
-      $entity->jsonAcceptData($entityData);
+      $entity->jsonAcceptData($entityData, $allowConflict);
     }
     return $entity;
   }

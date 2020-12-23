@@ -148,6 +148,8 @@ trait DriverTrait {
     $guid = null;
     $line = '';
     $data = [];
+    $tags = [];
+    $etype = '__undefined';
     if ($startTransactionCallback) {
       $startTransactionCallback();
     }
@@ -460,7 +462,7 @@ trait DriverTrait {
    * @return bool True if the reference is found, false otherwise.
    */
   protected function entityReferenceSearch($value, $entity) {
-    if (!is_array($value) && !($value instanceof Traversable)) {
+    if (!is_array($value) && !($value instanceof \Traversable)) {
       return false;
     }
     if (!isset($entity)) {
@@ -772,12 +774,13 @@ trait DriverTrait {
     $startTransactionCallback = null,
     $commitTransactionCallback = null
   ) {
-    // Save the created date.
+    // Get a modified date.
+    $mdate = microtime(true);
+    // Get a created date.
     if (!isset($entity->guid)) {
-      $entity->cdate = microtime(true);
+      $cdate = $mdate;
     }
-    // Save the modified date.
-    $entity->mdate = microtime(true);
+    $tags = array_diff($entity->tags, ['']);
     $data = $entity->getData();
     $sdata = $entity->getSData();
     $varlist = array_merge(array_keys($data), array_keys($sdata));
@@ -791,6 +794,7 @@ trait DriverTrait {
     if ($startTransactionCallback) {
       $startTransactionCallback();
     }
+    $success = false;
     if (!isset($entity->guid)) {
       while (true) {
         // 2^53 is the maximum number in JavaScript
@@ -804,32 +808,45 @@ trait DriverTrait {
           break;
         }
       }
-      $entity->guid = $newId;
-      $saveNewEntityCallback(
+      $success = $saveNewEntityCallback(
         $entity,
+        $newId,
+        $tags,
         $data,
         $sdata,
+        $cdate,
         $etype,
         $etypeDirty
       );
+      if ($success) {
+        $entity->guid = $newId;
+        $entity->cdate = $cdate;
+        $entity->mdate = $mdate;
+      }
     } else {
       // Removed any cached versions of this entity.
       if ($this->config['cache']) {
         $this->cleanCache($entity->guid);
       }
-      $saveExistingEntityCallback(
+      $success = $saveExistingEntityCallback(
         $entity,
+        $entity->guid,
+        $tags,
         $data,
         $sdata,
+        $mdate,
         $etype,
         $etypeDirty
       );
+      if ($success) {
+        $entity->mdate = $mdate;
+      }
     }
     if ($commitTransactionCallback) {
-      $commitTransactionCallback();
+      $commitTransactionCallback($success);
     }
     // Cache the entity.
-    if ($this->config['cache']) {
+    if ($success && $this->config['cache']) {
       $this->pushCache(
         $entity->guid,
         $entity->cdate,
@@ -839,7 +856,7 @@ trait DriverTrait {
         $sdata
       );
     }
-    return true;
+    return $success;
   }
 
   /**

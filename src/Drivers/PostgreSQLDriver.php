@@ -1121,7 +1121,7 @@ class PostgreSQLDriver implements DriverInterface {
   }
 
   public function saveEntity(&$entity) {
-    $insertData = function ($entity, $data, $sdata, $etype, $etypeDirty) {
+    $insertData = function ($guid, $data, $sdata, $etype, $etypeDirty) {
       $fullData = [];
       foreach ($data as $name => $value) {
         $fullData[$name] = [$value, serialize($value)];
@@ -1134,13 +1134,13 @@ class PostgreSQLDriver implements DriverInterface {
         list($value, $svalue) = $values;
         $queries[] = (
           "INSERT INTO \"{$this->prefix}data{$etype}\" (\"guid\", \"name\", \"value\") VALUES ".
-            $this->makeInsertValuesData($entity->guid, $name, $svalue).';'
+            $this->makeInsertValuesData($guid, $name, $svalue).';'
         );
         $queries[] = (
           "INSERT INTO \"{$this->prefix}comparisons{$etype}\" (\"guid\", \"name\", \"eq_true\", \"eq_one\", \"eq_zero\", \"eq_negone\", \"eq_emptyarray\", \"string\", \"int\", \"float\", \"is_int\") VALUES ".
-            $this->makeInsertValuesComparisons($entity->guid, $name, $value).';'
+            $this->makeInsertValuesComparisons($guid, $name, $value).';'
         );
-        $referenceValues = $this->makeInsertValuesReferences($entity->guid, $name, $svalue);
+        $referenceValues = $this->makeInsertValuesReferences($guid, $name, $svalue);
         if ($referenceValues) {
           $queries[] = "INSERT INTO \"{$this->prefix}references{$etype}\" (\"guid\", \"name\", \"reference\") VALUES {$referenceValues};";
         }
@@ -1158,24 +1158,35 @@ class PostgreSQLDriver implements DriverInterface {
         pg_free_result($result);
         return !isset($row[0]);
       },
-      function ($entity, $data, $sdata, $etype, $etypeDirty) use ($insertData) {
-        $this->query("INSERT INTO \"{$this->prefix}guids\" (\"guid\") VALUES ({$entity->guid});");
-        $this->query("INSERT INTO \"{$this->prefix}entities{$etype}\" (\"guid\", \"tags\", \"cdate\", \"mdate\") VALUES ({$entity->guid}, '".pg_escape_string($this->link, '{'.implode(',', array_diff($entity->tags, [''])).'}')."', ".((float) $entity->cdate).", ".((float) $entity->mdate).");", $etypeDirty);
-        $insertData($entity, $data, $sdata, $etype, $etypeDirty);
+      function ($entity, $guid, $tags, $data, $sdata, $cdate, $etype, $etypeDirty) use ($insertData) {
+        $this->query("INSERT INTO \"{$this->prefix}guids\" (\"guid\") VALUES ({$guid});");
+        $this->query("INSERT INTO \"{$this->prefix}entities{$etype}\" (\"guid\", \"tags\", \"cdate\", \"mdate\") VALUES ({$guid}, '".pg_escape_string($this->link, '{'.implode(',', $tags).'}')."', ".((float) $cdate).", ".((float) $cdate).");", $etypeDirty);
+        $insertData($guid, $data, $sdata, $etype, $etypeDirty);
+        return true;
       },
-      function ($entity, $data, $sdata, $etype, $etypeDirty) use ($insertData) {
-        $this->query("UPDATE \"{$this->prefix}entities{$etype}\" SET \"tags\"='".pg_escape_string($this->link, '{'.implode(',', array_diff($entity->tags, [''])).'}')."', \"cdate\"=".((float) $entity->cdate).", \"mdate\"=".((float) $entity->mdate)." WHERE \"guid\"={$entity->guid};", $etypeDirty);
-        $this->query("DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$entity->guid};");
-        $this->query("DELETE FROM \"{$this->prefix}comparisons{$etype}\" WHERE \"guid\"={$entity->guid};");
-        $this->query("DELETE FROM \"{$this->prefix}references{$etype}\" WHERE \"guid\"={$entity->guid};");
-        $insertData($entity, $data, $sdata, $etype, $etypeDirty);
+      function ($entity, $guid, $tags, $data, $sdata, $mdate, $etype, $etypeDirty) use ($insertData) {
+        $result = $this->query("UPDATE \"{$this->prefix}entities{$etype}\" SET \"tags\"='".pg_escape_string($this->link, '{'.implode(',', $tags).'}')."', \"mdate\"=".((float) $mdate)." WHERE \"guid\"={$guid} AND abs(\"mdate\" - ".((float) $entity->mdate).") < 0.001;", $etypeDirty);
+        $changed = pg_affected_rows($result);
+        $success = false;
+        if ($changed === 1) {
+          $this->query("DELETE FROM \"{$this->prefix}data{$etype}\" WHERE \"guid\"={$guid};");
+          $this->query("DELETE FROM \"{$this->prefix}comparisons{$etype}\" WHERE \"guid\"={$guid};");
+          $this->query("DELETE FROM \"{$this->prefix}references{$etype}\" WHERE \"guid\"={$guid};");
+          $insertData($guid, $data, $sdata, $etype, $etypeDirty);
+          $success = true;
+        }
+        return $success;
       },
       function () {
         $this->query("BEGIN;");
       },
-      function () {
+      function ($success) {
         pg_get_result($this->link); // Clear any pending result.
-        $this->query("COMMIT;");
+        if ($success) {
+          $this->query("COMMIT;");
+        } else {
+          $this->query("ROLLBACK;");
+        }
       }
     );
   }

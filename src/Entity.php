@@ -597,13 +597,21 @@ class Entity implements EntityInterface {
     return $object;
   }
 
-  public function jsonAcceptData($input) {
+  public function jsonAcceptData($input, $allowConflict = false) {
     // TODO: Do this without causing everything to become unserialized.
     if ($this->isASleepingReference) {
       $this->referenceWake();
     }
 
-    // Accept the tags
+    // Accept the modified date.
+    $mdate = key_exists('mdate', $input) ? $input['mdate'] : 0;
+    $thismdate = isset($this->mdate) ? $this->mdate : 0;
+    if (abs($mdate - $thismdate) >= 0.001 && !$allowConflict) {
+      throw new Exceptions\EntityConflictException();
+    }
+    $this->mdate = $input['mdate'];
+
+    // Accept the tags.
     $currentTags = $this->getTags();
     $protectedTags = array_intersect($this->protectedTags, $currentTags);
     $tags = array_diff($input['tags'], $this->protectedTags);
@@ -673,10 +681,18 @@ class Entity implements EntityInterface {
     $this->putData($newData);
   }
 
-  public function jsonAcceptPatch($patch) {
+  public function jsonAcceptPatch($patch, $allowConflict = false) {
     if ($this->isASleepingReference) {
       $this->referenceWake();
     }
+
+    // Accept the modified date.
+    $mdate = key_exists('mdate', $patch) ? $patch['mdate'] : 0;
+    $thismdate = isset($this->mdate) ? $this->mdate : 0;
+    if (abs($mdate - $thismdate) >= 0.001 && !$allowConflict) {
+      throw new Exceptions\EntityConflictException();
+    }
+    $this->mdate = $patch['mdate'];
 
     foreach ($this->objectData as $name) {
       if (isset($patch['set'][$name]) && is_array($patch['set'][$name])) {

@@ -1135,15 +1135,15 @@ class MySQLDriver implements DriverInterface {
   }
 
   public function saveEntity(&$entity) {
-    $insertData = function ($entity, $data, $sdata, $etype, $etypeDirty) {
-      $runInsertQuery = function ($name, $value, $svalue) use ($entity, $etype, $etypeDirty) {
-        $this->query("INSERT INTO `{$this->prefix}data{$etype}` (`guid`, `name`, `value`) VALUES (".((int) $entity->guid).", '".mysqli_real_escape_string($this->link, $name)."', '".mysqli_real_escape_string($this->link, $svalue)."');", $etypeDirty);
+    $insertData = function ($guid, $data, $sdata, $etype, $etypeDirty) {
+      $runInsertQuery = function ($name, $value, $svalue) use ($guid, $etype, $etypeDirty) {
+        $this->query("INSERT INTO `{$this->prefix}data{$etype}` (`guid`, `name`, `value`) VALUES (".((int) $guid).", '".mysqli_real_escape_string($this->link, $name)."', '".mysqli_real_escape_string($this->link, $svalue)."');", $etypeDirty);
         $this->query(
           "INSERT INTO `{$this->prefix}comparisons{$etype}` (`guid`, `name`, `eq_true`, `eq_one`, `eq_zero`, `eq_negone`, `eq_emptyarray`, `string`, `int`, `float`, `is_int`) VALUES ".
-            $this->makeInsertValuesComparisons($entity->guid, $name, $value).';',
+            $this->makeInsertValuesComparisons($guid, $name, $value).';',
           $etypeDirty
         );
-        $referenceValues = $this->makeInsertValuesReferences($entity->guid, $name, $svalue);
+        $referenceValues = $this->makeInsertValuesReferences($guid, $name, $svalue);
         if ($referenceValues) {
           $this->query(
             "INSERT INTO `{$this->prefix}references{$etype}` (`guid`, `name`, `reference`) VALUES {$referenceValues};",
@@ -1169,35 +1169,46 @@ class MySQLDriver implements DriverInterface {
         mysqli_free_result($result);
         return !isset($row[0]);
       },
-      function ($entity, $data, $sdata, $etype, $etypeDirty) use ($insertData) {
-        $this->query("INSERT INTO `{$this->prefix}guids` (`guid`) VALUES ({$entity->guid});");
-        $this->query("INSERT INTO `{$this->prefix}entities{$etype}` (`guid`, `tags`, `cdate`, `mdate`) VALUES ({$entity->guid}, ' ".mysqli_real_escape_string($this->link, implode(' ', array_diff($entity->tags, [''])))." ', ".((float) $entity->cdate).", ".((float) $entity->mdate).");", $etypeDirty);
-        $insertData($entity, $data, $sdata, $etype, $etypeDirty);
+      function ($entity, $guid, $tags, $data, $sdata, $cdate, $etype, $etypeDirty) use ($insertData) {
+        $this->query("INSERT INTO `{$this->prefix}guids` (`guid`) VALUES ({$guid});");
+        $this->query("INSERT INTO `{$this->prefix}entities{$etype}` (`guid`, `tags`, `cdate`, `mdate`) VALUES ({$guid}, ' ".mysqli_real_escape_string($this->link, implode(' ', $tags))." ', ".((float) $cdate).", ".((float) $cdate).");", $etypeDirty);
+        $insertData($guid, $data, $sdata, $etype, $etypeDirty);
+        return true;
       },
-      function ($entity, $data, $sdata, $etype, $etypeDirty) use ($insertData) {
+      function ($entity, $guid, $tags, $data, $sdata, $mdate, $etype, $etypeDirty) use ($insertData) {
         if ($this->config['MySQL']['row_locking']) {
-          $this->query("SELECT 1 FROM `{$this->prefix}entities{$etype}` WHERE `guid`='".((int) $entity->guid)."' GROUP BY 1 FOR UPDATE;");
-          $this->query("SELECT 1 FROM `{$this->prefix}data{$etype}` WHERE `guid`='".((int) $entity->guid)."' GROUP BY 1 FOR UPDATE;");
-          $this->query("SELECT 1 FROM `{$this->prefix}comparisons{$etype}` WHERE `guid`='".((int) $entity->guid)."' GROUP BY 1 FOR UPDATE;");
-          $this->query("SELECT 1 FROM `{$this->prefix}references{$etype}` WHERE `guid`='".((int) $entity->guid)."' GROUP BY 1 FOR UPDATE;");
+          $this->query("SELECT 1 FROM `{$this->prefix}entities{$etype}` WHERE `guid`='".((int) $guid)."' GROUP BY 1 FOR UPDATE;");
+          $this->query("SELECT 1 FROM `{$this->prefix}data{$etype}` WHERE `guid`='".((int) $guid)."' GROUP BY 1 FOR UPDATE;");
+          $this->query("SELECT 1 FROM `{$this->prefix}comparisons{$etype}` WHERE `guid`='".((int) $guid)."' GROUP BY 1 FOR UPDATE;");
+          $this->query("SELECT 1 FROM `{$this->prefix}references{$etype}` WHERE `guid`='".((int) $guid)."' GROUP BY 1 FOR UPDATE;");
         }
         if ($this->config['MySQL']['table_locking']) {
           $this->query("LOCK TABLES `{$this->prefix}entities{$etype}` WRITE, `{$this->prefix}data{$etype}` WRITE, `{$this->prefix}comparisons{$etype}` WRITE, `{$this->prefix}references{$etype}` WRITE;");
         }
-        $this->query("UPDATE `{$this->prefix}entities{$etype}` SET `tags`=' ".mysqli_real_escape_string($this->link, implode(' ', array_diff($entity->tags, [''])))." ', `mdate`=".((float) $entity->mdate)." WHERE `guid`='".((int) $entity->guid)."';", $etypeDirty);
-        $this->query("DELETE FROM `{$this->prefix}data{$etype}` WHERE `guid`='".((int) $entity->guid)."';");
-        $this->query("DELETE FROM `{$this->prefix}comparisons{$etype}` WHERE `guid`='".((int) $entity->guid)."';");
-        $this->query("DELETE FROM `{$this->prefix}references{$etype}` WHERE `guid`='".((int) $entity->guid)."';");
-        $insertData($entity, $data, $sdata, $etype, $etypeDirty);
+        $this->query("UPDATE `{$this->prefix}entities{$etype}` SET `tags`=' ".mysqli_real_escape_string($this->link, implode(' ', $tags))." ', `mdate`=".((float) $mdate)." WHERE `guid`='".((int) $guid)."' AND abs(`mdate` - ".((float) $entity->mdate).") < 0.001;", $etypeDirty);
+        $changed = mysqli_affected_rows($this->link);
+        $success = false;
+        if ($changed === 1) {
+          $this->query("DELETE FROM `{$this->prefix}data{$etype}` WHERE `guid`='".((int) $guid)."';");
+          $this->query("DELETE FROM `{$this->prefix}comparisons{$etype}` WHERE `guid`='".((int) $guid)."';");
+          $this->query("DELETE FROM `{$this->prefix}references{$etype}` WHERE `guid`='".((int) $guid)."';");
+          $insertData($guid, $data, $sdata, $etype, $etypeDirty);
+          $success = true;
+        }
         if ($this->config['MySQL']['table_locking']) {
           $this->query("UNLOCK TABLES;");
         }
+        return $success;
       },
       $this->config['MySQL']['transactions'] ? function () {
         $this->query("BEGIN;");
       } : null,
-      $this->config['MySQL']['transactions'] ? function () {
-        $this->query("COMMIT;");
+      $this->config['MySQL']['transactions'] ? function ($success) {
+        if ($success) {
+          $this->query("COMMIT;");
+        } else {
+          $this->query("ROLLBACK;");
+        }
       } : null
     );
   }
