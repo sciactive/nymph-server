@@ -724,8 +724,8 @@ trait DriverTrait {
               if ($this->config['cache']) {
                 $this->pushCache(
                   $guid,
-                  $data['cdate'],
-                  $data['mdate'],
+                  $entity->cdate,
+                  $entity->mdate,
                   $tags,
                   $data,
                   $sdata
