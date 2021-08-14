@@ -4,6 +4,10 @@
 
 Powerful object data storage and querying for collaborative web apps.
 
+## Deprecation Notice
+
+The PHP implementation of Nymph/Tilmeld has been deprecated. It will no longer have any new features added. Instead, a new version of Nymph running on Node.js, written entirely in TypeScript will replace the PHP implementation. You can find it over at the [Nymph.js repo](https://github.com/sciactive/nymphjs).
+
 ## Installation
 
 ### Automatic Setup
@@ -22,9 +26,9 @@ This repository is the PHP ORM and REST server. For more information, you can se
 
 For detailed docs, check out the wiki:
 
-* [Entity Class](https://github.com/sciactive/nymph/wiki/Entity-Class)
-* [Entity Querying](https://github.com/sciactive/nymph/wiki/Entity-Querying)
-* [Extending the Entity Class](https://github.com/sciactive/nymph/wiki/Extending-the-Entity-Class)
+- [Entity Class](https://github.com/sciactive/nymph/wiki/Entity-Class)
+- [Entity Querying](https://github.com/sciactive/nymph/wiki/Entity-Querying)
+- [Extending the Entity Class](https://github.com/sciactive/nymph/wiki/Extending-the-Entity-Class)
 
 Here's an overview:
 
